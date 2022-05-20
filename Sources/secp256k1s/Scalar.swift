@@ -68,9 +68,12 @@ public struct Secpt256k1Scalar {
         }
         let takeUpperHalf = overflow | (1 - t)
         assert(takeUpperHalf == 1 || takeUpperHalf == 0)
+        let upperMask = takeUpperHalf * Secpt256k1Scalar.wordMask
+        let lowerMask = (1 - takeUpperHalf) * Secpt256k1Scalar.wordMask
+        
         for i in 0..<Secpt256k1Scalar.wordWidth {
-            d[i] = takeUpperHalf * (d[i] >> Secpt256k1Scalar.wordBitWidth) | (1 - takeUpperHalf)*(d[i] & Secpt256k1Scalar.wordMask)
-            assert(d[i] >> Secpt256k1Scalar.wordBitWidth == 0 )
+            d[i] = (upperMask & (d[i] >> Secpt256k1Scalar.wordBitWidth)) | (lowerMask  & d[i])
+            assert(d[i] >> Secpt256k1Scalar.wordBitWidth == 0)
         }
     }
     
