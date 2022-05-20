@@ -21,6 +21,9 @@ let package = Package(
         .target(
             name: "secp256k1s",
             dependencies: []),
+        .target(
+            name: "bench",
+            dependencies: ["secp256k1s"]),
         .testTarget(
             name: "secp256k1sTests",
             dependencies: ["secp256k1s"]),
