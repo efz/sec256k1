@@ -59,18 +59,16 @@ public struct Secpt256k1Scalar {
     }
     
     mutating func reduce() {
-        guard overflow > 0 || checkOverflow() > 0 else {
-            return
-        }
-        var t : UInt64 = 0
+        let anyOverflow : UInt64 = overflow | checkOverflow();
+        var t : UInt64 = anyOverflow
+        assert(t <= 1)
         for i in 0..<Secpt256k1Scalar.wordWidth {
-            //let carry : UInt64 = (d[i] < (Secpt256k1Scalar.p[i] + t)) ? 1 : 0
-            //t =  carry * Secpt256k1Scalar.wordHighBitSet + d[i] - Secpt256k1Scalar.p[i] - t
-            let tmp : UInt64 = d[i] &- (Secpt256k1Scalar.p[i] + t)
-            t = (tmp >> UInt32.bitWidth) & 1
-            d[i] = tmp & Secpt256k1Scalar.wordMask + t * Secpt256k1Scalar.wordHighBitSet
+            let tmp : UInt64 = (Secpt256k1Scalar.wordHighBitSet | d[i]) - (anyOverflow * Secpt256k1Scalar.p[i] + t)
+            t = (tmp >> UInt32.bitWidth) ^ 1
+            d[i] = tmp & Secpt256k1Scalar.wordMask
         }
-        assert(overflow ^ t == 0)
+        assert(anyOverflow ^ t == 0)
+        overflow = 0
     }
     
     public mutating func add(_ y : Secpt256k1Scalar) {
