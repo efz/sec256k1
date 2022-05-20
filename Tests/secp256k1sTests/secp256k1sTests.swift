@@ -23,7 +23,7 @@ final class secp256k1sTests: XCTestCase {
                 UInt32.random(in: UInt32.min..<UInt32.max)
             }
             s = Secpt256k1Scalar(words: words)
-        } while s.overflow > 0 || s.isZero()
+        } while s.checkOverflow() || s.isZero()
         return s
     }
     

@@ -1,12 +1,8 @@
 public struct Secpt256k1Scalar {
     var d : [UInt64]
-    var overflow: UInt64 = 0
-    
-    public var isOverflow : Bool {
-        return overflow > 0
-    }
     
     static let wordWidth = 8
+    static let wordBitWidth = UInt32.bitWidth
     
     static let p : [UInt64] = [0xD0364141, 0xBFD25E8C, 0xAF48A03B, 0xBAAEDCE6, 0xFFFFFFFE, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF]
     public static var prime : Secpt256k1Scalar {
@@ -52,7 +48,7 @@ public struct Secpt256k1Scalar {
         reduce()
     }
     
-    mutating func checkOverflow() -> UInt64 {
+    public func checkOverflow() -> Bool {
         var strictOverflow = false
         var equals = true
         
@@ -60,32 +56,34 @@ public struct Secpt256k1Scalar {
             strictOverflow = (d[i] > Secpt256k1Scalar.p[i] && equals) || strictOverflow
             equals = d[i] == Secpt256k1Scalar.p[i] && equals
         }
-        overflow = strictOverflow || equals ? 1 : 0
-        return overflow
+        return strictOverflow || equals
     }
     
-    mutating func reduce() {
-        let anyOverflow : UInt64 = overflow | checkOverflow();
+    mutating func reduce(overflow : UInt64 = 0) {
         var t : UInt64 = 0
-        assert(t <= 1)
         for i in 0..<Secpt256k1Scalar.wordWidth {
-            let tmp : UInt64 = (Secpt256k1Scalar.wordHighBitSet | d[i]) - (anyOverflow * Secpt256k1Scalar.p[i] + t)
-            t = (tmp >> UInt32.bitWidth) ^ 1
-            d[i] = tmp & Secpt256k1Scalar.wordMask
+            let tmp : UInt64 = (Secpt256k1Scalar.wordHighBitSet | d[i]) - Secpt256k1Scalar.p[i] - t
+            t = (tmp >> Secpt256k1Scalar.wordBitWidth) ^ 1
+            d[i] = (d[i] & Secpt256k1Scalar.wordMask) | (tmp << Secpt256k1Scalar.wordBitWidth)
         }
-        overflow = 0
+        let takeUpperHalf = overflow | (1 - t)
+        assert(takeUpperHalf == 1 || takeUpperHalf == 0)
+        for i in 0..<Secpt256k1Scalar.wordWidth {
+            d[i] = takeUpperHalf * (d[i] >> Secpt256k1Scalar.wordBitWidth) | (1 - takeUpperHalf)*(d[i] & Secpt256k1Scalar.wordMask)
+            assert(d[i] >> Secpt256k1Scalar.wordBitWidth == 0 )
+        }
     }
     
     public mutating func add(_ y : Secpt256k1Scalar) {
+        assert(!checkOverflow())
         var t : UInt64 = 0
         for i in 0..<Secpt256k1Scalar.wordWidth {
             t = d[i] + y.d[i] + t
             d[i] = t & Secpt256k1Scalar.wordMask
-            t = t >> UInt32.bitWidth
+            t = t >> Secpt256k1Scalar.wordBitWidth
         }
         assert(t <= 1)
-        overflow = overflow | t
-        reduce()
+        reduce(overflow: t)
     }
     
     public static func add(_ x : Secpt256k1Scalar, _ y : Secpt256k1Scalar) -> Secpt256k1Scalar {
@@ -107,7 +105,7 @@ public struct Secpt256k1Scalar {
     }
     
     public func getBytes() -> [UInt8] {
-        assert(overflow == 0)
+        assert(!checkOverflow())
         let b: [UInt8] = (0..<32).reversed().map { ($0 / 4, $0 % 4) }.map { idx in
             let word = d[idx.0]
             let byte : UInt8 = UInt8((word >> (idx.1 * 8)) & UInt64(UInt8.max))
@@ -117,8 +115,8 @@ public struct Secpt256k1Scalar {
     }
     
     public func getBits(offset : Int, count : Int) -> UInt32 {
-        assert(offset + count <= UInt32.bitWidth * Secpt256k1Scalar.wordWidth)
-        assert(count < UInt32.bitWidth)
+        assert(offset + count <= Secpt256k1Scalar.wordBitWidth * Secpt256k1Scalar.wordWidth)
+        assert(count < Secpt256k1Scalar.wordBitWidth)
         if offset >> 5 == (count + offset - 1) >> 5 {
             return UInt32((d[offset >> 5] >> (offset & 0x1F)) & ((1 << count) - 1))
         } else {
