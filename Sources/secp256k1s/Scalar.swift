@@ -7,7 +7,13 @@ public struct Secpt256k1Scalar {
     }
     
     static let wordWidth = 8
+    
     static let p : [UInt64] = [0xD0364141, 0xBFD25E8C, 0xAF48A03B, 0xBAAEDCE6, 0xFFFFFFFE, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF]
+    public static var prime : Secpt256k1Scalar {
+        let p32 = p.map { UInt32($0) }
+        return Secpt256k1Scalar(words: p32)
+    }
+    
     static let wordHighBitSet = UInt64(1 << UInt32.bitWidth)
     static let wordMask = UInt64(UInt32.max)
     
@@ -60,14 +66,13 @@ public struct Secpt256k1Scalar {
     
     mutating func reduce() {
         let anyOverflow : UInt64 = overflow | checkOverflow();
-        var t : UInt64 = anyOverflow
+        var t : UInt64 = 0
         assert(t <= 1)
         for i in 0..<Secpt256k1Scalar.wordWidth {
             let tmp : UInt64 = (Secpt256k1Scalar.wordHighBitSet | d[i]) - (anyOverflow * Secpt256k1Scalar.p[i] + t)
             t = (tmp >> UInt32.bitWidth) ^ 1
             d[i] = tmp & Secpt256k1Scalar.wordMask
         }
-        assert(anyOverflow ^ t == 0)
         overflow = 0
     }
     

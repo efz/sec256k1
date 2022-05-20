@@ -94,6 +94,17 @@ final class secp256k1sTests: XCTestCase {
             let r3 = s + v0
             XCTAssertEqual(r3, s)
         }();
+        
+        /* Test p. */
+        {
+            let p = Secpt256k1Scalar.prime
+            let v0 = Secpt256k1Scalar(int: 0)
+            XCTAssertEqual(p, v0)
+            
+            let pPlus1 : [UInt32] = [0xD0364142, 0xBFD25E8C, 0xAF48A03B, 0xBAAEDCE6, 0xFFFFFFFE, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF]
+            let p1 = Secpt256k1Scalar(words: pPlus1)
+            XCTAssertTrue(p1.isOne())
+        }();
     }
     
     func testRandScalar() {
