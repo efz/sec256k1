@@ -105,6 +105,21 @@ final class secp256k1sTests: XCTestCase {
             let p1 = Secpt256k1Scalar(words: pPlus1)
             XCTAssertTrue(p1.isOne())
         }();
+        
+        /* Test negate. */
+        {
+            var r1 = s
+            r1.negate()
+            let r2 = r1 + s
+            XCTAssertTrue(r2.isZero())
+            
+            let r3 = r2 - r1
+            XCTAssertEqual(r3, s)
+            
+            let z = Secpt256k1Scalar()
+            let r4 = z - s
+            XCTAssertEqual(r4, r1)
+        }();
     }
     
     func testRandScalar() {

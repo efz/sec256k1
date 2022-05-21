@@ -24,6 +24,27 @@ let init_y : [UInt8] = [
 
 let count = 200000
 
+func randScalar() -> Secpt256k1Scalar {
+    var s: Secpt256k1Scalar
+    repeat {
+        let words: [UInt32] = (0..<8).map { _ in
+            UInt32.random(in: UInt32.min..<UInt32.max)
+        }
+        s = Secpt256k1Scalar(words: words)
+    } while s.checkOverflow() || s.isZero()
+    return s
+}
+
+func bench_random_scalar_add() {
+    var scalar_x = randScalar()
+    let scalar_y = randScalar()
+    
+    for _ in 0..<count {
+        scalar_x.add(scalar_y)
+    }
+}
+
+
 func bench_scalar_add() {
     var scalar_x = Secpt256k1Scalar(bytes: init_x)
     let scalar_y = Secpt256k1Scalar(bytes: init_y)
@@ -33,16 +54,11 @@ func bench_scalar_add() {
     }
 }
 
-func runBenchmark(benchFunc: () -> Void, coun: Int) {
-    print("** Benchmark starting...\n")
+func runBenchmark(name: String, benchFunc: () -> Void, coun: Int) {
+    print("** \(name) benchmark starting...")
     var minElapsed: Double = Double(Int.max)
     var maxElapsed: Double = 0
     var totalElapsed: Double = 0
-    
-    // warmup
-    for _ in 0..<5 {
-        benchFunc()
-    }
     
     let iters = 10
     for _ in 0..<iters {
@@ -58,4 +74,10 @@ func runBenchmark(benchFunc: () -> Void, coun: Int) {
     print("Elapsed time min: \(minElapsed)us, ave: \(averageElaped)us, max: \(maxElapsed)us ")
 }
 
-runBenchmark(benchFunc: bench_scalar_add, coun: count)
+// warmup
+for _ in 0..<5 {
+    bench_scalar_add()
+}
+
+runBenchmark(name: "Scalar Add", benchFunc: bench_scalar_add, coun: count)
+runBenchmark(name: "Random Scalar Add", benchFunc: bench_random_scalar_add, coun: count)

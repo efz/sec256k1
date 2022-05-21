@@ -109,6 +109,10 @@ public struct Secpt256k1Scalar {
         return d[0] ^ 1 | d[1..<Secpt256k1Scalar.wordWidth].reduce(0) { $0 | $1 } == 0
     }
     
+    public func isEven() -> Bool {
+        return d[0] == 0
+    }
+    
     public func getBytes() -> [UInt8] {
         assert(!checkOverflow())
         let b: [UInt8] = (0..<32).reversed().map { ($0 / 4, $0 % 4) }.map { idx in
@@ -130,6 +134,34 @@ public struct Secpt256k1Scalar {
             let secondHalf = UInt32((d[(offset >> 5) + 1] << (32 - (offset & 0x1F)) & Secpt256k1Scalar.wordMask))
             return (firstHalf | secondHalf) & ((1 << count) - 1)
         }
+    }
+    
+    public mutating func clear() {
+        (0..<Secpt256k1Scalar.wordWidth).forEach() { d[$0] = 0 }
+    }
+    
+    public mutating func negate() {
+        assert(!checkOverflow())
+        var carry : UInt64 = 0
+        for i in 0..<Secpt256k1Scalar.wordWidth {
+            d[i] = (Secpt256k1Scalar.overflowBitSet | Secpt256k1Scalar.p[i]) - d[i] - carry
+            carry = (d[i] >> Secpt256k1Scalar.wordBitWidth) ^ 1
+            d[i] = d[i] & Secpt256k1Scalar.wordMask
+        }
+        assert(carry == 0)
+        assert(!checkOverflow())
+    }
+    
+    public static func substract(_ x : Secpt256k1Scalar, _ y : Secpt256k1Scalar) -> Secpt256k1Scalar {
+        var r1 = Secpt256k1Scalar.init(scalar: x)
+        var r2 = Secpt256k1Scalar.init(scalar: y)
+        r2.negate()
+        r1.add(r2)
+        return r2
+    }
+    
+    public static func -(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {
+        return Secpt256k1Scalar.substract(x, y)
     }
 }
 
