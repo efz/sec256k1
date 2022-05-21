@@ -10,7 +10,7 @@ public struct Secpt256k1Scalar {
         return Secpt256k1Scalar(words: p32)
     }
     
-    static let wordHighBitSet = UInt64(1 << UInt32.bitWidth)
+    static let overflowBitSet = UInt64(1 << UInt32.bitWidth)
     static let wordMask = UInt64(UInt32.max)
     
     public init() {
@@ -62,7 +62,7 @@ public struct Secpt256k1Scalar {
     mutating func reduce(overflow : UInt64 = 0) {
         var t : UInt64 = 0
         for i in 0..<Secpt256k1Scalar.wordWidth {
-            let tmp : UInt64 = (Secpt256k1Scalar.wordHighBitSet | d[i]) - Secpt256k1Scalar.p[i] - t
+            let tmp : UInt64 = (Secpt256k1Scalar.overflowBitSet | d[i]) - Secpt256k1Scalar.p[i] - t
             t = (tmp >> Secpt256k1Scalar.wordBitWidth) ^ 1
             d[i] = (d[i] & Secpt256k1Scalar.wordMask) | (tmp << Secpt256k1Scalar.wordBitWidth)
         }
@@ -77,9 +77,11 @@ public struct Secpt256k1Scalar {
         }
     }
     
-    public mutating func add(_ y : Secpt256k1Scalar) {
+    public mutating func add(_ y : Secpt256k1Scalar, carry: UInt64 = 0) {
         assert(!checkOverflow())
-        var t : UInt64 = 0
+        assert(!y.checkOverflow())
+        
+        var t : UInt64 = carry
         for i in 0..<Secpt256k1Scalar.wordWidth {
             t = d[i] + y.d[i] + t
             d[i] = t & Secpt256k1Scalar.wordMask

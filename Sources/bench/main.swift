@@ -34,9 +34,15 @@ func bench_scalar_add() {
 }
 
 func runBenchmark(benchFunc: () -> Void, coun: Int) {
+    print("** Benchmark starting...\n")
     var minElapsed: Double = Double(Int.max)
     var maxElapsed: Double = 0
     var totalElapsed: Double = 0
+    
+    // warmup
+    for _ in 0..<5 {
+        benchFunc()
+    }
     
     let iters = 10
     for _ in 0..<iters {
