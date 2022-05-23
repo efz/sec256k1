@@ -61,6 +61,15 @@ func bench_scalar_negate() {
     }
 }
 
+func bench_scalar_mul() {
+    var scalar_x = Secpt256k1Scalar(bytes: init_x)
+    let scalar_y = Secpt256k1Scalar(bytes: init_y)
+    
+    for _ in 0..<count {
+        scalar_x.mul(scalar_y)
+    }
+}
+
 func runBenchmark(name: String, benchFunc: () -> Void, coun: Int) {
     print("** \(name) benchmark starting...")
     var minElapsed: Double = Double(Int.max)
@@ -89,3 +98,4 @@ for _ in 0..<5 {
 runBenchmark(name: "Scalar Add", benchFunc: bench_scalar_add, coun: count)
 runBenchmark(name: "Random Scalar Add", benchFunc: bench_random_scalar_add, coun: count)
 runBenchmark(name: "Scalar Negate", benchFunc: bench_scalar_negate, coun: count)
+runBenchmark(name: "Scalar Mul", benchFunc: bench_scalar_mul, coun: count)

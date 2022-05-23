@@ -239,13 +239,14 @@ public struct Secpt256k1Scalar {
             
             bit -= Int(need2ClearAgain ^ 1)
         }
+        assert(tmpd[Secpt256k1Scalar.wordWidth..<(Secpt256k1Scalar.wordWidth * 2 + 1)].reduce(0) { $0 + $1 } == 0)
         
         for i in 0..<Secpt256k1Scalar.wordWidth {
             d[i] = tmpd[i] & Secpt256k1Scalar.wordMask
             assert(tmpd[i] >> Secpt256k1Scalar.wordBitWidth == 0)
         }
         let overflow: UInt64 = tmpd[Secpt256k1Scalar.wordWidth - 1] >> Secpt256k1Scalar.wordBitWidth
-                                
+        
         assert(overflow <= 1)
         reduce(overflow: overflow)
         assert(!checkOverflow())
