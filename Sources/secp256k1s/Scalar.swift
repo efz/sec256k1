@@ -5,6 +5,7 @@ public struct Secpt256k1Scalar {
     static let wordBitWidth = UInt32.bitWidth
     
     static let p : [UInt64] = [0xD0364141, 0xBFD25E8C, 0xAF48A03B, 0xBAAEDCE6, 0xFFFFFFFE, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF]
+    
     public static var prime : Secpt256k1Scalar {
         let p32 = p.map { UInt32($0) }
         return Secpt256k1Scalar(words: p32)
@@ -162,6 +163,102 @@ public struct Secpt256k1Scalar {
     
     public static func -(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {
         return Secpt256k1Scalar.substract(x, y)
+    }
+    
+    static func subPfrom512bits(start: Int, bits512: inout [UInt64]) {
+        let shift = start & 0x1F
+        var bitsIdx = start >> 5
+        var pIdx = 0
+        var t : UInt64 = 0
+        
+        t = (Secpt256k1Scalar.overflowBitSet | bits512[bitsIdx]) - (Secpt256k1Scalar.p[pIdx] << shift) & Secpt256k1Scalar.wordMask - t
+        bits512[bitsIdx] = t & Secpt256k1Scalar.wordMask
+        t = (t >> Secpt256k1Scalar.wordBitWidth) ^ 1
+        assert(t <= 1)
+        
+        repeat {
+            pIdx += 1
+            bitsIdx += 1
+            
+            t = (Secpt256k1Scalar.overflowBitSet | bits512[bitsIdx]) - (Secpt256k1Scalar.p[pIdx] << shift | Secpt256k1Scalar.p[pIdx - 1] >> (Secpt256k1Scalar.wordBitWidth - shift)) & Secpt256k1Scalar.wordMask - t
+            bits512[bitsIdx] = t & Secpt256k1Scalar.wordMask
+            t = (t >> Secpt256k1Scalar.wordBitWidth) ^ 1
+            assert(t <= 1)
+            
+        } while pIdx < Secpt256k1Scalar.wordWidth - 1
+        
+        pIdx += 1
+        bitsIdx += 1
+        
+        t = (Secpt256k1Scalar.overflowBitSet | bits512[bitsIdx]) - Secpt256k1Scalar.p[pIdx - 1] >> (Secpt256k1Scalar.wordBitWidth - shift) - t
+        bits512[bitsIdx] = t & Secpt256k1Scalar.wordMask
+        t = (t >> Secpt256k1Scalar.wordBitWidth) ^ 1
+        assert(t == 0)
+    }
+    
+    public mutating func mul(_ y : Secpt256k1Scalar) {
+        assert(!checkOverflow())
+        assert(!y.checkOverflow())
+        
+        var tmpd: [UInt64] = Array.init(repeating: 0, count: Secpt256k1Scalar.wordWidth * 2 + 1)
+        var t : UInt64 = 0
+        var t2: UInt64 = 0
+        for idxSum in 0..<(Secpt256k1Scalar.wordWidth * 2) {
+            for i in Swift.max(0, idxSum - Secpt256k1Scalar.wordWidth + 1)..<Swift.min(idxSum+1, Secpt256k1Scalar.wordWidth) {
+                //print("idxsum: \(idxSum), i: \(i)")
+                let mulVal = d[i] * y.d[idxSum - i]
+                t += mulVal
+                t2 += t >> Secpt256k1Scalar.wordBitWidth
+                t = t & Secpt256k1Scalar.wordMask
+            }
+            assert(t >> Secpt256k1Scalar.wordBitWidth == 0)
+            tmpd[idxSum] = t & Secpt256k1Scalar.wordMask
+            t2 += t >> Secpt256k1Scalar.wordBitWidth
+            t = t2 & Secpt256k1Scalar.wordMask
+            t2 = t2 >> Secpt256k1Scalar.wordBitWidth
+        }
+        assert(t >> Secpt256k1Scalar.wordBitWidth == 0)
+        assert(t2 == 0)
+        tmpd[Secpt256k1Scalar.wordWidth * 2] = t
+        
+        var bit = (Secpt256k1Scalar.wordWidth * 2 + 1) * Secpt256k1Scalar.wordBitWidth - 1
+        while bit > 255 {
+            let wordIdx = bit >> 5
+            let wordBitIdx = bit & 0x1F
+            
+            let need2Clear = (tmpd[wordIdx] & (1 << wordBitIdx)) >> wordBitIdx
+            let subStartBit = bit - 1 - 256 + 1
+            
+            assert(need2Clear <= 1)
+            if need2Clear > 0 {
+                Secpt256k1Scalar.subPfrom512bits(start: subStartBit, bits512: &tmpd)
+            }
+            
+            let need2ClearAgain = (tmpd[wordIdx] & (1 << wordBitIdx)) >> wordBitIdx
+            assert(need2ClearAgain <= 1)
+            
+            bit -= Int(need2ClearAgain ^ 1)
+        }
+        
+        for i in 0..<Secpt256k1Scalar.wordWidth {
+            d[i] = tmpd[i] & Secpt256k1Scalar.wordMask
+            assert(tmpd[i] >> Secpt256k1Scalar.wordBitWidth == 0)
+        }
+        let overflow: UInt64 = tmpd[Secpt256k1Scalar.wordWidth - 1] >> Secpt256k1Scalar.wordBitWidth
+                                
+        assert(overflow <= 1)
+        reduce(overflow: overflow)
+        assert(!checkOverflow())
+    }
+    
+    public static func mul(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {
+        var r = x
+        r.mul(y)
+        return r
+    }
+    
+    public static func *(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {
+        return Secpt256k1Scalar.mul(x: x, y: y)
     }
 }
 

@@ -120,6 +120,41 @@ final class secp256k1sTests: XCTestCase {
             let r4 = z - s
             XCTAssertEqual(r4, r1)
         }();
+        
+        /* Test mul. */
+        {
+            var r1 = s
+            let one = Secpt256k1Scalar(int: 1)
+            r1.mul(one)
+            XCTAssertEqual(r1, s)
+            
+            let z = Secpt256k1Scalar()
+            r1.mul(z)
+            XCTAssertTrue(r1.isZero())
+            
+            let v = s
+            let v2 = v + v
+            let two = Secpt256k1Scalar(int: 2)
+            var v2o = s
+            v2o.mul(two)
+            XCTAssertEqual(v2o, v2)
+        }();
+        
+        /* Test commutativity of mul. */
+        {
+            let r1 = s1 * s2
+            let r2 = s2 * s1
+            XCTAssertEqual(r1, r2)
+        }();
+        
+        /* Test associativity of mul. */
+        {
+            var r1 = s1 * s2
+            r1 = r1 * s
+            var r2 = s * s1
+            r2 = s2 * r2
+            XCTAssertEqual(r1, r2)
+        }();
     }
     
     func testRandScalar() {
