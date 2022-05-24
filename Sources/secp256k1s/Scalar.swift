@@ -2,9 +2,12 @@ public struct Secpt256k1Scalar {
     var d : [UInt64]
     
     static let wordWidth = 8
+    static let word64Width = 4
     static let wordBitWidth = UInt32.bitWidth
+    static let word64BitWidth = UInt64.bitWidth
     
     static let p : [UInt64] = [0xD0364141, 0xBFD25E8C, 0xAF48A03B, 0xBAAEDCE6, 0xFFFFFFFE, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF]
+    static let pPacked : [UInt64] = [0xBFD25E8CD0364141, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF]
     
     public static var prime : Secpt256k1Scalar {
         let p32 = p.map { UInt32($0) }
@@ -166,33 +169,33 @@ public struct Secpt256k1Scalar {
     }
     
     static func subPfrom512bits(start: Int, bits512: inout [UInt64]) {
-        let shift = start & 0x1F
-        var bitsIdx = start >> 5
+        let shift = start & 0x3F
+        var bitsIdx = start >> 6
         var pIdx = 0
         var t : UInt64 = 0
+        var overflow = false
         
-        t = (Secpt256k1Scalar.overflowBitSet | bits512[bitsIdx]) - (Secpt256k1Scalar.p[pIdx] << shift) & Secpt256k1Scalar.wordMask - t
-        bits512[bitsIdx] = t & Secpt256k1Scalar.wordMask
-        t = (t >> Secpt256k1Scalar.wordBitWidth) ^ 1
-        assert(t <= 1)
+        (bits512[bitsIdx], overflow) = bits512[bitsIdx].subtractingReportingOverflow(Secpt256k1Scalar.pPacked[pIdx] << shift)
+        t = overflow ? 1 : 0
         
         repeat {
             pIdx += 1
             bitsIdx += 1
             
-            t = (Secpt256k1Scalar.overflowBitSet | bits512[bitsIdx]) - (Secpt256k1Scalar.p[pIdx] << shift | Secpt256k1Scalar.p[pIdx - 1] >> (Secpt256k1Scalar.wordBitWidth - shift)) & Secpt256k1Scalar.wordMask - t
-            bits512[bitsIdx] = t & Secpt256k1Scalar.wordMask
-            t = (t >> Secpt256k1Scalar.wordBitWidth) ^ 1
-            assert(t <= 1)
-            
-        } while pIdx < Secpt256k1Scalar.wordWidth - 1
+            (bits512[bitsIdx], overflow) = bits512[bitsIdx].subtractingReportingOverflow(t)
+            t = overflow ? 1 : 0
+            (bits512[bitsIdx], overflow) = bits512[bitsIdx].subtractingReportingOverflow(
+                (Secpt256k1Scalar.pPacked[pIdx] << shift) | (Secpt256k1Scalar.pPacked[pIdx - 1] >> (Secpt256k1Scalar.word64BitWidth - shift)))
+            t += overflow ? 1 : 0
+        } while pIdx < Secpt256k1Scalar.word64Width - 1
         
         pIdx += 1
         bitsIdx += 1
         
-        t = (Secpt256k1Scalar.overflowBitSet | bits512[bitsIdx]) - Secpt256k1Scalar.p[pIdx - 1] >> (Secpt256k1Scalar.wordBitWidth - shift) - t
-        bits512[bitsIdx] = t & Secpt256k1Scalar.wordMask
-        t = (t >> Secpt256k1Scalar.wordBitWidth) ^ 1
+        (bits512[bitsIdx], overflow) = bits512[bitsIdx].subtractingReportingOverflow(t)
+        t = overflow ? 1 : 0
+        (bits512[bitsIdx], overflow) = bits512[bitsIdx].subtractingReportingOverflow(Secpt256k1Scalar.pPacked[pIdx - 1] >> (Secpt256k1Scalar.word64BitWidth - shift))
+        t += overflow ? 1 : 0
         assert(t == 0)
     }
     
@@ -212,40 +215,37 @@ public struct Secpt256k1Scalar {
                 t = t & Secpt256k1Scalar.wordMask
             }
             assert(t >> Secpt256k1Scalar.wordBitWidth == 0)
-            tmpd[idxSum] = t & Secpt256k1Scalar.wordMask
+            tmpd[idxSum>>1] = tmpd[idxSum>>1] | (((t & Secpt256k1Scalar.wordMask) << (Secpt256k1Scalar.wordBitWidth * (idxSum & 1))))
             t2 += t >> Secpt256k1Scalar.wordBitWidth
             t = t2 & Secpt256k1Scalar.wordMask
             t2 = t2 >> Secpt256k1Scalar.wordBitWidth
         }
         assert(t >> Secpt256k1Scalar.wordBitWidth == 0)
         assert(t2 == 0)
-        tmpd[Secpt256k1Scalar.wordWidth * 2] = t
+        tmpd[Secpt256k1Scalar.wordWidth] = t
         
-        var bit = (Secpt256k1Scalar.wordWidth * 2 + 1) * Secpt256k1Scalar.wordBitWidth - 1
+        var bit = (Secpt256k1Scalar.word64Width * 2 + 1) * Secpt256k1Scalar.word64BitWidth - 1
         while bit > 255 {
-            let wordIdx = bit >> 5
-            let wordBitIdx = bit & 0x1F
+            let wordIdx = bit >> 6
+            let wordBitIdx = bit & 0x3F
+    
+            var need2Clear = tmpd[wordIdx] & (1 << wordBitIdx)
             
-            let need2Clear = (tmpd[wordIdx] & (1 << wordBitIdx)) >> wordBitIdx
-            let subStartBit = bit - 1 - 256 + 1
-            
-            assert(need2Clear <= 1)
             if need2Clear > 0 {
+                let subStartBit = bit - 1 - 256 + 1
                 Secpt256k1Scalar.subPfrom512bits(start: subStartBit, bits512: &tmpd)
+                need2Clear = tmpd[wordIdx] & (1 << wordBitIdx)
             }
-            
-            let need2ClearAgain = (tmpd[wordIdx] & (1 << wordBitIdx)) >> wordBitIdx
-            assert(need2ClearAgain <= 1)
-            
-            bit -= Int(need2ClearAgain ^ 1)
+
+            bit -= (need2Clear > 0) ? 0 : 1
         }
-        assert(tmpd[Secpt256k1Scalar.wordWidth..<(Secpt256k1Scalar.wordWidth * 2 + 1)].reduce(0) { $0 + $1 } == 0)
+        //assert(tmpd[Secpt256k1Scalar.wordWidth..<(Secpt256k1Scalar.wordWidth * 2 + 1)].reduce(0) { $0 + $1 } == 0)
         
-        for i in 0..<Secpt256k1Scalar.wordWidth {
-            d[i] = tmpd[i] & Secpt256k1Scalar.wordMask
-            assert(tmpd[i] >> Secpt256k1Scalar.wordBitWidth == 0)
+        for i in 0..<(Secpt256k1Scalar.wordWidth) {
+            let shift = (i & 1) * Secpt256k1Scalar.wordBitWidth
+            d[i] = (tmpd[i>>1] >> shift) & Secpt256k1Scalar.wordMask
         }
-        let overflow: UInt64 = tmpd[Secpt256k1Scalar.wordWidth - 1] >> Secpt256k1Scalar.wordBitWidth
+        let overflow: UInt64 = tmpd[Secpt256k1Scalar.wordWidth]
         
         assert(overflow <= 1)
         reduce(overflow: overflow)

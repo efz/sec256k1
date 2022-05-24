@@ -155,6 +155,30 @@ final class secp256k1sTests: XCTestCase {
             r2 = s2 * r2
             XCTAssertEqual(r1, r2)
         }();
+        
+        /* Test distributitivity of mul over add. */
+        {
+            var r1 = s1 + s2
+            r1 = r1 * s
+            var r2 = s1 * s
+            let t = s2 * s
+            r2 = r2 + t
+            XCTAssertEqual(r1, r2)
+        }();
+
+        /* Test multiplicative identity. */
+        {
+            let v0 = Secpt256k1Scalar(int: 1)
+            let r1 = s1 * v0
+            XCTAssertEqual(r1, s1)
+        }();
+        
+        /* Test zero product property. */
+        {
+            let v0 = Secpt256k1Scalar(int: 0)
+            let r1 = s1 * v0
+            XCTAssertEqual(r1, v0)
+        }();
     }
     
     func testRandScalar() {
