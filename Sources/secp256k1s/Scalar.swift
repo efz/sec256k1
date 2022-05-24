@@ -206,40 +206,36 @@ public struct Secpt256k1Scalar {
         var tmpd: [UInt64] = Array.init(repeating: 0, count: Secpt256k1Scalar.wordWidth * 2 + 1)
         var t : UInt64 = 0
         var t2: UInt64 = 0
+        var mulOverflow = false
         for idxSum in 0..<(Secpt256k1Scalar.wordWidth * 2) {
             for i in Swift.max(0, idxSum - Secpt256k1Scalar.wordWidth + 1)..<Swift.min(idxSum+1, Secpt256k1Scalar.wordWidth) {
                 //print("idxsum: \(idxSum), i: \(i)")
                 let mulVal = d[i] * y.d[idxSum - i]
-                t += mulVal
-                t2 += t >> Secpt256k1Scalar.wordBitWidth
-                t = t & Secpt256k1Scalar.wordMask
+                (t, mulOverflow) = t.addingReportingOverflow(mulVal)
+                t2 += mulOverflow ? 1 : 0
             }
-            assert(t >> Secpt256k1Scalar.wordBitWidth == 0)
             tmpd[idxSum>>1] = tmpd[idxSum>>1] | (((t & Secpt256k1Scalar.wordMask) << (Secpt256k1Scalar.wordBitWidth * (idxSum & 1))))
-            t2 += t >> Secpt256k1Scalar.wordBitWidth
-            t = t2 & Secpt256k1Scalar.wordMask
+            t = t >> Secpt256k1Scalar.wordBitWidth | t2 << Secpt256k1Scalar.wordBitWidth
             t2 = t2 >> Secpt256k1Scalar.wordBitWidth
         }
-        assert(t >> Secpt256k1Scalar.wordBitWidth == 0)
         assert(t2 == 0)
         tmpd[Secpt256k1Scalar.wordWidth] = t
         
         var bit = (Secpt256k1Scalar.word64Width * 2 + 1) * Secpt256k1Scalar.word64BitWidth - 1
-        while bit > 255 {
+        while bit > Secpt256k1Scalar.word64Width * Secpt256k1Scalar.word64BitWidth - 1 {
             let wordIdx = bit >> 6
             let wordBitIdx = bit & 0x3F
     
             var need2Clear = tmpd[wordIdx] & (1 << wordBitIdx)
             
             if need2Clear > 0 {
-                let subStartBit = bit - 1 - 256 + 1
+                let subStartBit = bit - Secpt256k1Scalar.word64Width * Secpt256k1Scalar.word64BitWidth
                 Secpt256k1Scalar.subPfrom512bits(start: subStartBit, bits512: &tmpd)
                 need2Clear = tmpd[wordIdx] & (1 << wordBitIdx)
             }
 
             bit -= (need2Clear > 0) ? 0 : 1
         }
-        //assert(tmpd[Secpt256k1Scalar.wordWidth..<(Secpt256k1Scalar.wordWidth * 2 + 1)].reduce(0) { $0 + $1 } == 0)
         
         for i in 0..<(Secpt256k1Scalar.wordWidth) {
             let shift = (i & 1) * Secpt256k1Scalar.wordBitWidth
