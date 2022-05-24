@@ -146,6 +146,9 @@ public struct Secpt256k1Scalar {
     
     public mutating func negate() {
         assert(!checkOverflow())
+        guard !isZero() else {
+            return
+        }
         var carry : UInt64 = 0
         for i in 0..<Secpt256k1Scalar.wordWidth {
             d[i] = (Secpt256k1Scalar.overflowBitSet | Secpt256k1Scalar.p[i]) - d[i] - carry
@@ -153,7 +156,6 @@ public struct Secpt256k1Scalar {
             d[i] = d[i] & Secpt256k1Scalar.wordMask
         }
         assert(carry == 0)
-        assert(!checkOverflow())
     }
     
     public static func substract(_ x : Secpt256k1Scalar, _ y : Secpt256k1Scalar) -> Secpt256k1Scalar {
