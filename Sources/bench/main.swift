@@ -70,6 +70,16 @@ func bench_scalar_mul() {
     }
 }
 
+func bench_random_scalar_mul() {
+    var scalar_x = randScalar()
+    let scalar_y = randScalar()
+    
+    for _ in 0..<count {
+        scalar_x.mul(scalar_y)
+    }
+}
+
+
 func runBenchmark(name: String, benchFunc: () -> Void, coun: Int) {
     print("** \(name) benchmark starting...")
     var minElapsed: Double = Double(Int.max)
@@ -99,3 +109,4 @@ runBenchmark(name: "Scalar Add", benchFunc: bench_scalar_add, coun: count)
 runBenchmark(name: "Random Scalar Add", benchFunc: bench_random_scalar_add, coun: count)
 runBenchmark(name: "Scalar Negate", benchFunc: bench_scalar_negate, coun: count)
 runBenchmark(name: "Scalar Mul", benchFunc: bench_scalar_mul, coun: count)
+runBenchmark(name: "Random Scalar Mul", benchFunc: bench_random_scalar_mul, coun: count)
