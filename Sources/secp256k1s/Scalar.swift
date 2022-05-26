@@ -11,6 +11,7 @@ public struct Secpt256k1Scalar {
     static let p : [UInt64] = [0xD0364141, 0xBFD25E8C, 0xAF48A03B, 0xBAAEDCE6, 0xFFFFFFFE, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF]
     static let pPacked : [UInt64] = [0xBFD25E8CD0364141, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF]
     static let pCompPacked: [UInt64] = [~pPacked[0] + 1, ~pPacked[1], ~pPacked[2]]
+    static let pCompPackedLeadingZeros = 127
     
     public static var prime : Secpt256k1Scalar {
         let p32 = p.map { UInt32($0) }
@@ -223,17 +224,17 @@ public struct Secpt256k1Scalar {
     }
     
     static func reduceByPcomp(bits512: inout [UInt64]) {
-        let reductionPerRun =  Secpt256k1Scalar.word64Width - Secpt256k1Scalar.pCompPackedWord64Width
+        let reductionPerRun = Secpt256k1Scalar.pCompPackedLeadingZeros
         let reduceFromSize = Secpt256k1Scalar.word64Width * 2 + 1
         let reduceToSize = Secpt256k1Scalar.word64Width
-        let runs : Int = (reduceFromSize - reduceToSize + reductionPerRun - 1) / reductionPerRun
+        let runs : Int = (reduceFromSize * Secpt256k1Scalar.word64BitWidth - reduceToSize * Secpt256k1Scalar.word64BitWidth + reductionPerRun - 1) / reductionPerRun
         
         var tmpBits: [UInt64] = Array.init(repeating: 0, count: reduceFromSize - reduceToSize + Secpt256k1Scalar.pCompPackedWord64Width + 1)
         
         let mStart = reduceToSize
         var mEnd = reduceFromSize - 1
         
-        for _ in 0..<runs {
+        for r in 0..<runs {
             let mSize = mEnd - mStart + 1
             let rSize = mSize + Secpt256k1Scalar.pCompPackedWord64Width
             var t: UInt64 = 0
@@ -269,9 +270,8 @@ public struct Secpt256k1Scalar {
             }
             assert(t == 0)
             
-            mEnd -= 1
+            mEnd = (reduceFromSize - 1) - (reductionPerRun * (r + 1)) >> 6
         }
-        assert(mEnd == Secpt256k1Scalar.word64Width - 1)
     }
     
     static func mulArrays(_ x: [UInt64], _ y: [UInt64]) -> [UInt64] {
