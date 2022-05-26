@@ -232,7 +232,8 @@ public struct Secpt256k1Scalar {
         var tmpBits: [UInt64] = Array.init(repeating: 0, count: reduceFromSize - reduceToSize + Secpt256k1Scalar.pCompPackedWord64Width + 1)
         
         let mStart = reduceToSize
-        var mEnd = reduceFromSize - 1
+        let mEndAtStart = reduceFromSize - 1
+        var mEnd = mEndAtStart
         
         for r in 0..<runs {
             let mSize = mEnd - mStart + 1
@@ -258,19 +259,21 @@ public struct Secpt256k1Scalar {
             tmpBits[rSize] = t2
             (t, t2) = (0, 0)
             
-            for i in Secpt256k1Scalar.word64Width..<bits512.count {
-                bits512[i] = 0
-            }
-            
-            for i in 0..<(rSize+1) {
+            for i in 0..<Secpt256k1Scalar.word64Width {
                 (bits512[i], overflow) = bits512[i].addingReportingOverflow(t)
                 t = overflow ? 1 : 0
                 (bits512[i], overflow) = bits512[i].addingReportingOverflow(tmpBits[i])
                 t += overflow ? 1 : 0
             }
+            
+            for i in Secpt256k1Scalar.word64Width..<(rSize+1) {
+                (bits512[i], overflow) = tmpBits[i].addingReportingOverflow(t)
+                t = overflow ? 1 : 0
+            }
+            
             assert(t == 0)
             
-            mEnd = (reduceFromSize - 1) - (reductionPerRun * (r + 1)) >> 6
+            mEnd = mEndAtStart - (reductionPerRun * (r + 1)) >> 6
         }
     }
     
