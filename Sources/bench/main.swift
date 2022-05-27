@@ -79,6 +79,22 @@ func bench_random_scalar_mul() {
     }
 }
 
+func bench_scalar_sqr() {
+    var scalar_x = Secpt256k1Scalar(bytes: init_x)
+    
+    for _ in 0..<count {
+        scalar_x.sqr()
+    }
+}
+
+func bench_random_scalar_sqr() {
+    var scalar_x = randScalar()
+    
+    for _ in 0..<count {
+        scalar_x.sqr()
+    }
+}
+
 
 func runBenchmark(name: String, benchFunc: () -> Void, coun: Int) {
     print("** \(name) benchmark starting...")
@@ -110,3 +126,5 @@ runBenchmark(name: "Random Scalar Add", benchFunc: bench_random_scalar_add, coun
 runBenchmark(name: "Scalar Negate", benchFunc: bench_scalar_negate, coun: count)
 runBenchmark(name: "Scalar Mul", benchFunc: bench_scalar_mul, coun: count)
 runBenchmark(name: "Random Scalar Mul", benchFunc: bench_random_scalar_mul, coun: count)
+runBenchmark(name: "Scalar Sqr", benchFunc: bench_scalar_sqr, coun: count)
+runBenchmark(name: "Random Scalar Sqr", benchFunc: bench_random_scalar_sqr, coun: count)

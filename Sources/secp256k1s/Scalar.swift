@@ -1,8 +1,9 @@
 public struct Secpt256k1Scalar {
     var d : [UInt64]
+    var bits512: [UInt64]
     
     static let wordWidth = 4
-    static let pCompwordWidth = 3
+    static let pCompWordWidth = 3
     static let wordBitWidth = UInt64.bitWidth
     
     static let p : [UInt64] = [0xBFD25E8CD0364141, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF]
@@ -17,7 +18,8 @@ public struct Secpt256k1Scalar {
     static let wordMask = UInt64.max
     
     public init() {
-        d = Array.init(repeating: 0, count: Secpt256k1Scalar.wordWidth)
+        d = [UInt64](repeating: 0, count: Secpt256k1Scalar.wordWidth * 2)
+        bits512 = [UInt64](repeating: 0, count: Secpt256k1Scalar.wordWidth * 2)
     }
     
     public init(words : [UInt32]) {
@@ -126,7 +128,7 @@ public struct Secpt256k1Scalar {
     }
     
     public func isZero() -> Bool {
-        return d.reduce(0) { $0 | $1 } == 0
+        return d[0..<Secpt256k1Scalar.wordWidth].reduce(0) { $0 | $1 } == 0
     }
     
     public func isOne() -> Bool {
@@ -248,13 +250,13 @@ public struct Secpt256k1Scalar {
         }
     }
     
-    mutating func reduceByPcomp(bits512: inout [UInt64]) {
+    private mutating func reduceByPcomp() {
         let reductionPerRun = Secpt256k1Scalar.pCompLeadingZeros
         let reduceFromSize = Secpt256k1Scalar.wordWidth * 2
         let reduceToSize = Secpt256k1Scalar.wordWidth
         let runs : Int = (reduceFromSize * Secpt256k1Scalar.wordBitWidth - reduceToSize * Secpt256k1Scalar.wordBitWidth + reductionPerRun - 1) / reductionPerRun
         
-        var tmpBits = [UInt64](repeating: 0, count: reduceFromSize - reduceToSize + Secpt256k1Scalar.pCompwordWidth)
+        //var tmpBits = [UInt64](repeating: 0, count: reduceFromSize - reduceToSize + Secpt256k1Scalar.pCompWordWidth)
         
         let mStart = reduceToSize
         let mEndAtStart = reduceFromSize - 1
@@ -262,14 +264,14 @@ public struct Secpt256k1Scalar {
         
         for r in 0..<runs {
             let mSize = mEnd - mStart + 1
-            let rSize = mSize + Secpt256k1Scalar.pCompwordWidth
+            let rSize = mSize + Secpt256k1Scalar.pCompWordWidth
             var t: UInt64 = 0
             var t2: UInt64 = 0
             var t3: UInt64 = 0
             var overflow = false
             
             for idxSum in 0..<rSize {
-                for i in Swift.max(0, idxSum - Secpt256k1Scalar.pCompwordWidth + 1)..<Swift.min(idxSum + 1, mSize) {
+                for i in Swift.max(0, idxSum - Secpt256k1Scalar.pCompWordWidth + 1)..<Swift.min(idxSum + 1, mSize) {
                     let (mulValUp, mulValLo) = bits512[mStart + i].multipliedFullWidth(by: Secpt256k1Scalar.pComp[idxSum - i])
                     (t, overflow) = t.addingReportingOverflow(mulValLo)
                     (t2, overflow) = t2.addingReportingOverflow(overflow ? 1 : 0)
@@ -277,7 +279,7 @@ public struct Secpt256k1Scalar {
                     (t2, overflow) = t2.addingReportingOverflow(mulValUp)
                     t3 += overflow ? 1 : 0
                 }
-                tmpBits[idxSum] = t
+                d[idxSum] = t
                 (t, t2, t3) = (t2, t3, 0)
             }
             assert(t == 0 && t2 == 0)
@@ -285,28 +287,23 @@ public struct Secpt256k1Scalar {
             for i in 0..<Secpt256k1Scalar.wordWidth {
                 (bits512[i], overflow) = bits512[i].addingReportingOverflow(t)
                 t = overflow ? 1 : 0
-                (bits512[i], overflow) = bits512[i].addingReportingOverflow(tmpBits[i])
+                (bits512[i], overflow) = bits512[i].addingReportingOverflow(d[i])
                 t += overflow ? 1 : 0
             }
             
             for i in Secpt256k1Scalar.wordWidth..<rSize {
-                (bits512[i], overflow) = tmpBits[i].addingReportingOverflow(t)
+                (bits512[i], overflow) = d[i].addingReportingOverflow(t)
                 t = overflow ? 1 : 0
             }
             assert(t == 0)
             
             mEnd = mEndAtStart - (reductionPerRun * (r + 1)) >> 6
         }
-        
-        for i in reduceToSize..<bits512.count {
-            bits512[i] = 0
-        }
     }
     
-    mutating func mulArrays(_ x: [UInt64], _ y: [UInt64]) -> [UInt64] {
-        let resSize = x.count + y.count
-        let xSize = x.count
-        var tmpd = [UInt64](repeating: 0, count: resSize)
+    private mutating func mulArrays(_ x: [UInt64], _ y: [UInt64]) {
+        let resSize = 2 * Secpt256k1Scalar.wordWidth
+        let xSize = Secpt256k1Scalar.wordWidth
         var t : UInt64 = 0
         var t2: UInt64 = 0
         var t3: UInt64 = 0
@@ -320,33 +317,38 @@ public struct Secpt256k1Scalar {
                 (t2, overflow) = t2.addingReportingOverflow(mulValHi)
                 t3 += overflow ? 1 : 0
             }
-            tmpd[idxSum] = t
+            bits512[idxSum] = t
             (t, t2, t3) = (t2, t3, 0)
         }
         assert(t==0 && t2 == 0)
-        return tmpd
     }
     
     public mutating func mul(_ y : Secpt256k1Scalar) {
+        mulOrSqr(y)
+    }
+    
+    private mutating func mulOrSqr(_ y : Secpt256k1Scalar? = nil) {
         assert(!checkOverflow())
-        assert(!y.checkOverflow())
+        assert(y == nil || !y!.checkOverflow())
         
-        var tmpd: [UInt64] = mulArrays(d, y.d)
-        reduceByPcomp(bits512: &tmpd)
-        
-        d[0..<Secpt256k1Scalar.wordWidth] = tmpd[0..<Secpt256k1Scalar.wordWidth]
+        mulArrays(d, y != nil ? y!.d : d)
+        reduceByPcomp()
+        d[0..<Secpt256k1Scalar.wordWidth] = bits512[0..<Secpt256k1Scalar.wordWidth]
+        d[Secpt256k1Scalar.wordWidth] = 0
+        d[Secpt256k1Scalar.wordWidth + 1] = 0
+        d[Secpt256k1Scalar.wordWidth + 2] = 0
         reduce()
     }
     
     public mutating func sqr() {
-        mul(self)
+        mulOrSqr()
     }
     
     public mutating func inverse() {
         var powers = Secpt256k1Scalar(scalar: self)
         setInt(1)
         assert(isOne())
-
+        
         for i in 0..<Secpt256k1Scalar.wordWidth {
             var bitMask: UInt64 = 1
             
