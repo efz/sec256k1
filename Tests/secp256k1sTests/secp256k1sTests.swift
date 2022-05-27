@@ -702,6 +702,16 @@ final class secp256k1sTests: XCTestCase {
             XCTAssertEqual(r1, r2)
         }();
         
+        /* Test square. */
+        {
+            
+            var r1 = s1
+            r1.sqr()
+            let r2 = s1 * s1
+            XCTAssertEqual(r1, r2)
+            
+        }();
+        
         /* Test multiplicative identity. */
         {
             let v0 = Secpt256k1Scalar(int: 1)
@@ -714,6 +724,25 @@ final class secp256k1sTests: XCTestCase {
             let v0 = Secpt256k1Scalar(int: 0)
             let r1 = s1 * v0
             XCTAssertEqual(r1, v0)
+        }();
+        
+        /* Test that scalar inverses are equal to the inverse of their number modulo the order. */
+        {
+            assert(!s.isZero())
+            var inv = s
+            inv.inverse()
+            /* Multiplying a scalar with its inverse must result in one. */
+            let r1 = inv * s
+            XCTAssertTrue(r1.isOne())
+            /* Inverting one must result in one. */
+            var one = Secpt256k1Scalar(int: 1)
+            XCTAssertTrue(one.isOne())
+            one.inverse()
+            XCTAssertTrue(one.isOne())
+            /* Inverting invert must result in s. */
+            var r2 = inv
+            r2.inverse()
+            XCTAssertEqual(r2 , s)
         }();
     }
     

@@ -6,6 +6,7 @@ public struct Secpt256k1Scalar {
     static let wordBitWidth = UInt64.bitWidth
     
     static let p : [UInt64] = [0xBFD25E8CD0364141, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF]
+    static let pMinus2 : [UInt64] = [0xBFD25E8CD036413F, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF]
     static let pComp: [UInt64] = [~p[0] + 1, ~p[1], ~p[2]]
     static let pCompLeadingZeros = 127
     
@@ -61,6 +62,13 @@ public struct Secpt256k1Scalar {
             d[i] = s.d[i]
         }
         reduce()
+    }
+    
+    mutating func setInt(_ v: UInt64) {
+        d[0] = v
+        for i in 1..<Secpt256k1Scalar.wordWidth {
+            d[i] = 0
+        }
     }
     
     public func checkOverflow() -> Bool {
@@ -240,13 +248,13 @@ public struct Secpt256k1Scalar {
         }
     }
     
-    static func reduceByPcomp(bits512: inout [UInt64]) {
+    mutating func reduceByPcomp(bits512: inout [UInt64]) {
         let reductionPerRun = Secpt256k1Scalar.pCompLeadingZeros
         let reduceFromSize = Secpt256k1Scalar.wordWidth * 2
         let reduceToSize = Secpt256k1Scalar.wordWidth
         let runs : Int = (reduceFromSize * Secpt256k1Scalar.wordBitWidth - reduceToSize * Secpt256k1Scalar.wordBitWidth + reductionPerRun - 1) / reductionPerRun
         
-        var tmpBits: [UInt64] = Array.init(repeating: 0, count: reduceFromSize - reduceToSize + Secpt256k1Scalar.pCompwordWidth)
+        var tmpBits = [UInt64](repeating: 0, count: reduceFromSize - reduceToSize + Secpt256k1Scalar.pCompwordWidth)
         
         let mStart = reduceToSize
         let mEndAtStart = reduceFromSize - 1
@@ -295,10 +303,10 @@ public struct Secpt256k1Scalar {
         }
     }
     
-    static func mulArrays(_ x: [UInt64], _ y: [UInt64]) -> [UInt64] {
+    mutating func mulArrays(_ x: [UInt64], _ y: [UInt64]) -> [UInt64] {
         let resSize = x.count + y.count
         let xSize = x.count
-        var tmpd: [UInt64] = Array.init(repeating: 0, count: resSize)
+        var tmpd = [UInt64](repeating: 0, count: resSize)
         var t : UInt64 = 0
         var t2: UInt64 = 0
         var t3: UInt64 = 0
@@ -323,14 +331,34 @@ public struct Secpt256k1Scalar {
         assert(!checkOverflow())
         assert(!y.checkOverflow())
         
-        var tmpd: [UInt64] = Secpt256k1Scalar.mulArrays(d, y.d)
+        var tmpd: [UInt64] = mulArrays(d, y.d)
+        reduceByPcomp(bits512: &tmpd)
         
-        Secpt256k1Scalar.reduceByPcomp(bits512: &tmpd)
         d[0..<Secpt256k1Scalar.wordWidth] = tmpd[0..<Secpt256k1Scalar.wordWidth]
-        
-        let overflow: UInt64 = tmpd[Secpt256k1Scalar.wordWidth]
-        assert(overflow <= 1)
-        reduce(overflow: overflow)
+        reduce()
+    }
+    
+    public mutating func sqr() {
+        mul(self)
+    }
+    
+    public mutating func inverse() {
+        var powers = Secpt256k1Scalar(scalar: self)
+        setInt(1)
+        assert(isOne())
+
+        for i in 0..<Secpt256k1Scalar.wordWidth {
+            var bitMask: UInt64 = 1
+            
+            for _ in 0..<Secpt256k1Scalar.wordBitWidth {
+                if Secpt256k1Scalar.pMinus2[i] & bitMask != 0 {
+                    mul(powers)
+                }
+                powers.sqr()
+                bitMask = bitMask << 1
+            }
+        }
+        reduce()
     }
     
     public static func mul(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {
