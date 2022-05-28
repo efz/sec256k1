@@ -755,9 +755,23 @@ final class secp256k1sTests: XCTestCase {
             let x = Secpt256k1Scalar(bytes: chal[i][0])
             let y = Secpt256k1Scalar(bytes: chal[i][1])
             let r1 = Secpt256k1Scalar(bytes: res[i][0])
+            let r2 = Secpt256k1Scalar(bytes: res[i][1])
             
-            let z = x * y
+            var z = x * y
             XCTAssertEqual(r1, z)
+            if !y.isZero() {
+                var zz = y
+                zz.inverse()
+                z = z * zz
+                XCTAssertEqual(z, x)
+                zz = zz * y
+                XCTAssertTrue(zz.isOne())
+            }
+            z = x * x
+            var zz = x
+            zz.sqr()
+            XCTAssertEqual(zz, z)
+            XCTAssertEqual(r2, zz)
         }
     }
 }
