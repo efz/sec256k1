@@ -23,6 +23,7 @@ let init_y : [UInt8] = [
 ];
 
 let count = 200000
+let inverse_count = 2000
 
 func randScalar() -> Secpt256k1Scalar {
     var s: Secpt256k1Scalar
@@ -95,8 +96,27 @@ func bench_random_scalar_sqr() {
     }
 }
 
+func bench_scalar_inverse() {
+    var scalar_x = Secpt256k1Scalar(bytes: init_x)
+    let scalar_y = Secpt256k1Scalar(bytes: init_y)
+    
+    for _ in 0..<inverse_count {
+        scalar_x.inverse()
+        scalar_x.add(scalar_y)
+    }
+}
 
-func runBenchmark(name: String, benchFunc: () -> Void, coun: Int) {
+func bench_random_scalar_inverse() {
+    var scalar_x = randScalar()
+    let scalar_y = randScalar()
+    
+    for _ in 0..<inverse_count {
+        scalar_x.inverse()
+        scalar_x.add(scalar_y)
+    }
+}
+
+func runBenchmark(name: String, benchFunc: () -> Void, count: Int) {
     print("** \(name) benchmark starting...")
     var minElapsed: Double = Double(Int.max)
     var maxElapsed: Double = 0
@@ -121,10 +141,12 @@ for _ in 0..<5 {
     bench_scalar_add()
 }
 
-runBenchmark(name: "Scalar Add", benchFunc: bench_scalar_add, coun: count)
-runBenchmark(name: "Random Scalar Add", benchFunc: bench_random_scalar_add, coun: count)
-runBenchmark(name: "Scalar Negate", benchFunc: bench_scalar_negate, coun: count)
-runBenchmark(name: "Scalar Mul", benchFunc: bench_scalar_mul, coun: count)
-runBenchmark(name: "Random Scalar Mul", benchFunc: bench_random_scalar_mul, coun: count)
-runBenchmark(name: "Scalar Sqr", benchFunc: bench_scalar_sqr, coun: count)
-runBenchmark(name: "Random Scalar Sqr", benchFunc: bench_random_scalar_sqr, coun: count)
+runBenchmark(name: "Scalar Add", benchFunc: bench_scalar_add, count: count)
+runBenchmark(name: "Random Scalar Add", benchFunc: bench_random_scalar_add, count: count)
+runBenchmark(name: "Scalar Negate", benchFunc: bench_scalar_negate, count: count)
+runBenchmark(name: "Scalar Mul", benchFunc: bench_scalar_mul, count: count)
+runBenchmark(name: "Random Scalar Mul", benchFunc: bench_random_scalar_mul, count: count)
+runBenchmark(name: "Scalar Sqr", benchFunc: bench_scalar_sqr, count: count)
+runBenchmark(name: "Random Scalar Sqr", benchFunc: bench_random_scalar_sqr, count: count)
+runBenchmark(name: "Scalar Inverse", benchFunc: bench_scalar_inverse, count: inverse_count)
+runBenchmark(name: "Random Scalar Inverse", benchFunc: bench_random_scalar_inverse, count: inverse_count)
