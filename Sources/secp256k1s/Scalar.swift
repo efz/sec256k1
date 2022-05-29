@@ -450,8 +450,7 @@ public struct Secpt256k1Scalar {
     }
     
     public mutating func inverse() {
-        //inverseByPowers()
-        inverseBySegmentBuilding()
+        inverseByPowers()
         reduce()
     }
     
