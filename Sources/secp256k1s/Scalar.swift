@@ -11,6 +11,48 @@ public struct Secpt256k1Scalar {
     static let pComp: [UInt64] = [~p[0] + 1, ~p[1], ~p[2]]
     static let pCompLeadingZeros = 127
     
+    private static let pMinus2MetaData = { () -> (segmentDefs: [(start: Int, end: Int)], segments: [Int:Secpt256k1Scalar], maxSegmentLen: Int) in
+        var segmentDefs: [(start: Int, end: Int)] = []
+        var segments: [Int:Secpt256k1Scalar] = [:]
+        var maxSegmentLen = 0
+        var curSegStart = -1
+        let onNewSegment: (Int) -> Void = { end in
+            segmentDefs.append((curSegStart, end))
+            let segmentLen = end - curSegStart
+            segments[segmentLen] = Secpt256k1Scalar.zero
+            if segmentLen > maxSegmentLen {
+                maxSegmentLen = segmentLen
+            }
+            curSegStart = -1
+        }
+        
+        for i in 0..<Secpt256k1Scalar.wordWidth {
+            var bitMask: UInt64 = 1
+            for j in 0..<Secpt256k1Scalar.wordBitWidth {
+                let bitPos = i * Secpt256k1Scalar.wordBitWidth + j
+                
+                let bitSet = Secpt256k1Scalar.pMinus2[i] & bitMask != 0
+                if bitSet {
+                    if curSegStart == -1 {
+                        curSegStart = bitPos
+                    }
+                } else if curSegStart != -1 {
+                    onNewSegment(bitPos)
+                }
+                
+                bitMask = bitMask << 1
+            }
+        }
+        if curSegStart != -1 {
+            let endPos = Secpt256k1Scalar.wordWidth * Secpt256k1Scalar.wordBitWidth
+            onNewSegment(endPos)
+        }
+        return (segmentDefs, segments, maxSegmentLen)
+    }()
+    
+    public static let zero = Secpt256k1Scalar()
+    public static let one = Secpt256k1Scalar(int: 1)
+    
     public static var prime : Secpt256k1Scalar {
         return Secpt256k1Scalar(words64: p)
     }
@@ -324,27 +366,31 @@ public struct Secpt256k1Scalar {
     }
     
     public mutating func mul(_ y : Secpt256k1Scalar) {
-        mulOrSqr(y)
+        mulInternal(y)
     }
     
-    private mutating func mulOrSqr(_ y : Secpt256k1Scalar? = nil) {
+    private mutating func mulInternal(_ y : Secpt256k1Scalar? = nil) {
         assert(!checkOverflow())
         assert(y == nil || !y!.checkOverflow())
         
-        mulArrays(d, y != nil ? y!.d : d)
+        if let other = y {
+            mulArrays(d, other.d)
+        } else {
+            mulArrays(d, d)
+        }
         reduceByPcomp()
         d[0..<Secpt256k1Scalar.wordWidth] = bits512[0..<Secpt256k1Scalar.wordWidth]
-        d[Secpt256k1Scalar.wordWidth] = 0
-        d[Secpt256k1Scalar.wordWidth + 1] = 0
-        d[Secpt256k1Scalar.wordWidth + 2] = 0
+        for i in Secpt256k1Scalar.wordWidth..<d.count {
+            d[i] = 0
+        }
         reduce()
     }
     
     public mutating func sqr() {
-        mulOrSqr()
+        mulInternal()
     }
     
-    public mutating func inverse() {
+    private mutating func inverseByPowers() {
         var powers = Secpt256k1Scalar(scalar: self)
         setInt(1)
         assert(isOne())
@@ -360,6 +406,52 @@ public struct Secpt256k1Scalar {
                 bitMask = bitMask << 1
             }
         }
+    }
+    
+    private mutating func inverseBySegmentBuilding() {
+        var segments = Secpt256k1Scalar.pMinus2MetaData.segments
+        
+        // Build required segments
+        var seg = Secpt256k1Scalar(int: 1)
+        var x = Secpt256k1Scalar(scalar: self)
+        for i in 1..<Secpt256k1Scalar.pMinus2MetaData.maxSegmentLen+1 {
+            seg.mul(x)
+            if segments[i] != nil {
+                segments[i] = Secpt256k1Scalar(scalar: seg)
+            }
+            x.sqr()
+        }
+        
+        setInt(1)
+        assert(isOne())
+        
+        // Append segments to build in self^P-2
+        var lastSegStart = -1
+        for segDef in Secpt256k1Scalar.pMinus2MetaData.segmentDefs.reversed() {
+            if lastSegStart < segDef.end {// last segment
+                lastSegStart = segDef.end
+            }
+            
+            let segmentlen = segDef.end - segDef.start
+            
+            for _ in segDef.end..<lastSegStart + segmentlen {
+                sqr() // append 0s for segment seperation
+            }
+            
+            let segment = segments[segmentlen]!
+            assert(!segment.isZero())
+            mul(segment)
+            lastSegStart = segDef.start
+        }
+        
+        for _ in 0..<lastSegStart {
+            sqr() // append prefix 0s
+        }
+    }
+    
+    public mutating func inverse() {
+        //inverseByPowers()
+        inverseBySegmentBuilding()
         reduce()
     }
     

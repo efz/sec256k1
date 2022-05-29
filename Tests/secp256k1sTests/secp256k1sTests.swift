@@ -728,6 +728,7 @@ final class secp256k1sTests: XCTestCase {
         
         /* Test that scalar inverses are equal to the inverse of their number modulo the order. */
         {
+            let s = Secpt256k1Scalar(bytes: init_x)
             assert(!s.isZero())
             var inv = s
             inv.inverse()
