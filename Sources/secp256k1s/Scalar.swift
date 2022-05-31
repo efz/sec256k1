@@ -308,31 +308,9 @@ public struct Secpt256k1Scalar {
             let mSize = mEnd - mStart + 1
             let rSize = mSize + Secpt256k1Scalar.pCompWordWidth
             var t: UInt64 = 0
-            var t2: UInt64 = 0
             var overflow = false
             
-            for i in 0..<rSize {
-                d[i] = 0
-            }
-            
-            for i in 0..<mSize {
-                for j in 0..<Secpt256k1Scalar.pCompWordWidth {
-                    let k = i + j
-                    (d[k], overflow) = d[k].addingReportingOverflow(t)
-                    (t, t2) = (t2, 0)
-                    t += overflow ? 1 : 0
-                    let (mulValHi, mulValLo) = bits512[i + mStart].multipliedFullWidth(by: Secpt256k1Scalar.pComp[j])
-                    (d[k], overflow) = d[k].addingReportingOverflow(mulValLo)
-                    t += overflow ? 1 : 0
-                    (t, overflow) = t.addingReportingOverflow(mulValHi)
-                    t2 = overflow ? 1 : 0
-                }
-                assert(d[i + Secpt256k1Scalar.pCompWordWidth] == 0)
-                d[i + Secpt256k1Scalar.pCompWordWidth] = t
-                t = 0
-                assert(t2 == 0)
-            }
-            assert(t == 0 && t2 == 0)
+            Secpt256k1Scalar.mulArrays(&d, bits512[mStart..<mEnd+1], Secpt256k1Scalar.pComp[0..<Secpt256k1Scalar.pCompWordWidth])
             
             for i in 0..<Secpt256k1Scalar.wordWidth {
                 (bits512[i], overflow) = bits512[i].addingReportingOverflow(t)
@@ -351,27 +329,27 @@ public struct Secpt256k1Scalar {
         }
     }
     
-    private mutating func mulArrays(_ x: [UInt64], _ y: [UInt64]) {
-        for i in 0..<Secpt256k1Scalar.wordWidth*2 {
-            bits512[i] = 0
+    private static func mulArrays(_ res: inout [UInt64], _ x: ArraySlice<UInt64>, _ y: ArraySlice<UInt64>) {
+        for i in 0..<x.count+y.count {
+            res[i] = 0
         }
         var t : UInt64 = 0
         var t2: UInt64 = 0
         var overflow = false
-        for i in 0..<Secpt256k1Scalar.wordWidth {
-            for j in 0..<Secpt256k1Scalar.wordWidth {
-                let k = i + j
-                (bits512[k], overflow) = bits512[k].addingReportingOverflow(t)
+        for i in x.startIndex..<x.endIndex {
+            for j in y.startIndex..<y.endIndex {
+                let k = i + j - x.startIndex - y.startIndex
+                (res[k], overflow) = res[k].addingReportingOverflow(t)
                 (t, t2) = (t2, 0)
                 t += overflow ? 1 : 0
                 let (mulValHi, mulValLo) = x[i].multipliedFullWidth(by: y[j])
-                (bits512[k], overflow) = bits512[k].addingReportingOverflow(mulValLo)
+                (res[k], overflow) = res[k].addingReportingOverflow(mulValLo)
                 t += overflow ? 1 : 0
                 (t, overflow) = t.addingReportingOverflow(mulValHi)
                 t2 = overflow ? 1 : 0
             }
-            assert(bits512[i + Secpt256k1Scalar.wordWidth] == 0)
-            bits512[i + Secpt256k1Scalar.wordWidth] = t
+            assert(res[i - x.startIndex + y.count] == 0)
+            res[i - x.startIndex + y.count] = t
             t = 0
             assert(t2 == 0)
         }
@@ -387,9 +365,9 @@ public struct Secpt256k1Scalar {
         assert(y == nil || !y!.checkOverflow())
         
         if let other = y {
-            mulArrays(d, other.d)
+            Secpt256k1Scalar.mulArrays(&bits512, d[0..<Secpt256k1Scalar.wordWidth], other.d[0..<Secpt256k1Scalar.wordWidth])
         } else {
-            mulArrays(d, d)
+            Secpt256k1Scalar.mulArrays(&bits512, d[0..<Secpt256k1Scalar.wordWidth], d[0..<Secpt256k1Scalar.wordWidth])
         }
         reduceByPcomp()
         d[0..<Secpt256k1Scalar.wordWidth] = bits512[0..<Secpt256k1Scalar.wordWidth]
