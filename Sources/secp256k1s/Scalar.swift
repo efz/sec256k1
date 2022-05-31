@@ -309,20 +309,28 @@ public struct Secpt256k1Scalar {
             let rSize = mSize + Secpt256k1Scalar.pCompWordWidth
             var t: UInt64 = 0
             var t2: UInt64 = 0
-            var t3: UInt64 = 0
             var overflow = false
             
-            for idxSum in 0..<rSize {
-                for i in Swift.max(0, idxSum - Secpt256k1Scalar.pCompWordWidth + 1)..<Swift.min(idxSum + 1, mSize) {
-                    let (mulValUp, mulValLo) = bits512[mStart + i].multipliedFullWidth(by: Secpt256k1Scalar.pComp[idxSum - i])
-                    (t, overflow) = t.addingReportingOverflow(mulValLo)
-                    (t2, overflow) = t2.addingReportingOverflow(overflow ? 1 : 0)
-                    t3 += overflow ? 1 : 0
-                    (t2, overflow) = t2.addingReportingOverflow(mulValUp)
-                    t3 += overflow ? 1 : 0
+            for i in 0..<rSize {
+                d[i] = 0
+            }
+            
+            for i in 0..<mSize {
+                for j in 0..<Secpt256k1Scalar.pCompWordWidth {
+                    let k = i + j
+                    (d[k], overflow) = d[k].addingReportingOverflow(t)
+                    (t, t2) = (t2, 0)
+                    t += overflow ? 1 : 0
+                    let (mulValHi, mulValLo) = bits512[i + mStart].multipliedFullWidth(by: Secpt256k1Scalar.pComp[j])
+                    (d[k], overflow) = d[k].addingReportingOverflow(mulValLo)
+                    t += overflow ? 1 : 0
+                    (t, overflow) = t.addingReportingOverflow(mulValHi)
+                    t2 = overflow ? 1 : 0
                 }
-                d[idxSum] = t
-                (t, t2, t3) = (t2, t3, 0)
+                assert(d[i + Secpt256k1Scalar.pCompWordWidth] == 0)
+                d[i + Secpt256k1Scalar.pCompWordWidth] = t
+                t = 0
+                assert(t2 == 0)
             }
             assert(t == 0 && t2 == 0)
             
@@ -344,25 +352,30 @@ public struct Secpt256k1Scalar {
     }
     
     private mutating func mulArrays(_ x: [UInt64], _ y: [UInt64]) {
-        let resSize = 2 * Secpt256k1Scalar.wordWidth
-        let xSize = Secpt256k1Scalar.wordWidth
+        for i in 0..<Secpt256k1Scalar.wordWidth*2 {
+            bits512[i] = 0
+        }
         var t : UInt64 = 0
         var t2: UInt64 = 0
-        var t3: UInt64 = 0
         var overflow = false
-        for idxSum in 0..<resSize {
-            for i in Swift.max(0, idxSum - xSize + 1)..<Swift.min(idxSum + 1, xSize) {
-                let (mulValHi, mulValLo) = x[i].multipliedFullWidth(by: y[idxSum - i])
-                (t, overflow) = t.addingReportingOverflow(mulValLo)
-                (t2, overflow) = t2.addingReportingOverflow(overflow ? 1 : 0)
-                t3 += overflow ? 1 : 0
-                (t2, overflow) = t2.addingReportingOverflow(mulValHi)
-                t3 += overflow ? 1 : 0
+        for i in 0..<Secpt256k1Scalar.wordWidth {
+            for j in 0..<Secpt256k1Scalar.wordWidth {
+                let k = i + j
+                (bits512[k], overflow) = bits512[k].addingReportingOverflow(t)
+                (t, t2) = (t2, 0)
+                t += overflow ? 1 : 0
+                let (mulValHi, mulValLo) = x[i].multipliedFullWidth(by: y[j])
+                (bits512[k], overflow) = bits512[k].addingReportingOverflow(mulValLo)
+                t += overflow ? 1 : 0
+                (t, overflow) = t.addingReportingOverflow(mulValHi)
+                t2 = overflow ? 1 : 0
             }
-            bits512[idxSum] = t
-            (t, t2, t3) = (t2, t3, 0)
+            assert(bits512[i + Secpt256k1Scalar.wordWidth] == 0)
+            bits512[i + Secpt256k1Scalar.wordWidth] = t
+            t = 0
+            assert(t2 == 0)
         }
-        assert(t==0 && t2 == 0)
+        assert(t == 0 && t2 == 0)
     }
     
     public mutating func mul(_ y : Secpt256k1Scalar) {

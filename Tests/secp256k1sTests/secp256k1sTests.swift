@@ -564,8 +564,7 @@ final class secp256k1sTests: XCTestCase {
     func randTestScalar() {
         let s = randScalar()
         let s1 = randScalar()
-        let s2 = randScalar()
-        let c = s2.getBytes();
+        let s2 = randScalar();
         
         /* Test that fetching groups of 4 bits from a scalar and recursing n(i)=16*n(i-1)+p(i) reconstructs it. */
         {
