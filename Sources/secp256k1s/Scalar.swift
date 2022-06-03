@@ -1,3 +1,4 @@
+import Darwin
 public struct Secpt256k1Scalar {
     var d : [UInt64]
     var bits512: [UInt64]
@@ -241,6 +242,134 @@ public struct Secpt256k1Scalar {
         }
     }
     
+    struct Accumulator {
+        var c0, c1, c2: UInt64
+        
+        init() {
+            (c0, c1, c2) = (0, 0, 0)
+        }
+        
+        mutating func mulAddFast(_ x: UInt64, _ y: UInt64) {
+            var overflow = false
+            var (hi, lo) = x.multipliedFullWidth(by: y)
+            (c0, overflow) = c0.addingReportingOverflow(lo)
+            hi += overflow ? 1 : 0
+            c1 += hi
+        }
+        
+        mutating func mulAdd(_ x: UInt64, _ y: UInt64) {
+            var overflow = false
+            var (hi, lo) = x.multipliedFullWidth(by: y)
+            (c0, overflow) = c0.addingReportingOverflow(lo)
+            hi += overflow ? 1 : 0
+            (c1, overflow) = c1.addingReportingOverflow(hi)
+            c2 += overflow ? 1 : 0
+        }
+        
+        mutating func mulAdd2(_ x: UInt64, _ y: UInt64) {
+            var overflow = false
+            let (hi, lo) = x.multipliedFullWidth(by: y)
+            
+            (c0, overflow) = c0.addingReportingOverflow(lo)
+            (c1, overflow) = c1.addingReportingOverflow(overflow ? 1 : 0)
+            c2 += overflow ? 1 : 0
+            (c1, overflow) = c1.addingReportingOverflow(hi)
+            c2 += overflow ? 1 : 0
+            
+            (c0, overflow) = c0.addingReportingOverflow(lo)
+            (c1, overflow) = c1.addingReportingOverflow(overflow ? 1 : 0)
+            c2 += overflow ? 1 : 0
+            (c1, overflow) = c1.addingReportingOverflow(hi)
+            c2 += overflow ? 1 : 0
+            
+        }
+        
+        mutating func exractFast() -> UInt64 {
+            defer {
+                (c0, c1) = (c1, 0)
+                assert(c2 == 0)
+            }
+            return c0
+        }
+        
+        mutating func exract() -> UInt64 {
+            defer {
+                (c0, c1, c2) = (c1, c2, 0)
+            }
+            return c0
+        }
+    }
+    
+    private static func mulArraysFast(_ res: inout [UInt64], _ x: ArraySlice<UInt64>, _ y: ArraySlice<UInt64>) {
+        var acc = Accumulator()
+        
+        acc.mulAddFast(x[x.startIndex + 0], y[y.startIndex + 0])
+        res[0] = acc.exractFast()
+        
+        acc.mulAdd(x[x.startIndex + 0], y[y.startIndex + 1])
+        acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 0])
+        res[1] = acc.exract()
+        
+        acc.mulAdd(x[x.startIndex + 0], y[y.startIndex + 2])
+        acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 0])
+        acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 1])
+        res[2] = acc.exract()
+        
+        acc.mulAdd(x[x.startIndex + 0], y[y.startIndex + 3])
+        acc.mulAdd(x[x.startIndex + 3], y[y.startIndex + 0])
+        acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 2])
+        acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 1])
+        res[3] = acc.exract()
+        
+        acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 3])
+        acc.mulAdd(x[x.startIndex + 3], y[y.startIndex + 1])
+        acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 2])
+        res[4] = acc.exract()
+        
+        acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 3])
+        acc.mulAdd(x[x.startIndex + 3], y[y.startIndex + 2])
+        res[5] = acc.exract()
+        
+        acc.mulAddFast(x[x.startIndex + 3], y[y.startIndex + 3])
+        res[6] = acc.exractFast()
+        
+        res[7] = acc.exractFast()
+        
+        assert(acc.exractFast() == 0)
+    }
+    
+    private static func sqrArrayFast(_ res: inout [UInt64], _ x: ArraySlice<UInt64>) {
+        var acc = Accumulator()
+        
+        acc.mulAddFast(x[x.startIndex + 0], x[x.startIndex + 0])
+        res[0] = acc.exractFast()
+        
+        acc.mulAdd2(x[x.startIndex + 0], x[x.startIndex + 1])
+        res[1] = acc.exract()
+        
+        acc.mulAdd2(x[x.startIndex + 0], x[x.startIndex + 2])
+        acc.mulAdd(x[x.startIndex + 1], x[x.startIndex + 1])
+        res[2] = acc.exract()
+        
+        acc.mulAdd2(x[x.startIndex + 0], x[x.startIndex + 3])
+        acc.mulAdd2(x[x.startIndex + 1], x[x.startIndex + 2])
+        res[3] = acc.exract()
+        
+        acc.mulAdd2(x[x.startIndex + 1], x[x.startIndex + 3])
+        acc.mulAdd(x[x.startIndex + 2], x[x.startIndex + 2])
+        res[4] = acc.exract()
+        
+        acc.mulAdd2(x[x.startIndex + 2], x[x.startIndex + 3])
+        res[5] = acc.exract()
+        
+        acc.mulAddFast(x[x.startIndex + 3], x[x.startIndex + 3])
+        res[6] = acc.exractFast()
+        
+        res[7] = acc.exractFast()
+        
+        assert(acc.exractFast() == 0)
+    }
+    
     private static func mulArrays(_ res: inout [UInt64], _ x: ArraySlice<UInt64>, _ y: ArraySlice<UInt64>) {
         for i in 0..<x.count+y.count {
             res[i] = 0
@@ -277,9 +406,9 @@ public struct Secpt256k1Scalar {
         assert(y == nil || !y!.checkOverflow())
         
         if let other = y {
-            Secpt256k1Scalar.mulArrays(&bits512, d[0..<Secpt256k1Scalar.wordWidth], other.d[0..<Secpt256k1Scalar.wordWidth])
+            Secpt256k1Scalar.mulArraysFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth], other.d[0..<Secpt256k1Scalar.wordWidth])
         } else {
-            Secpt256k1Scalar.mulArrays(&bits512, d[0..<Secpt256k1Scalar.wordWidth], d[0..<Secpt256k1Scalar.wordWidth])
+            Secpt256k1Scalar.sqrArrayFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth])
         }
         reduceByPcomp()
         d[0..<Secpt256k1Scalar.wordWidth] = bits512[0..<Secpt256k1Scalar.wordWidth]
