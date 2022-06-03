@@ -206,93 +206,69 @@ public struct Secpt256k1Scalar {
     }
     
     private mutating func reduceByPcomp() {
-        let reductionPerRun = Secpt256k1Scalar.pCompLeadingZeros
-        let reduceFromSize = Secpt256k1Scalar.wordWidth * 2
-        let reduceToSize = Secpt256k1Scalar.wordWidth
-        let runs : Int = (reduceFromSize * Secpt256k1Scalar.wordBitWidth - reduceToSize * Secpt256k1Scalar.wordBitWidth + reductionPerRun - 1) / reductionPerRun
-                
-        let mStart = reduceToSize
-        let mEndAtStart = reduceFromSize - 1
-        var mEnd = mEndAtStart
+        let mStart = 4
         
-        for r in 0..<runs {
-            let mSize = mEnd - mStart + 1
-            let rSize = mSize + Secpt256k1Scalar.pCompWordWidth
-            var t: UInt64 = 0
-            var overflow = false
-            
-            Secpt256k1Scalar.mulArrays(&d, bits512[mStart..<mEnd+1], Secpt256k1Scalar.pComp[0..<Secpt256k1Scalar.pCompWordWidth])
-            
-            for i in 0..<Secpt256k1Scalar.wordWidth {
-                (bits512[i], overflow) = bits512[i].addingReportingOverflow(t)
-                t = overflow ? 1 : 0
-                (bits512[i], overflow) = bits512[i].addingReportingOverflow(d[i])
-                t += overflow ? 1 : 0
-            }
-            
-            for i in Secpt256k1Scalar.wordWidth..<rSize {
-                (bits512[i], overflow) = d[i].addingReportingOverflow(t)
-                t = overflow ? 1 : 0
-            }
-            assert(t == 0)
-            
-            mEnd = mEndAtStart - (reductionPerRun * (r + 1)) >> 6
-        }
-    }
-    
-    struct Accumulator {
-        var c0, c1, c2: UInt64
+        // round 1
+        var acc = Accumulator(bits512[0])
+        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
+        d[0] = acc.exractFast()
+        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
+        acc.mulAddFast(bits512[mStart+1], Secpt256k1Scalar.pComp[0])
+        acc.sumAdd(bits512[1])
+        d[1] = acc.exract()
+        acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[2])
+        acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[1])
+        acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[0])
+        acc.sumAdd(bits512[2])
+        d[2] = acc.exract()
+        acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[2])
+        acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[1])
+        acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[0])
+        acc.sumAdd(bits512[3])
+        d[3] = acc.exract()
+        acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[2])
+        acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[1])
+        d[4] = acc.exract()
+        acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[2])
+        d[5] = acc.exractFast()
+        d[6] = acc.exractFast()
+        assert(acc.isZero())
         
-        init() {
-            (c0, c1, c2) = (0, 0, 0)
-        }
+        // round 2
+        acc = Accumulator(d[0])
+        acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[0])
+        bits512[0] = acc.exractFast()
+        acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[1])
+        acc.mulAddFast(d[mStart+1], Secpt256k1Scalar.pComp[0])
+        acc.sumAdd(d[1])
+        bits512[1] = acc.exract()
+        acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
+        acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[1])
+        acc.mulAdd(d[mStart+2], Secpt256k1Scalar.pComp[0])
+        acc.sumAdd(d[2])
+        bits512[2] = acc.exract()
+        acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[2])
+        acc.mulAdd(d[mStart+2], Secpt256k1Scalar.pComp[1])
+        acc.sumAdd(d[3])
+        bits512[3] = acc.exract()
+        acc.mulAddFast(d[mStart+2], Secpt256k1Scalar.pComp[2])
+        bits512[4] = acc.exractFast()
+        bits512[5] = acc.exractFast()
+        assert(acc.isZero())
         
-        mutating func mulAddFast(_ x: UInt64, _ y: UInt64) {
-            var overflow = false
-            var (hi, lo) = x.multipliedFullWidth(by: y)
-            (c0, overflow) = c0.addingReportingOverflow(lo)
-            hi += overflow ? 1 : 0
-            c1 += hi
-        }
-        
-        mutating func mulAdd(_ x: UInt64, _ y: UInt64) {
-            var overflow = false
-            var (hi, lo) = x.multipliedFullWidth(by: y)
-            (c0, overflow) = c0.addingReportingOverflow(lo)
-            hi += overflow ? 1 : 0
-            (c1, overflow) = c1.addingReportingOverflow(hi)
-            c2 += overflow ? 1 : 0
-        }
-        
-        mutating func mulAdd2(_ x: UInt64, _ y: UInt64) {
-            var overflow = false
-            var (hi, lo) = x.multipliedFullWidth(by: y)
-            var hiCopy = hi
-            (c0, overflow) = c0.addingReportingOverflow(lo)
-            hi += overflow ? 1 : 0
-            (c1, overflow) = c1.addingReportingOverflow(hi)
-            c2 += overflow ? 1 : 0
-            
-            (c0, overflow) = c0.addingReportingOverflow(lo)
-            hiCopy += overflow ? 1 : 0
-            (c1, overflow) = c1.addingReportingOverflow(hiCopy)
-            c2 += overflow ? 1 : 0
-        }
-        
-        mutating func exractFast() -> UInt64 {
-            defer {
-                (c0, c1) = (c1, 0)
-                assert(c2 == 0)
-            }
-            return c0
-        }
-        
-        mutating func exract() -> UInt64 {
-            defer {
-                (c0, c1, c2) = (c1, c2, 0)
-            }
-            return c0
-        }
+        // round 3
+        acc = Accumulator(bits512[0])
+        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
+        d[0] = acc.exractFast()
+        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
+        acc.sumAdd(bits512[1])
+        d[1] = acc.exractFast()
+        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits512[2])
+        d[2] = acc.exractFast()
+        acc.sumAddFast(bits512[3])
+        d[3] = acc.exractFast()
+        assert(acc.isZero())
     }
     
     private static func mulArraysFast(_ res: inout [UInt64], _ x: ArraySlice<UInt64>, _ y: ArraySlice<UInt64>) {
@@ -406,7 +382,6 @@ public struct Secpt256k1Scalar {
             Secpt256k1Scalar.sqrArrayFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth])
         }
         reduceByPcomp()
-        d[0..<Secpt256k1Scalar.wordWidth] = bits512[0..<Secpt256k1Scalar.wordWidth]
         for i in Secpt256k1Scalar.wordWidth..<d.count {
             d[i] = 0
         }
@@ -454,5 +429,82 @@ public struct Secpt256k1Scalar {
 extension Secpt256k1Scalar : Equatable {
     public static func == (lhs: Secpt256k1Scalar, rhs: Secpt256k1Scalar) -> Bool {
         return lhs.d == rhs.d
+    }
+}
+
+private struct Accumulator {
+    var c0, c1, c2: UInt64
+    
+    init() {
+        (c0, c1, c2) = (0, 0, 0)
+    }
+    
+    init(_ val: UInt64) {
+        (c0, c1, c2) = (val, 0, 0)
+    }
+    
+    mutating func mulAddFast(_ x: UInt64, _ y: UInt64) {
+        var overflow = false
+        var (hi, lo) = x.multipliedFullWidth(by: y)
+        (c0, overflow) = c0.addingReportingOverflow(lo)
+        hi += overflow ? 1 : 0
+        c1 += hi
+    }
+    
+    mutating func mulAdd(_ x: UInt64, _ y: UInt64) {
+        var overflow = false
+        var (hi, lo) = x.multipliedFullWidth(by: y)
+        (c0, overflow) = c0.addingReportingOverflow(lo)
+        hi += overflow ? 1 : 0
+        (c1, overflow) = c1.addingReportingOverflow(hi)
+        c2 += overflow ? 1 : 0
+    }
+    
+    mutating func mulAdd2(_ x: UInt64, _ y: UInt64) {
+        var overflow = false
+        var (hi, lo) = x.multipliedFullWidth(by: y)
+        var hiCopy = hi
+        (c0, overflow) = c0.addingReportingOverflow(lo)
+        hi += overflow ? 1 : 0
+        (c1, overflow) = c1.addingReportingOverflow(hi)
+        c2 += overflow ? 1 : 0
+        
+        (c0, overflow) = c0.addingReportingOverflow(lo)
+        hiCopy += overflow ? 1 : 0
+        (c1, overflow) = c1.addingReportingOverflow(hiCopy)
+        c2 += overflow ? 1 : 0
+    }
+    
+    mutating func sumAdd(_ x: UInt64) {
+        var overflow = false
+        (c0, overflow) = c0.addingReportingOverflow(x)
+        (c1, overflow) = c1.addingReportingOverflow(overflow ? 1 : 0)
+        c2 += overflow ? 1 : 0
+    }
+    
+    mutating func sumAddFast(_ x: UInt64) {
+        var overflow = false
+        (c0, overflow) = c0.addingReportingOverflow(x)
+        c1 += overflow ? 1 : 0
+        assert(c2 == 0)
+    }
+    
+    mutating func exractFast() -> UInt64 {
+        defer {
+            (c0, c1) = (c1, 0)
+            assert(c2 == 0)
+        }
+        return c0
+    }
+    
+    mutating func exract() -> UInt64 {
+        defer {
+            (c0, c1, c2) = (c1, c2, 0)
+        }
+        return c0
+    }
+    
+    func isZero() -> Bool {
+        return (c0, c1, c2) == (0, 0, 0)
     }
 }
