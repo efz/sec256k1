@@ -368,30 +368,28 @@ public struct Secpt256k1Scalar {
         assert(t == 0 && t2 == 0)
     }
     
-    public mutating func mul(_ y : Secpt256k1Scalar, normalize: Bool = true) {
-        mulInternal(y, normalize: normalize)
+    public mutating func mul(_ y : Secpt256k1Scalar) {
+        assert(!checkOverflow())
+        assert(!y.checkOverflow())
+        
+        mulInternal(y)
+        reduce()
     }
     
-    private mutating func mulInternal(_ y : Secpt256k1Scalar? = nil, normalize: Bool = true) {
-        assert(!checkOverflow() || !normalize)
-        assert(y == nil || !y!.checkOverflow() || !normalize)
-        
+    private mutating func mulInternal(_ y : Secpt256k1Scalar? = nil) {
         if let other = y {
             Secpt256k1Scalar.mulArraysFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth], other.d[0..<Secpt256k1Scalar.wordWidth])
         } else {
             Secpt256k1Scalar.mulArraysFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth], d[0..<Secpt256k1Scalar.wordWidth])
         }
         reduceByPcomp()
-        for i in Secpt256k1Scalar.wordWidth..<d.count {
-            d[i] = 0
-        }
-        if normalize {
-            reduce()
-        }
     }
     
     public mutating func sqr(normalize: Bool = true) {
-        mulInternal(normalize: normalize)
+        assert(!checkOverflow())
+        
+        mulInternal()
+        reduce()
     }
     
     private mutating func inverseByPowers() {
@@ -404,9 +402,9 @@ public struct Secpt256k1Scalar {
             
             for _ in 0..<Secpt256k1Scalar.wordBitWidth {
                 if Secpt256k1Scalar.pMinus2[i] & bitMask != 0 {
-                    mul(powers, normalize: false)
+                    mulInternal(powers)
                 }
-                powers.sqr(normalize: false)
+                powers.mulInternal() // sqr
                 bitMask = bitMask << 1
             }
         }
@@ -431,7 +429,7 @@ public struct Secpt256k1Scalar {
 
 extension Secpt256k1Scalar : Equatable {
     public static func == (lhs: Secpt256k1Scalar, rhs: Secpt256k1Scalar) -> Bool {
-        return lhs.d == rhs.d
+        return lhs.d[0..<Secpt256k1Scalar.wordWidth] == rhs.d[0..<Secpt256k1Scalar.wordWidth]
     }
 }
 
