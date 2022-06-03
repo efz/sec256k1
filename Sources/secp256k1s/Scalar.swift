@@ -205,6 +205,7 @@ public struct Secpt256k1Scalar {
     }
     
     private mutating func reduceByPcomp() {
+        assert(Secpt256k1Scalar.pComp[2] == 1)
         let mStart = 4
         
         // round 1
@@ -215,20 +216,20 @@ public struct Secpt256k1Scalar {
         acc.mulAddFast(bits512[mStart+1], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(bits512[1])
         d[1] = acc.exract()
-        acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits512[mStart]) //acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[2])
         acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[1])
         acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(bits512[2])
         d[2] = acc.exract()
-        acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits512[mStart+1]) //acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[2])
         acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[1])
         acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(bits512[3])
         d[3] = acc.exract()
-        acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits512[mStart+2]) //acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[2])
         acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[1])
         d[4] = acc.exract()
-        acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits512[mStart+3]) //acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[2])
         d[5] = acc.exractFast()
         d[6] = acc.exractFast()
         assert(acc.isZero())
@@ -241,16 +242,16 @@ public struct Secpt256k1Scalar {
         acc.mulAddFast(d[mStart+1], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(d[1])
         bits512[1] = acc.exract()
-        acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(d[mStart]) //acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
         acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[1])
         acc.mulAdd(d[mStart+2], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(d[2])
         bits512[2] = acc.exract()
-        acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(d[mStart+1]) //acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[2])
         acc.mulAdd(d[mStart+2], Secpt256k1Scalar.pComp[1])
         acc.sumAdd(d[3])
         bits512[3] = acc.exract()
-        acc.mulAddFast(d[mStart+2], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(d[mStart+2]) //acc.mulAddFast(d[mStart+2], Secpt256k1Scalar.pComp[2])
         bits512[4] = acc.exractFast()
         bits512[5] = acc.exractFast()
         assert(acc.isZero())
@@ -262,7 +263,7 @@ public struct Secpt256k1Scalar {
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
         acc.sumAdd(bits512[1])
         d[1] = acc.exractFast()
-        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits512[mStart]) // acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[2])
         acc.sumAdd(bits512[2])
         d[2] = acc.exractFast()
         acc.sumAddFast(bits512[3])
@@ -367,28 +368,30 @@ public struct Secpt256k1Scalar {
         assert(t == 0 && t2 == 0)
     }
     
-    public mutating func mul(_ y : Secpt256k1Scalar) {
-        mulInternal(y)
+    public mutating func mul(_ y : Secpt256k1Scalar, normalize: Bool = true) {
+        mulInternal(y, normalize: normalize)
     }
     
-    private mutating func mulInternal(_ y : Secpt256k1Scalar? = nil) {
+    private mutating func mulInternal(_ y : Secpt256k1Scalar? = nil, normalize: Bool = true) {
         assert(!checkOverflow())
         assert(y == nil || !y!.checkOverflow())
         
         if let other = y {
             Secpt256k1Scalar.mulArraysFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth], other.d[0..<Secpt256k1Scalar.wordWidth])
         } else {
-            Secpt256k1Scalar.sqrArrayFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth])
+            Secpt256k1Scalar.mulArraysFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth], d[0..<Secpt256k1Scalar.wordWidth])
         }
         reduceByPcomp()
         for i in Secpt256k1Scalar.wordWidth..<d.count {
             d[i] = 0
         }
-        reduce()
+        if normalize {
+            reduce()
+        }
     }
     
-    public mutating func sqr() {
-        mulInternal()
+    public mutating func sqr(normalize: Bool = true) {
+        mulInternal(normalize: normalize)
     }
     
     private mutating func inverseByPowers() {
@@ -401,12 +404,13 @@ public struct Secpt256k1Scalar {
             
             for _ in 0..<Secpt256k1Scalar.wordBitWidth {
                 if Secpt256k1Scalar.pMinus2[i] & bitMask != 0 {
-                    mul(powers)
+                    mul(powers, normalize: false)
                 }
-                powers.sqr()
+                powers.sqr(normalize: false)
                 bitMask = bitMask << 1
             }
         }
+        reduce()
     }
     
     public mutating func inverse() {
