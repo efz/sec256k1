@@ -267,21 +267,20 @@ public struct Secpt256k1Scalar {
         }
         
         mutating func mulAdd2(_ x: UInt64, _ y: UInt64) {
-            var overflow = false
-            let (hi, lo) = x.multipliedFullWidth(by: y)
+            var overflow1 = false, overflow2 = false
+            var (hi, lo) = x.multipliedFullWidth(by: y)
             
-            (c0, overflow) = c0.addingReportingOverflow(lo)
-            (c1, overflow) = c1.addingReportingOverflow(overflow ? 1 : 0)
-            c2 += overflow ? 1 : 0
-            (c1, overflow) = c1.addingReportingOverflow(hi)
-            c2 += overflow ? 1 : 0
+            (c0, overflow1) = c0.addingReportingOverflow(lo)
+            hi += overflow1 ? 1 : 0
+            (c1, overflow2) = c1.addingReportingOverflow(hi)
+            c2 += overflow2 ? 1 : 0
             
-            (c0, overflow) = c0.addingReportingOverflow(lo)
-            (c1, overflow) = c1.addingReportingOverflow(overflow ? 1 : 0)
-            c2 += overflow ? 1 : 0
-            (c1, overflow) = c1.addingReportingOverflow(hi)
-            c2 += overflow ? 1 : 0
+            hi -= overflow1 ? 1 : 0
             
+            (c0, overflow1) = c0.addingReportingOverflow(lo)
+            hi += overflow1 ? 1 : 0
+            (c1, overflow2) = c1.addingReportingOverflow(hi)
+            c2 += overflow2 ? 1 : 0
         }
         
         mutating func exractFast() -> UInt64 {
