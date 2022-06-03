@@ -210,9 +210,7 @@ public struct Secpt256k1Scalar {
         let reduceFromSize = Secpt256k1Scalar.wordWidth * 2
         let reduceToSize = Secpt256k1Scalar.wordWidth
         let runs : Int = (reduceFromSize * Secpt256k1Scalar.wordBitWidth - reduceToSize * Secpt256k1Scalar.wordBitWidth + reductionPerRun - 1) / reductionPerRun
-        
-        //var tmpBits = [UInt64](repeating: 0, count: reduceFromSize - reduceToSize + Secpt256k1Scalar.pCompWordWidth)
-        
+                
         let mStart = reduceToSize
         let mEndAtStart = reduceFromSize - 1
         var mEnd = mEndAtStart
@@ -267,20 +265,18 @@ public struct Secpt256k1Scalar {
         }
         
         mutating func mulAdd2(_ x: UInt64, _ y: UInt64) {
-            var overflow1 = false, overflow2 = false
+            var overflow = false
             var (hi, lo) = x.multipliedFullWidth(by: y)
+            var hiCopy = hi
+            (c0, overflow) = c0.addingReportingOverflow(lo)
+            hi += overflow ? 1 : 0
+            (c1, overflow) = c1.addingReportingOverflow(hi)
+            c2 += overflow ? 1 : 0
             
-            (c0, overflow1) = c0.addingReportingOverflow(lo)
-            hi += overflow1 ? 1 : 0
-            (c1, overflow2) = c1.addingReportingOverflow(hi)
-            c2 += overflow2 ? 1 : 0
-            
-            hi -= overflow1 ? 1 : 0
-            
-            (c0, overflow1) = c0.addingReportingOverflow(lo)
-            hi += overflow1 ? 1 : 0
-            (c1, overflow2) = c1.addingReportingOverflow(hi)
-            c2 += overflow2 ? 1 : 0
+            (c0, overflow) = c0.addingReportingOverflow(lo)
+            hiCopy += overflow ? 1 : 0
+            (c1, overflow) = c1.addingReportingOverflow(hiCopy)
+            c2 += overflow ? 1 : 0
         }
         
         mutating func exractFast() -> UInt64 {
