@@ -373,8 +373,8 @@ public struct Secpt256k1Scalar {
     }
     
     private mutating func mulInternal(_ y : Secpt256k1Scalar? = nil, normalize: Bool = true) {
-        assert(!checkOverflow())
-        assert(y == nil || !y!.checkOverflow())
+        assert(!checkOverflow() || !normalize)
+        assert(y == nil || !y!.checkOverflow() || !normalize)
         
         if let other = y {
             Secpt256k1Scalar.mulArraysFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth], other.d[0..<Secpt256k1Scalar.wordWidth])
