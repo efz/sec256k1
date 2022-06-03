@@ -89,20 +89,19 @@ public struct Secpt256k1Scalar {
     }
     
     mutating func reduce(overflow : UInt64 = 0) {
-        guard overflow > 0 || checkOverflow() else {
-            return
-        }
         assert(overflow <= 1)
         
         var t : UInt64 = 0
         var carry = false
         for i in 0..<Secpt256k1Scalar.wordWidth {
-            (d[i], carry) = d[i].subtractingReportingOverflow(t)
+            (bits512[i], carry) = d[i].subtractingReportingOverflow(t)
             t = carry ? 1 : 0
-            (d[i], carry) = d[i].subtractingReportingOverflow(Secpt256k1Scalar.p[i])
+            (bits512[i], carry) = bits512[i].subtractingReportingOverflow(Secpt256k1Scalar.p[i])
             t += carry ? 1 : 0
         }
-        assert(t == overflow)
+        if overflow > 0 || t == 0 {
+            d[0..<Secpt256k1Scalar.wordWidth] = bits512[0..<Secpt256k1Scalar.wordWidth]
+        }
     }
     
     public mutating func add(_ y : Secpt256k1Scalar, carry: UInt64 = 0) {
@@ -233,7 +232,7 @@ public struct Secpt256k1Scalar {
         d[5] = acc.exractFast()
         d[6] = acc.exractFast()
         assert(acc.isZero())
-        
+
         // round 2
         acc = Accumulator(d[0])
         acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[0])
@@ -255,7 +254,7 @@ public struct Secpt256k1Scalar {
         bits512[4] = acc.exractFast()
         bits512[5] = acc.exractFast()
         assert(acc.isZero())
-        
+                
         // round 3
         acc = Accumulator(bits512[0])
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
@@ -269,6 +268,7 @@ public struct Secpt256k1Scalar {
         acc.sumAddFast(bits512[3])
         d[3] = acc.exractFast()
         assert(acc.isZero())
+        
     }
     
     private static func mulArraysFast(_ res: inout [UInt64], _ x: ArraySlice<UInt64>, _ y: ArraySlice<UInt64>) {
@@ -303,7 +303,6 @@ public struct Secpt256k1Scalar {
         
         acc.mulAddFast(x[x.startIndex + 3], y[y.startIndex + 3])
         res[6] = acc.exractFast()
-        
         res[7] = acc.exractFast()
         
         assert(acc.exractFast() == 0)
