@@ -93,7 +93,9 @@ public struct Secpt256k1Scalar {
         
         var t : UInt64 = 0
         var carry = false
-        for i in 0..<Secpt256k1Scalar.wordWidth {
+        (bits512[0], carry) = d[0].subtractingReportingOverflow(Secpt256k1Scalar.p[0])
+        t += carry ? 1 : 0
+        for i in 1..<Secpt256k1Scalar.wordWidth {
             (bits512[i], carry) = d[i].subtractingReportingOverflow(t)
             t = carry ? 1 : 0
             (bits512[i], carry) = bits512[i].subtractingReportingOverflow(Secpt256k1Scalar.p[i])
@@ -206,7 +208,7 @@ public struct Secpt256k1Scalar {
     
     private mutating func reduceByPcomp() {
         assert(Secpt256k1Scalar.pComp[2] == 1)
-       
+        
         var mStart = 6
         // round 1
         d[0] = bits512[0]
@@ -249,7 +251,7 @@ public struct Secpt256k1Scalar {
         acc.sumAdd(d[4])
         bits512[4] = acc.exractFast()
         assert(acc.isZero())
-    
+        
         mStart = 4
         // round 3
         acc.reset(bits512[0])
@@ -405,7 +407,7 @@ public struct Secpt256k1Scalar {
             }
         }
     }
-
+    
     public mutating func inverse() {
         inverseByPowers()
         reduce()
