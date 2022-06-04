@@ -206,70 +206,68 @@ public struct Secpt256k1Scalar {
     
     private mutating func reduceByPcomp() {
         assert(Secpt256k1Scalar.pComp[2] == 1)
-        let mStart = 4
-        
+       
+        var mStart = 6
         // round 1
-        var acc = Accumulator(bits512[0])
+        d[0] = bits512[0]
+        d[1] = bits512[1]
+        
+        var acc = Accumulator(bits512[2])
+        
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
-        d[0] = acc.exractFast()
-        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
-        acc.mulAddFast(bits512[mStart+1], Secpt256k1Scalar.pComp[0])
-        acc.sumAdd(bits512[1])
-        d[1] = acc.exract()
-        acc.sumAdd(bits512[mStart]) //acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[2])
-        acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[1])
-        acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[0])
-        acc.sumAdd(bits512[2])
-        d[2] = acc.exract()
-        acc.sumAdd(bits512[mStart+1]) //acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[2])
-        acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[1])
-        acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[0])
+        d[2] = acc.exractFast()
+        acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[1])
+        acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(bits512[3])
         d[3] = acc.exract()
-        acc.sumAdd(bits512[mStart+2]) //acc.mulAdd(bits512[mStart+2], Secpt256k1Scalar.pComp[2])
-        acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[1])
+        acc.sumAdd(bits512[mStart]) // acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[2])
+        acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[1])
+        acc.sumAdd(bits512[4])
         d[4] = acc.exract()
-        acc.sumAdd(bits512[mStart+3]) //acc.mulAdd(bits512[mStart+3], Secpt256k1Scalar.pComp[2])
-        d[5] = acc.exractFast()
+        acc.sumAdd(bits512[mStart+1]) //acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits512[5])
+        d[5] = acc.exract()
         d[6] = acc.exractFast()
         assert(acc.isZero())
-
+        
+        mStart = 5
         // round 2
-        acc = Accumulator(d[0])
+        bits512[0] = d[0]
+        
+        acc.reset(d[1])
         acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[0])
-        bits512[0] = acc.exractFast()
+        bits512[1] = acc.exractFast()
         acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[1])
         acc.mulAddFast(d[mStart+1], Secpt256k1Scalar.pComp[0])
-        acc.sumAdd(d[1])
-        bits512[1] = acc.exract()
-        acc.sumAdd(d[mStart]) //acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
-        acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[1])
-        acc.mulAdd(d[mStart+2], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(d[2])
         bits512[2] = acc.exract()
-        acc.sumAdd(d[mStart+1]) //acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[2])
-        acc.mulAdd(d[mStart+2], Secpt256k1Scalar.pComp[1])
+        acc.sumAdd(d[mStart]) //acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
+        acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[1])
         acc.sumAdd(d[3])
         bits512[3] = acc.exract()
-        acc.sumAdd(d[mStart+2]) //acc.mulAddFast(d[mStart+2], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(d[mStart+1]) //acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(d[4])
         bits512[4] = acc.exractFast()
-        bits512[5] = acc.exractFast()
         assert(acc.isZero())
-                
+    
+        mStart = 4
         // round 3
-        acc = Accumulator(bits512[0])
+        acc.reset(bits512[0])
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
         d[0] = acc.exractFast()
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
         acc.sumAdd(bits512[1])
-        d[1] = acc.exractFast()
+        d[1] = acc.exract()
         acc.sumAdd(bits512[mStart]) // acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[2])
         acc.sumAdd(bits512[2])
-        d[2] = acc.exractFast()
-        acc.sumAddFast(bits512[3])
+        d[2] = acc.exract()
+        acc.sumAdd(bits512[3])
         d[3] = acc.exractFast()
-        assert(acc.isZero())
         
+        let overflow = acc.exractFast()
+        assert(overflow <= 1)
+        assert(acc.isZero())
+        reduce(overflow: overflow)
     }
     
     private static func mulArraysFast(_ res: inout [UInt64], _ x: ArraySlice<UInt64>, _ y: ArraySlice<UInt64>) {
@@ -373,7 +371,6 @@ public struct Secpt256k1Scalar {
         assert(!y.checkOverflow())
         
         mulInternal(y)
-        reduce()
     }
     
     private mutating func mulInternal(_ y : Secpt256k1Scalar? = nil) {
@@ -385,11 +382,10 @@ public struct Secpt256k1Scalar {
         reduceByPcomp()
     }
     
-    public mutating func sqr(normalize: Bool = true) {
+    public mutating func sqr() {
         assert(!checkOverflow())
         
         mulInternal()
-        reduce()
     }
     
     private mutating func inverseByPowers() {
@@ -408,9 +404,8 @@ public struct Secpt256k1Scalar {
                 bitMask = bitMask << 1
             }
         }
-        reduce()
     }
-    
+
     public mutating func inverse() {
         inverseByPowers()
         reduce()
@@ -441,6 +436,10 @@ private struct Accumulator {
     }
     
     init(_ val: UInt64) {
+        (c0, c1, c2) = (val, 0, 0)
+    }
+    
+    mutating func reset (_ val: UInt64) {
         (c0, c1, c2) = (val, 0, 0)
     }
     

@@ -747,7 +747,7 @@ final class secp256k1sTests: XCTestCase {
     }
     
     func testRandScalar() {
-        for _ in 0..<128 {
+        for _ in 0..<512 {
             randTestScalar()
         }
         
