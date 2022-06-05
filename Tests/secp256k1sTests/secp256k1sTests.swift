@@ -571,7 +571,7 @@ final class secp256k1sTests: XCTestCase {
             var n = Secpt256k1Scalar()
             var i = 0
             while i < 256 {
-                let t = Secpt256k1Scalar(int: s.getBits(offset: 256 - 4 - i, count: 4))
+                let t = Secpt256k1Scalar(int: try! s.getBits(offset: 256 - 4 - i, count: 4))
                 for _ in 0..<4 {
                     n.add(n)
                 }
@@ -590,7 +590,7 @@ final class secp256k1sTests: XCTestCase {
                 if now + i > 256 {
                     now = 256 - i;
                 }
-                let t = Secpt256k1Scalar(int: s.getBits(offset: 256 - now - i, count: now));
+                let t = Secpt256k1Scalar(int: try! s.getBits(offset: 256 - now - i, count: now));
                 for _ in 0..<now {
                     n.add(n)
                 }

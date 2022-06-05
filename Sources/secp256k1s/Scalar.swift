@@ -7,7 +7,7 @@ public struct Secpt256k1Scalar {
     
     private var d: Bits64x4
     
-    private func getWord(_ idx: Int) -> UInt64 {
+    private func getWord(_ idx: Int) throws -> UInt64 {
         switch idx {
         case 0:
             return d.0
@@ -18,8 +18,7 @@ public struct Secpt256k1Scalar {
         case 3:
             return d.3
         default:
-            print("invalid index")
-            return 0
+            fatalError("invalid index \(idx)")
         }
     }
     
@@ -88,7 +87,7 @@ public struct Secpt256k1Scalar {
             case 3:
                 d.3 |= val
             default:
-                print("invalid index")
+                fatalError("invalid index \(wordIdx)")
             }
         }
         reduce()
@@ -222,22 +221,22 @@ public struct Secpt256k1Scalar {
         return d.0 & 1 == 0
     }
     
-    public func getBits64(offset : Int, count : Int) -> UInt64 {
+    public func getBits64(offset : Int, count : Int) throws -> UInt64 {
         assert(offset + count <= Secpt256k1Scalar.wordBitWidth * Secpt256k1Scalar.wordWidth)
         assert(count < Secpt256k1Scalar.wordBitWidth)
         if offset >> 6 == (count + offset - 1) >> 6 {
-            return UInt64((getWord(offset >> 6) >> (offset & 0x3F)) & ((1 << count) - 1))
+            return UInt64((try getWord(offset >> 6) >> (offset & 0x3F)) & ((1 << count) - 1))
         } else {
             assert((offset >> 6) + 1 < 4)
-            let firstHalf = UInt64(getWord(offset >> 6) >> (offset & 0x3F))
-            let secondHalf = UInt64((getWord((offset >> 6) + 1) << (64 - (offset & 0x3F)) & Secpt256k1Scalar.wordMask))
+            let firstHalf = UInt64(try getWord(offset >> 6) >> (offset & 0x3F))
+            let secondHalf = UInt64((try getWord((offset >> 6) + 1) << (64 - (offset & 0x3F)) & Secpt256k1Scalar.wordMask))
             return (firstHalf | secondHalf) & ((1 << count) - 1)
         }
     }
     
-    public func getBits(offset : Int, count : Int) -> UInt32 {
+    public func getBits(offset : Int, count : Int) throws -> UInt32 {
         assert(count < UInt32.bitWidth)
-        return UInt32(getBits64(offset: offset, count: count))
+        return UInt32(try getBits64(offset: offset, count: count))
     }
     
     public mutating func clear() {
