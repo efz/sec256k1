@@ -1,43 +1,74 @@
 public struct Secpt256k1Scalar {
-    var d : [UInt64]
-    var bits512: [UInt64]
+    typealias Bits64x3 = (UInt64, UInt64, UInt64)
+    typealias Bits64x4 = (UInt64, UInt64, UInt64, UInt64)
+    typealias Bits64x5 = (UInt64, UInt64, UInt64, UInt64, UInt64)
+    typealias Bits64x7 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
+    typealias Bits64x8 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
+    
+    private var d: Bits64x4
+    
+    private func getWord(_ idx: Int) -> UInt64 {
+        switch idx {
+        case 0:
+            return d.0
+        case 1:
+            return d.1
+        case 2:
+            return d.2
+        case 3:
+            return d.3
+        default:
+            print("invalid index")
+            return 0
+        }
+    }
     
     static let wordWidth = 4
     static let pCompWordWidth = 3
     static let wordBitWidth = UInt64.bitWidth
     
-    static let p : [UInt64] = [0xBFD25E8CD0364141, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF]
-    static let pMinus2 : [UInt64] = [0xBFD25E8CD036413F, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF]
-    static let pComp: [UInt64] = [~p[0] + 1, ~p[1], ~p[2]]
+    static let p : Bits64x4 = (0xBFD25E8CD0364141, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF)
+    static let pMinus2 : Bits64x4 = (0xBFD25E8CD036413F, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF)
+    static let pComp: Bits64x3 = (~p.0 + 1, ~p.1, ~p.2)
     static let pCompLeadingZeros = 127
     
     public static let zero = Secpt256k1Scalar()
     public static let one = Secpt256k1Scalar(int: 1)
     
     public static var prime : Secpt256k1Scalar {
-        return Secpt256k1Scalar(words64: p)
+        return Secpt256k1Scalar(bits64x4: p)
     }
     
     static let wordMask = UInt64.max
     
     public init() {
-        d = [UInt64](repeating: 0, count: Secpt256k1Scalar.wordWidth * 4)
-        bits512 = [UInt64](repeating: 0, count: Secpt256k1Scalar.wordWidth * 4)
+        d = (0, 0, 0, 0)
     }
     
     public init(words : [UInt32]) {
         self.init()
-        for i in 0..<Secpt256k1Scalar.wordWidth {
-            d[i] = (UInt64(words[2 * i + 1]) << UInt32.bitWidth) | UInt64(words[2 * i])
-        }
+        d.0 = UInt64(words[1]) << UInt32.bitWidth | UInt64(words[0])
+        d.1 = UInt64(words[2 * 1 + 1]) << UInt32.bitWidth | UInt64(words[2*1])
+        d.2 = UInt64(words[2 * 2 + 1]) << UInt32.bitWidth | UInt64(words[2*2])
+        d.3 = UInt64(words[2 * 3 + 1]) << UInt32.bitWidth | UInt64(words[2*3])
+        reduce()
+    }
+    
+    init(bits64x4 : Bits64x4) {
+        self.init()
+        d.0 = bits64x4.0
+        d.1 = bits64x4.1
+        d.2 = bits64x4.2
+        d.3 = bits64x4.3
         reduce()
     }
     
     public init(words64 : [UInt64]) {
         self.init()
-        for i in 0..<Secpt256k1Scalar.wordWidth {
-            d[i] = words64[i]
-        }
+        d.0 = words64[0]
+        d.1 = words64[1]
+        d.2 = words64[2]
+        d.3 = words64[3]
         reduce()
     }
     
@@ -46,62 +77,95 @@ public struct Secpt256k1Scalar {
         for i in 0..<bytes.count {
             let wordIdx = 3 - i / 8
             let byteIdx = 7 - i % 8
-            d[wordIdx] |= UInt64(bytes[i]) << (byteIdx * 8)
+            let val = UInt64(bytes[i]) << (byteIdx * 8)
+            switch wordIdx {
+            case 0:
+                d.0 |= val
+            case 1:
+                d.1 |= val
+            case 2:
+                d.2 |= val
+            case 3:
+                d.3 |= val
+            default:
+                print("invalid index")
+            }
         }
         reduce()
     }
     
     public init(int v : UInt32) {
         self.init()
-        d[0] = UInt64(v)
+        d.0 = UInt64(v)
     }
     
     public init(int64 v : UInt64) {
         self.init()
-        d[0] = v
+        d.0 = v
     }
     
     public init(scalar  s: Secpt256k1Scalar) {
         self.init()
-        for i in 0..<Secpt256k1Scalar.wordWidth {
-            d[i] = s.d[i]
-        }
+        d.0 = s.d.0
+        d.1 = s.d.1
+        d.2 = s.d.2
+        d.3 = s.d.3
         reduce()
     }
     
     mutating func setInt(_ v: UInt64) {
-        d[0] = v
-        for i in 1..<Secpt256k1Scalar.wordWidth {
-            d[i] = 0
-        }
+        d.0 = v
+        d.1 = 0
+        d.2 = 0
+        d.3 = 0
     }
     
     public func checkOverflow() -> Bool {
         var strictOverflow = false
         var equals = true
         
-        for i in (0..<Secpt256k1Scalar.wordWidth).reversed() {
-            strictOverflow = (d[i] > Secpt256k1Scalar.p[i] && equals) || strictOverflow
-            equals = d[i] == Secpt256k1Scalar.p[i] && equals
-        }
+        strictOverflow = (d.3 > Secpt256k1Scalar.p.3 && equals) || strictOverflow
+        equals = d.3 == Secpt256k1Scalar.p.3 && equals
+        
+        strictOverflow = (d.2 > Secpt256k1Scalar.p.2 && equals) || strictOverflow
+        equals = d.2 == Secpt256k1Scalar.p.2 && equals
+        
+        strictOverflow = (d.1 > Secpt256k1Scalar.p.1 && equals) || strictOverflow
+        equals = d.1 == Secpt256k1Scalar.p.1 && equals
+        
+        strictOverflow = (d.0 > Secpt256k1Scalar.p.0 && equals) || strictOverflow
+        equals = d.0 == Secpt256k1Scalar.p.0 && equals
+        
         return strictOverflow || equals
     }
     
     mutating func reduce(overflow : UInt64 = 0) {
         assert(overflow <= 1)
         
+        var reduced: Bits64x4 = (0, 0, 0, 0)
         var t : UInt64 = 0
         var carry = false
-        (bits512[0], carry) = d[0].subtractingReportingOverflow(Secpt256k1Scalar.p[0])
+        
+        (reduced.0, carry) = d.0.subtractingReportingOverflow(Secpt256k1Scalar.p.0)
         t += carry ? 1 : 0
-        for i in 1..<Secpt256k1Scalar.wordWidth {
-            (bits512[i], carry) = d[i].subtractingReportingOverflow(t)
-            t = carry ? 1 : 0
-            (bits512[i], carry) = bits512[i].subtractingReportingOverflow(Secpt256k1Scalar.p[i])
-            t += carry ? 1 : 0
-        }
+        
+        (reduced.1, carry) = d.1.subtractingReportingOverflow(t)
+        t = carry ? 1 : 0
+        (reduced.1, carry) = reduced.1.subtractingReportingOverflow(Secpt256k1Scalar.p.1)
+        t += carry ? 1 : 0
+        
+        (reduced.2, carry) = d.2.subtractingReportingOverflow(t)
+        t = carry ? 1 : 0
+        (reduced.2, carry) = reduced.2.subtractingReportingOverflow(Secpt256k1Scalar.p.2)
+        t += carry ? 1 : 0
+        
+        (reduced.3, carry) = d.3.subtractingReportingOverflow(t)
+        t = carry ? 1 : 0
+        (reduced.3, carry) = reduced.3.subtractingReportingOverflow(Secpt256k1Scalar.p.3)
+        t += carry ? 1 : 0
+        
         if overflow > 0 || t == 0 {
-            d[0..<Secpt256k1Scalar.wordWidth] = bits512[0..<Secpt256k1Scalar.wordWidth]
+            d = reduced
         }
     }
     
@@ -111,12 +175,27 @@ public struct Secpt256k1Scalar {
         
         var t : UInt64 = carry
         var overflow = false
-        for i in 0..<Secpt256k1Scalar.wordWidth {
-            (d[i], overflow) = d[i].addingReportingOverflow(t)
-            t = overflow ? 1 : 0
-            (d[i], overflow) = d[i].addingReportingOverflow(y.d[i])
-            t += overflow ? 1 : 0
-        }
+        
+        (d.0, overflow) = d.0.addingReportingOverflow(t)
+        t = overflow ? 1 : 0
+        (d.0, overflow) = d.0.addingReportingOverflow(y.d.0)
+        t += overflow ? 1 : 0
+        
+        (d.1, overflow) = d.1.addingReportingOverflow(t)
+        t = overflow ? 1 : 0
+        (d.1, overflow) = d.1.addingReportingOverflow(y.d.1)
+        t += overflow ? 1 : 0
+        
+        (d.2, overflow) = d.2.addingReportingOverflow(t)
+        t = overflow ? 1 : 0
+        (d.2, overflow) = d.2.addingReportingOverflow(y.d.2)
+        t += overflow ? 1 : 0
+        
+        (d.3, overflow) = d.3.addingReportingOverflow(t)
+        t = overflow ? 1 : 0
+        (d.3, overflow) = d.3.addingReportingOverflow(y.d.3)
+        t += overflow ? 1 : 0
+        
         assert(t <= 1)
         reduce(overflow: t)
     }
@@ -132,36 +211,26 @@ public struct Secpt256k1Scalar {
     }
     
     public func isZero() -> Bool {
-        return d[0..<Secpt256k1Scalar.wordWidth].reduce(0) { $0 | $1 } == 0
+        return d.0 | d.1 | d.2 | d.3 == 0
     }
     
     public func isOne() -> Bool {
-        return d[0] ^ 1 | d[1..<Secpt256k1Scalar.wordWidth].reduce(0) { $0 | $1 } == 0
+        return d.0 == 1 && d.1 | d.2 | d.3 == 0
     }
     
     public func isEven() -> Bool {
-        return d[0] == 0
-    }
-    
-    public func getBytes() -> [UInt8] {
-        assert(!checkOverflow())
-        let b: [UInt8] = (0..<32).reversed().map { ($0 / 8, $0 % 8) }.map { idx in
-            let word = d[idx.0]
-            let byte : UInt8 = UInt8((word >> (idx.1 * 8)) & UInt64(UInt8.max))
-            return byte
-        }
-        return b
+        return d.0 & 1 == 0
     }
     
     public func getBits64(offset : Int, count : Int) -> UInt64 {
         assert(offset + count <= Secpt256k1Scalar.wordBitWidth * Secpt256k1Scalar.wordWidth)
         assert(count < Secpt256k1Scalar.wordBitWidth)
         if offset >> 6 == (count + offset - 1) >> 6 {
-            return UInt64((d[offset >> 6] >> (offset & 0x3F)) & ((1 << count) - 1))
+            return UInt64((getWord(offset >> 6) >> (offset & 0x3F)) & ((1 << count) - 1))
         } else {
             assert((offset >> 6) + 1 < 4)
-            let firstHalf = UInt64(d[offset >> 6] >> (offset & 0x3F))
-            let secondHalf = UInt64((d[(offset >> 6) + 1] << (64 - (offset & 0x3F)) & Secpt256k1Scalar.wordMask))
+            let firstHalf = UInt64(getWord(offset >> 6) >> (offset & 0x3F))
+            let secondHalf = UInt64((getWord((offset >> 6) + 1) << (64 - (offset & 0x3F)) & Secpt256k1Scalar.wordMask))
             return (firstHalf | secondHalf) & ((1 << count) - 1)
         }
     }
@@ -172,7 +241,7 @@ public struct Secpt256k1Scalar {
     }
     
     public mutating func clear() {
-        (0..<Secpt256k1Scalar.wordWidth).forEach() { d[$0] = 0 }
+        d = (0, 0, 0, 0)
     }
     
     public mutating func negate() {
@@ -183,13 +252,31 @@ public struct Secpt256k1Scalar {
         var t : UInt64 = 0
         var t2 : UInt64 = 0
         var overflow = false
-        for i in 0..<Secpt256k1Scalar.wordWidth {
-            (d[i], overflow) = Secpt256k1Scalar.p[i].subtractingReportingOverflow(d[i])
-            t2 = overflow ? 1 : 0
-            (d[i], overflow) = d[i].subtractingReportingOverflow(t)
-            t2 += overflow ? 1 : 0
-            (t, t2) = (t2, 0)
-        }
+        
+        (d.0, overflow) = Secpt256k1Scalar.p.0.subtractingReportingOverflow(d.0)
+        t2 = overflow ? 1 : 0
+        (d.0, overflow) = d.0.subtractingReportingOverflow(t)
+        t2 += overflow ? 1 : 0
+        (t, t2) = (t2, 0)
+        
+        (d.1, overflow) = Secpt256k1Scalar.p.1.subtractingReportingOverflow(d.1)
+        t2 = overflow ? 1 : 0
+        (d.1, overflow) = d.1.subtractingReportingOverflow(t)
+        t2 += overflow ? 1 : 0
+        (t, t2) = (t2, 0)
+        
+        (d.2, overflow) = Secpt256k1Scalar.p.2.subtractingReportingOverflow(d.2)
+        t2 = overflow ? 1 : 0
+        (d.2, overflow) = d.2.subtractingReportingOverflow(t)
+        t2 += overflow ? 1 : 0
+        (t, t2) = (t2, 0)
+        
+        (d.3, overflow) = Secpt256k1Scalar.p.3.subtractingReportingOverflow(d.3)
+        t2 = overflow ? 1 : 0
+        (d.3, overflow) = d.3.subtractingReportingOverflow(t)
+        t2 += overflow ? 1 : 0
+        (t, t2) = (t2, 0)
+        
         assert(t == 0)
     }
     
@@ -205,65 +292,64 @@ public struct Secpt256k1Scalar {
         return Secpt256k1Scalar.substract(x, y)
     }
     
-    private mutating func reduceByPcomp() {
-        assert(Secpt256k1Scalar.pComp[2] == 1)
+    private mutating func reduceByPcomp(_ bits512: Bits64x8) {
+        assert(Secpt256k1Scalar.pComp.2 == 1)
         
-        var mStart = 6
+        var bits448: Bits64x7 = (0, 0, 0, 0, 0, 0, 0)
         // round 1
-        d[0] = bits512[0]
-        d[1] = bits512[1]
+        bits448.0 = bits512.0
+        bits448.1 = bits512.1
         
-        var acc = Accumulator(bits512[2])
+        var acc = Accumulator(bits512.2)
         
-        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
-        d[2] = acc.extractFast()
-        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
-        acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[0])
-        acc.sumAdd(bits512[3])
-        d[3] = acc.extract()
-        acc.sumAdd(bits512[mStart]) // acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[2])
-        acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[1])
-        acc.sumAdd(bits512[4])
-        d[4] = acc.extract()
-        acc.sumAdd(bits512[mStart+1]) //acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[2])
-        acc.sumAdd(bits512[5])
-        d[5] = acc.extract()
-        d[6] = acc.extractFast()
+        acc.mulAddFast(bits512.6, Secpt256k1Scalar.pComp.0)
+        bits448.2 = acc.extractFast()
+        acc.mulAddFast(bits512.6, Secpt256k1Scalar.pComp.1)
+        acc.mulAdd(bits512.7, Secpt256k1Scalar.pComp.0)
+        acc.sumAdd(bits512.3)
+        bits448.3 = acc.extract()
+        acc.sumAdd(bits512.6) // acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[2])
+        acc.mulAdd(bits512.7, Secpt256k1Scalar.pComp.1)
+        acc.sumAdd(bits512.4)
+        bits448.4 = acc.extract()
+        acc.sumAdd(bits512.7) //acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits512.5)
+        bits448.5 = acc.extract()
+        bits448.6 = acc.extractFast()
         assert(acc.isZero())
         
-        mStart = 5
+        var bits320: Bits64x5 = (0, 0, 0, 0, 0)
         // round 2
-        bits512[0] = d[0]
+        bits320.0 = bits448.0
         
-        acc.reset(d[1])
-        acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[0])
-        bits512[1] = acc.extractFast()
-        acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[1])
-        acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[0])
-        acc.sumAdd(d[2])
-        bits512[2] = acc.extract()
-        acc.sumAdd(d[mStart]) //acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
-        acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[1])
-        acc.sumAdd(d[3])
-        bits512[3] = acc.extract()
-        acc.sumAdd(d[mStart+1]) //acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[2])
-        acc.sumAdd(d[4])
-        bits512[4] = acc.extractFast()
+        acc.reset(bits448.1)
+        acc.mulAddFast(bits448.5, Secpt256k1Scalar.pComp.0)
+        bits320.1 = acc.extractFast()
+        acc.mulAddFast(bits448.5, Secpt256k1Scalar.pComp.1)
+        acc.mulAdd(bits448.6, Secpt256k1Scalar.pComp.0)
+        acc.sumAdd(bits448.2)
+        bits320.2 = acc.extract()
+        acc.sumAdd(bits448.5) //acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
+        acc.mulAdd(bits448.6, Secpt256k1Scalar.pComp.1)
+        acc.sumAdd(bits448.3)
+        bits320.3 = acc.extract()
+        acc.sumAdd(bits448.6) //acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits448.4)
+        bits320.4 = acc.extractFast()
         assert(acc.isZero())
         
-        mStart = 4
         // round 3
-        acc.reset(bits512[0])
-        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
-        d[0] = acc.extractFast()
-        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
-        acc.sumAdd(bits512[1])
-        d[1] = acc.extract()
-        acc.sumAdd(bits512[mStart]) // acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[2])
-        acc.sumAdd(bits512[2])
-        d[2] = acc.extract()
-        acc.sumAdd(bits512[3])
-        d[3] = acc.extractFast()
+        acc.reset(bits320.0)
+        acc.mulAddFast(bits320.4, Secpt256k1Scalar.pComp.0)
+        d.0 = acc.extractFast()
+        acc.mulAddFast(bits320.4, Secpt256k1Scalar.pComp.1)
+        acc.sumAdd(bits320.1)
+        d.1 = acc.extract()
+        acc.sumAdd(bits320.4) // acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[2])
+        acc.sumAdd(bits320.2)
+        d.2 = acc.extract()
+        acc.sumAdd(bits320.3)
+        d.3 = acc.extractFast()
         
         let overflow = acc.extractFast()
         assert(overflow <= 1)
@@ -271,100 +357,78 @@ public struct Secpt256k1Scalar {
         reduce(overflow: overflow)
     }
     
-    private static func mulArraysFast(_ res: inout [UInt64], _ x: ArraySlice<UInt64>, _ y: ArraySlice<UInt64>) {
+    private static func mulArraysFast(_ x: Bits64x4, _ y: Bits64x4) -> Bits64x8 {
         var acc = Accumulator()
+        var res: Bits64x8 = (0, 0, 0, 0, 0, 0, 0, 0)
         
-        acc.mulAddFast(x[x.startIndex + 0], y[y.startIndex + 0])
-        res[0] = acc.extractFast()
+        acc.mulAddFast(x.0, y.0)
+        res.0 = acc.extractFast()
         
-        acc.mulAdd(x[x.startIndex + 0], y[y.startIndex + 1])
-        acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 0])
-        res[1] = acc.extract()
+        acc.mulAdd(x.0, y.1)
+        acc.mulAdd(x.1, y.0)
+        res.1 = acc.extract()
         
-        acc.mulAdd(x[x.startIndex + 0], y[y.startIndex + 2])
-        acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 0])
-        acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 1])
-        res[2] = acc.extract()
+        acc.mulAdd(x.0, y.2)
+        acc.mulAdd(x.2, y.0)
+        acc.mulAdd(x.1, y.1)
+        res.2 = acc.extract()
         
-        acc.mulAdd(x[x.startIndex + 0], y[y.startIndex + 3])
-        acc.mulAdd(x[x.startIndex + 3], y[y.startIndex + 0])
-        acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 2])
-        acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 1])
-        res[3] = acc.extract()
+        acc.mulAdd(x.0, y.3)
+        acc.mulAdd(x.3, y.0)
+        acc.mulAdd(x.1, y.2)
+        acc.mulAdd(x.2, y.1)
+        res.3 = acc.extract()
         
-        acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 3])
-        acc.mulAdd(x[x.startIndex + 3], y[y.startIndex + 1])
-        acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 2])
-        res[4] = acc.extract()
+        acc.mulAdd(x.1, y.3)
+        acc.mulAdd(x.3, y.1)
+        acc.mulAdd(x.2, y.2)
+        res.4 = acc.extract()
         
-        acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 3])
-        acc.mulAdd(x[x.startIndex + 3], y[y.startIndex + 2])
-        res[5] = acc.extract()
+        acc.mulAdd(x.2, y.3)
+        acc.mulAdd(x.3, y.2)
+        res.5 = acc.extract()
         
-        acc.mulAddFast(x[x.startIndex + 3], y[y.startIndex + 3])
-        res[6] = acc.extractFast()
-        res[7] = acc.extractFast()
+        acc.mulAddFast(x.3, y.3)
+        res.6 = acc.extractFast()
+        res.7 = acc.extractFast()
         
         assert(acc.extractFast() == 0)
+        
+        return res
     }
     
-    private static func sqrArrayFast(_ res: inout [UInt64], _ x: ArraySlice<UInt64>) {
+    private static func sqrArrayFast(_ x: Bits64x4) -> Bits64x8 {
         var acc = Accumulator()
+        var res: Bits64x8 = (0, 0, 0, 0, 0, 0, 0, 0)
         
-        acc.mulAddFast(x[x.startIndex + 0], x[x.startIndex + 0])
-        res[0] = acc.extractFast()
+        acc.mulAddFast(x.0, x.0)
+        res.0 = acc.extractFast()
         
-        acc.mulAdd2(x[x.startIndex + 0], x[x.startIndex + 1])
-        res[1] = acc.extract()
+        acc.mulAdd2(x.0, x.1)
+        res.1 = acc.extract()
         
-        acc.mulAdd2(x[x.startIndex + 0], x[x.startIndex + 2])
-        acc.mulAdd(x[x.startIndex + 1], x[x.startIndex + 1])
-        res[2] = acc.extract()
+        acc.mulAdd2(x.0, x.2)
+        acc.mulAdd(x.1, x.1)
+        res.2 = acc.extract()
         
-        acc.mulAdd2(x[x.startIndex + 0], x[x.startIndex + 3])
-        acc.mulAdd2(x[x.startIndex + 1], x[x.startIndex + 2])
-        res[3] = acc.extract()
+        acc.mulAdd2(x.0, x.3)
+        acc.mulAdd2(x.1, x.2)
+        res.3 = acc.extract()
         
-        acc.mulAdd2(x[x.startIndex + 1], x[x.startIndex + 3])
-        acc.mulAdd(x[x.startIndex + 2], x[x.startIndex + 2])
-        res[4] = acc.extract()
+        acc.mulAdd2(x.1, x.3)
+        acc.mulAdd(x.2, x.2)
+        res.4 = acc.extract()
         
-        acc.mulAdd2(x[x.startIndex + 2], x[x.startIndex + 3])
-        res[5] = acc.extract()
+        acc.mulAdd2(x.2, x.3)
+        res.5 = acc.extract()
         
-        acc.mulAddFast(x[x.startIndex + 3], x[x.startIndex + 3])
-        res[6] = acc.extractFast()
+        acc.mulAddFast(x.3, x.3)
+        res.6 = acc.extractFast()
         
-        res[7] = acc.extractFast()
+        res.7 = acc.extractFast()
         
         assert(acc.extractFast() == 0)
-    }
-    
-    private static func mulArrays(_ res: inout [UInt64], _ x: ArraySlice<UInt64>, _ y: ArraySlice<UInt64>) {
-        for i in 0..<x.count+y.count {
-            res[i] = 0
-        }
-        var t : UInt64 = 0
-        var t2: UInt64 = 0
-        var overflow = false
-        for i in x.startIndex..<x.endIndex {
-            for j in y.startIndex..<y.endIndex {
-                let k = i + j - x.startIndex - y.startIndex
-                (res[k], overflow) = res[k].addingReportingOverflow(t)
-                (t, t2) = (t2, 0)
-                t += overflow ? 1 : 0
-                let (mulValHi, mulValLo) = x[i].multipliedFullWidth(by: y[j])
-                (res[k], overflow) = res[k].addingReportingOverflow(mulValLo)
-                t += overflow ? 1 : 0
-                (t, overflow) = t.addingReportingOverflow(mulValHi)
-                t2 = overflow ? 1 : 0
-            }
-            assert(res[i - x.startIndex + y.count] == 0)
-            res[i - x.startIndex + y.count] = t
-            t = 0
-            assert(t2 == 0)
-        }
-        assert(t == 0 && t2 == 0)
+        return res
     }
     
     public mutating func mul(_ y : Secpt256k1Scalar) {
@@ -375,12 +439,14 @@ public struct Secpt256k1Scalar {
     }
     
     private mutating func mulInternal(_ y : Secpt256k1Scalar? = nil) {
+        let bits512: Bits64x8
+        
         if let other = y {
-            Secpt256k1Scalar.mulArraysFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth], other.d[0..<Secpt256k1Scalar.wordWidth])
+            bits512 = Secpt256k1Scalar.mulArraysFast(d, other.d)
         } else {
-            Secpt256k1Scalar.mulArraysFast(&bits512, d[0..<Secpt256k1Scalar.wordWidth], d[0..<Secpt256k1Scalar.wordWidth])
+            bits512 = Secpt256k1Scalar.mulArraysFast(d, d)
         }
-        reduceByPcomp()
+        reduceByPcomp(bits512)
     }
     
     public mutating func sqr() {
@@ -394,17 +460,26 @@ public struct Secpt256k1Scalar {
         setInt(1)
         assert(isOne())
         
-        for i in 0..<Secpt256k1Scalar.wordWidth-2 {
-            var bitMask: UInt64 = 1
-            let word = Secpt256k1Scalar.pMinus2[i]
-            for _ in 0..<Secpt256k1Scalar.wordBitWidth {
-                if word & bitMask != 0 {
-                    mulInternal(powers)
-                }
-                powers.mulInternal() // sqr
-                bitMask = bitMask << 1
+        var bitMask: UInt64 = 1
+        var word = Secpt256k1Scalar.pMinus2.0
+        for _ in 0..<Secpt256k1Scalar.wordBitWidth {
+            if word & bitMask != 0 {
+                mulInternal(powers)
             }
+            powers.mulInternal() // sqr
+            bitMask = bitMask << 1
         }
+        
+        bitMask = 1
+        word = Secpt256k1Scalar.pMinus2.1
+        for _ in 0..<Secpt256k1Scalar.wordBitWidth {
+            if word & bitMask != 0 {
+                mulInternal(powers)
+            }
+            powers.mulInternal() // sqr
+            bitMask = bitMask << 1
+        }
+        
         powers.mulInternal() // 0 at 129th bit.
         
         let x129 = powers // 1's in [129, 130)
@@ -453,7 +528,7 @@ public struct Secpt256k1Scalar {
 
 extension Secpt256k1Scalar : Equatable {
     public static func == (lhs: Secpt256k1Scalar, rhs: Secpt256k1Scalar) -> Bool {
-        return lhs.d[0..<Secpt256k1Scalar.wordWidth] == rhs.d[0..<Secpt256k1Scalar.wordWidth]
+        return lhs.d == rhs.d
     }
 }
 
