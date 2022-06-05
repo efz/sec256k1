@@ -1,4 +1,3 @@
-import Darwin
 public struct Secpt256k1Scalar {
     var d : [UInt64]
     var bits512: [UInt64]
