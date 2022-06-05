@@ -217,19 +217,19 @@ public struct Secpt256k1Scalar {
         var acc = Accumulator(bits512[2])
         
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
-        d[2] = acc.exractFast()
+        d[2] = acc.extractFast()
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
         acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(bits512[3])
-        d[3] = acc.exract()
+        d[3] = acc.extract()
         acc.sumAdd(bits512[mStart]) // acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[2])
         acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[1])
         acc.sumAdd(bits512[4])
-        d[4] = acc.exract()
+        d[4] = acc.extract()
         acc.sumAdd(bits512[mStart+1]) //acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[2])
         acc.sumAdd(bits512[5])
-        d[5] = acc.exract()
-        d[6] = acc.exractFast()
+        d[5] = acc.extract()
+        d[6] = acc.extractFast()
         assert(acc.isZero())
         
         mStart = 5
@@ -238,35 +238,35 @@ public struct Secpt256k1Scalar {
         
         acc.reset(d[1])
         acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[0])
-        bits512[1] = acc.exractFast()
+        bits512[1] = acc.extractFast()
         acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[1])
         acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(d[2])
-        bits512[2] = acc.exract()
+        bits512[2] = acc.extract()
         acc.sumAdd(d[mStart]) //acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
         acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[1])
         acc.sumAdd(d[3])
-        bits512[3] = acc.exract()
+        bits512[3] = acc.extract()
         acc.sumAdd(d[mStart+1]) //acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[2])
         acc.sumAdd(d[4])
-        bits512[4] = acc.exractFast()
+        bits512[4] = acc.extractFast()
         assert(acc.isZero())
         
         mStart = 4
         // round 3
         acc.reset(bits512[0])
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
-        d[0] = acc.exractFast()
+        d[0] = acc.extractFast()
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
         acc.sumAdd(bits512[1])
-        d[1] = acc.exract()
+        d[1] = acc.extract()
         acc.sumAdd(bits512[mStart]) // acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[2])
         acc.sumAdd(bits512[2])
-        d[2] = acc.exract()
+        d[2] = acc.extract()
         acc.sumAdd(bits512[3])
-        d[3] = acc.exractFast()
+        d[3] = acc.extractFast()
         
-        let overflow = acc.exractFast()
+        let overflow = acc.extractFast()
         assert(overflow <= 1)
         assert(acc.isZero())
         reduce(overflow: overflow)
@@ -276,69 +276,69 @@ public struct Secpt256k1Scalar {
         var acc = Accumulator()
         
         acc.mulAddFast(x[x.startIndex + 0], y[y.startIndex + 0])
-        res[0] = acc.exractFast()
+        res[0] = acc.extractFast()
         
         acc.mulAdd(x[x.startIndex + 0], y[y.startIndex + 1])
         acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 0])
-        res[1] = acc.exract()
+        res[1] = acc.extract()
         
         acc.mulAdd(x[x.startIndex + 0], y[y.startIndex + 2])
         acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 0])
         acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 1])
-        res[2] = acc.exract()
+        res[2] = acc.extract()
         
         acc.mulAdd(x[x.startIndex + 0], y[y.startIndex + 3])
         acc.mulAdd(x[x.startIndex + 3], y[y.startIndex + 0])
         acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 2])
         acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 1])
-        res[3] = acc.exract()
+        res[3] = acc.extract()
         
         acc.mulAdd(x[x.startIndex + 1], y[y.startIndex + 3])
         acc.mulAdd(x[x.startIndex + 3], y[y.startIndex + 1])
         acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 2])
-        res[4] = acc.exract()
+        res[4] = acc.extract()
         
         acc.mulAdd(x[x.startIndex + 2], y[y.startIndex + 3])
         acc.mulAdd(x[x.startIndex + 3], y[y.startIndex + 2])
-        res[5] = acc.exract()
+        res[5] = acc.extract()
         
         acc.mulAddFast(x[x.startIndex + 3], y[y.startIndex + 3])
-        res[6] = acc.exractFast()
-        res[7] = acc.exractFast()
+        res[6] = acc.extractFast()
+        res[7] = acc.extractFast()
         
-        assert(acc.exractFast() == 0)
+        assert(acc.extractFast() == 0)
     }
     
     private static func sqrArrayFast(_ res: inout [UInt64], _ x: ArraySlice<UInt64>) {
         var acc = Accumulator()
         
         acc.mulAddFast(x[x.startIndex + 0], x[x.startIndex + 0])
-        res[0] = acc.exractFast()
+        res[0] = acc.extractFast()
         
         acc.mulAdd2(x[x.startIndex + 0], x[x.startIndex + 1])
-        res[1] = acc.exract()
+        res[1] = acc.extract()
         
         acc.mulAdd2(x[x.startIndex + 0], x[x.startIndex + 2])
         acc.mulAdd(x[x.startIndex + 1], x[x.startIndex + 1])
-        res[2] = acc.exract()
+        res[2] = acc.extract()
         
         acc.mulAdd2(x[x.startIndex + 0], x[x.startIndex + 3])
         acc.mulAdd2(x[x.startIndex + 1], x[x.startIndex + 2])
-        res[3] = acc.exract()
+        res[3] = acc.extract()
         
         acc.mulAdd2(x[x.startIndex + 1], x[x.startIndex + 3])
         acc.mulAdd(x[x.startIndex + 2], x[x.startIndex + 2])
-        res[4] = acc.exract()
+        res[4] = acc.extract()
         
         acc.mulAdd2(x[x.startIndex + 2], x[x.startIndex + 3])
-        res[5] = acc.exract()
+        res[5] = acc.extract()
         
         acc.mulAddFast(x[x.startIndex + 3], x[x.startIndex + 3])
-        res[6] = acc.exractFast()
+        res[6] = acc.extractFast()
         
-        res[7] = acc.exractFast()
+        res[7] = acc.extractFast()
         
-        assert(acc.exractFast() == 0)
+        assert(acc.extractFast() == 0)
     }
     
     private static func mulArrays(_ res: inout [UInt64], _ x: ArraySlice<UInt64>, _ y: ArraySlice<UInt64>) {
@@ -406,7 +406,7 @@ public struct Secpt256k1Scalar {
                 bitMask = bitMask << 1
             }
         }
-        powers.mulInternal() // 0 at 129th bit pos.
+        powers.mulInternal() // 0 at 129th bit.
         
         let x129 = powers // 1's in [129, 130)
         
@@ -511,7 +511,7 @@ private struct Accumulator {
         assert(c2 == 0)
     }
     
-    mutating func exractFast() -> UInt64 {
+    mutating func extractFast() -> UInt64 {
         defer {
             (c0, c1) = (c1, 0)
             assert(c2 == 0)
@@ -519,7 +519,7 @@ private struct Accumulator {
         return c0
     }
     
-    mutating func exract() -> UInt64 {
+    mutating func extract() -> UInt64 {
         defer {
             (c0, c1, c2) = (c1, c2, 0)
         }
