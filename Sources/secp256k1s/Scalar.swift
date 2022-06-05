@@ -410,12 +410,21 @@ public struct Secpt256k1Scalar {
         
         let x129 = powers // 1's in [129, 130)
         
-        var x129_192 = Secpt256k1Scalar.one
-        var x192 = x129
-        for _ in 0..<63 {
-            x129_192.mulInternal(x192)
-            x192.mulInternal()
+        var x129_161 = Secpt256k1Scalar.one
+        var x161 = x129
+        for _ in 0..<31 {
+            x129_161.mulInternal(x161)
+            x161.mulInternal()
         }
+        let x129_160 = x129_161
+        x129_161.mulInternal(x161)
+        
+        var x129_192 = x129_161
+        for _ in 0..<31 {
+            x129_192.mulInternal()
+        }
+        x129_192 = x129_160 * x129_192
+        
         var x192_255 = x129_192
         for _ in 0..<63 {
             x192_255.mulInternal()
