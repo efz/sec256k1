@@ -218,7 +218,7 @@ public struct Secpt256k1Scalar {
         
         acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[0])
         d[2] = acc.exractFast()
-        acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[1])
+        acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[1])
         acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(bits512[3])
         d[3] = acc.exract()
@@ -240,7 +240,7 @@ public struct Secpt256k1Scalar {
         acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[0])
         bits512[1] = acc.exractFast()
         acc.mulAddFast(d[mStart], Secpt256k1Scalar.pComp[1])
-        acc.mulAddFast(d[mStart+1], Secpt256k1Scalar.pComp[0])
+        acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[0])
         acc.sumAdd(d[2])
         bits512[2] = acc.exract()
         acc.sumAdd(d[mStart]) //acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
@@ -395,17 +395,36 @@ public struct Secpt256k1Scalar {
         setInt(1)
         assert(isOne())
         
-        for i in 0..<Secpt256k1Scalar.wordWidth {
+        for i in 0..<Secpt256k1Scalar.wordWidth-2 {
             var bitMask: UInt64 = 1
-            
+            let word = Secpt256k1Scalar.pMinus2[i]
             for _ in 0..<Secpt256k1Scalar.wordBitWidth {
-                if Secpt256k1Scalar.pMinus2[i] & bitMask != 0 {
+                if word & bitMask != 0 {
                     mulInternal(powers)
                 }
                 powers.mulInternal() // sqr
                 bitMask = bitMask << 1
             }
         }
+        powers.mulInternal() // 0 at 129th bit pos.
+        
+        let x129 = powers // 1's in [129, 130)
+        
+        var x129_192 = Secpt256k1Scalar.one
+        var x192 = x129
+        for _ in 0..<63 {
+            x129_192.mulInternal(x192)
+            x192.mulInternal()
+        }
+        var x192_255 = x129_192
+        for _ in 0..<63 {
+            x192_255.mulInternal()
+        }
+        let x129_255 = x129_192 * x192_255
+        var x130_256 = x129_255
+        x130_256.mulInternal()
+        let x129_256 = x129 * x130_256
+        mulInternal(x129_256)
     }
     
     public mutating func inverse() {
@@ -451,6 +470,7 @@ private struct Accumulator {
         (c0, overflow) = c0.addingReportingOverflow(lo)
         hi += overflow ? 1 : 0
         c1 += hi
+        assert(c2 == 0)
     }
     
     mutating func mulAdd(_ x: UInt64, _ y: UInt64) {
