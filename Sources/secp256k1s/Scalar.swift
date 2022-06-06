@@ -165,6 +165,8 @@ public struct Secpt256k1Scalar {
         (reduced.3, carry) = reduced.3.subtractingReportingOverflow(Secpt256k1Scalar.p.3)
         t += carry ? 1 : 0
         
+        assert(t <= 1)
+        
         if overflow > 0 || t == 0 {
             d = reduced
         }
@@ -248,32 +250,25 @@ public struct Secpt256k1Scalar {
         guard !isZero() else {
             return
         }
+        assert(Secpt256k1Scalar.p.0 != 0 && Secpt256k1Scalar.p.1 != 0 && Secpt256k1Scalar.p.2 != 0 && Secpt256k1Scalar.p.3 != 0)
         var t : UInt64 = 0
-        var t2 : UInt64 = 0
         var overflow = false
         
         (d.0, overflow) = Secpt256k1Scalar.p.0.subtractingReportingOverflow(d.0)
         t = overflow ? 1 : 0
         
-        (d.1, overflow) = Secpt256k1Scalar.p.1.subtractingReportingOverflow(d.1)
-        t2 = overflow ? 1 : 0
-        (d.1, overflow) = d.1.subtractingReportingOverflow(t)
-        t2 += overflow ? 1 : 0
-        (t, t2) = (t2, 0)
+        t = Secpt256k1Scalar.p.1 - t
+        (d.1, overflow) = t.subtractingReportingOverflow(d.1)
+        t = overflow ? 1 : 0
         
-        (d.2, overflow) = Secpt256k1Scalar.p.2.subtractingReportingOverflow(d.2)
-        t2 = overflow ? 1 : 0
-        (d.2, overflow) = d.2.subtractingReportingOverflow(t)
-        t2 += overflow ? 1 : 0
-        (t, t2) = (t2, 0)
+        t = Secpt256k1Scalar.p.2 - t
+        (d.2, overflow) = t.subtractingReportingOverflow(d.2)
+        t = overflow ? 1 : 0
         
-        (d.3, overflow) = Secpt256k1Scalar.p.3.subtractingReportingOverflow(d.3)
-        t2 = overflow ? 1 : 0
-        (d.3, overflow) = d.3.subtractingReportingOverflow(t)
-        t2 += overflow ? 1 : 0
-        (t, t2) = (t2, 0)
+        t = Secpt256k1Scalar.p.3 - t
+        (d.3, overflow) = t.subtractingReportingOverflow(d.3)
         
-        assert(t == 0)
+        assert(!overflow)
     }
     
     public static func substract(_ x : Secpt256k1Scalar, _ y : Secpt256k1Scalar) -> Secpt256k1Scalar {
