@@ -554,7 +554,7 @@ final class secp256k1sTests: XCTestCase {
         var s: Secpt256k1Scalar
         repeat {
             let words: [UInt32] = (0..<8).map { _ in
-                UInt32.random(in: UInt32.min..<UInt32.max)
+                UInt32(UInt64.random(in: UInt64(UInt32.min)..<UInt64(UInt32.max)+1))
             }
             s = Secpt256k1Scalar(words: words)
         } while s.checkOverflow() || s.isZero()
@@ -747,7 +747,7 @@ final class secp256k1sTests: XCTestCase {
     }
     
     func testRandScalar() {
-        for _ in 0..<512 {
+        for _ in 0..<2048 {
             randTestScalar()
         }
         
