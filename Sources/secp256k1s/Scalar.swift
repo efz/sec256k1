@@ -476,33 +476,30 @@ public struct Secpt256k1Scalar {
             bitMask = bitMask << 1
         }
         
+        let shiftBy =  { (shift: Int, num: Secpt256k1Scalar, prev: Secpt256k1Scalar) -> (Secpt256k1Scalar, Secpt256k1Scalar) in
+            var shiftedPrev = num
+            for _ in 0..<shift-1 {
+                shiftedPrev.mulInternal()
+            }
+            var shiftedNum = shiftedPrev
+            shiftedPrev.mulInternal(prev)
+            shiftedNum.mulInternal()
+            shiftedNum.mulInternal(num)
+            return (shiftedNum, shiftedPrev)
+        }
+        
         powers.mulInternal() // 0 at 129th bit.
         
         let x129 = powers // 1's in [129, 130)
         
-        var x129_161 = Secpt256k1Scalar.one
-        var x161 = x129
-        for _ in 0..<31 {
-            x129_161.mulInternal(x161)
-            x161.mulInternal()
-        }
-        let x129_160 = x129_161
-        x129_161.mulInternal(x161)
+        let (x129_131, x129_130) = shiftBy(1, x129, Secpt256k1Scalar.one)
+        let (x129_133, x129_132) = shiftBy(2, x129_131, x129_130)
+        let (x129_137, x129_136) = shiftBy(4, x129_133, x129_132)
+        let (x129_145, x129_144) = shiftBy(8, x129_137, x129_136)
+        let (x129_161, x129_160) = shiftBy(16, x129_145, x129_144)
+        let (x129_193, x129_192) = shiftBy(32, x129_161,  x129_160)
+        let (_, x129_256) = shiftBy(64, x129_193, x129_192)
         
-        var x129_192 = x129_161
-        for _ in 0..<31 {
-            x129_192.mulInternal()
-        }
-        x129_192 = x129_160 * x129_192
-        
-        var x192_255 = x129_192
-        for _ in 0..<63 {
-            x192_255.mulInternal()
-        }
-        let x129_255 = x129_192 * x192_255
-        var x130_256 = x129_255
-        x130_256.mulInternal()
-        let x129_256 = x129 * x130_256
         mulInternal(x129_256)
     }
     
