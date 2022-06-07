@@ -471,29 +471,31 @@ public struct Secpt256k1Scalar {
             bitMask = bitMask << 1
         }
         
-        let shiftBy =  { (shift: Int, num: Secpt256k1Scalar, prev: Secpt256k1Scalar) -> (Secpt256k1Scalar, Secpt256k1Scalar) in
-            var shiftedPrev = num
-            for _ in 0..<shift-1 {
-                shiftedPrev.mulInternal()
+        let shiftBy =  { (shift: Int, num: Secpt256k1Scalar, prev: Secpt256k1Scalar) -> Secpt256k1Scalar in
+            var shiftedNum = num
+            for _ in 0..<shift {
+                shiftedNum.mulInternal()
             }
-            var shiftedNum = shiftedPrev
-            shiftedPrev.mulInternal(prev)
-            shiftedNum.mulInternal()
-            shiftedNum.mulInternal(num)
-            return (shiftedNum, shiftedPrev)
+            shiftedNum.mulInternal(prev)
+            return shiftedNum
         }
         
         powers.mulInternal() // 0 at 129th bit.
         
         let x129 = powers // 1's in [129, 130)
         
-        let (x129_131, x129_130) = shiftBy(1, x129, Secpt256k1Scalar.one)
-        let (x129_133, x129_132) = shiftBy(2, x129_131, x129_130)
-        let (x129_137, x129_136) = shiftBy(4, x129_133, x129_132)
-        let (x129_145, x129_144) = shiftBy(8, x129_137, x129_136)
-        let (x129_161, x129_160) = shiftBy(16, x129_145, x129_144)
-        let (x129_193, x129_192) = shiftBy(32, x129_161,  x129_160)
-        let (_, x129_256) = shiftBy(64, x129_193, x129_192)
+        let x129_131 = shiftBy(1, x129, x129)
+        let x129_133 = shiftBy(2, x129_131, x129_131)
+        let x129_137 = shiftBy(4, x129_133, x129_133)
+        let x129_145 = shiftBy(8, x129_137, x129_137)
+        let x129_161 = shiftBy(16, x129_145, x129_145)
+        let x129_193 = shiftBy(32, x129_161,  x129_161)
+        let x129_225 = shiftBy(32, x129_193, x129_161)
+        let x129_241 = shiftBy(16, x129_225, x129_145)
+        let x129_249 = shiftBy(8, x129_241, x129_137)
+        let x129_253 = shiftBy(4, x129_249, x129_133)
+        let x129_255 = shiftBy(2, x129_253, x129_131)
+        let x129_256 = shiftBy(1, x129_255, x129)
         
         mulInternal(x129_256)
     }
