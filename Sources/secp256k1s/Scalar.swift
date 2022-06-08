@@ -470,18 +470,12 @@ public struct Secpt256k1Scalar {
         let x112 = shiftNumMul(16, x96, x16)
         let x120 = shiftNumMul(8, x112, x8)
         let x124 = shiftNumMul(4, x120, x4)
-        let x126 = shiftNumMul(2, x124, x2)
-        let x127 = shiftNumMul(1, x126, x1)
         
         var x3 = x2
         x3.mulInternal()
         x3.mulInternal(x1)
         
-        var x6 = x3
-        x6.mulInternal()
-        x6.mulInternal()
-        x6.mulInternal()
-        x6.mulInternal(x3)
+        let x127 = shiftNumMul(3, x124, x3)
         
         ///
         mulInternal(x127)
@@ -523,7 +517,8 @@ public struct Secpt256k1Scalar {
         shiftMul(3, x2)
         shiftMul(3, x1)
         shiftMul(6, x1)
-        shiftMul(8, x6)
+        shiftMul(5, x3)
+        shiftMul(3, x3)
     }
     
     private mutating func shiftMul(_ count: Int, _ x: Secpt256k1Scalar) {
