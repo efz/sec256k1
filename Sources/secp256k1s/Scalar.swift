@@ -447,31 +447,7 @@ public struct Secpt256k1Scalar {
     }
     
     private mutating func inverseByPowers() {
-        var powers = Secpt256k1Scalar(scalar: self)
-        setInt(1)
-        assert(isOne())
-        
-        var bitMask: UInt64 = 1
-        var word = Secpt256k1Scalar.pMinus2.0
-        for _ in 0..<Secpt256k1Scalar.wordBitWidth {
-            if word & bitMask != 0 {
-                mulInternal(powers)
-            }
-            powers.mulInternal() // sqr
-            bitMask = bitMask << 1
-        }
-        
-        bitMask = 1
-        word = Secpt256k1Scalar.pMinus2.1
-        for _ in 0..<Secpt256k1Scalar.wordBitWidth {
-            if word & bitMask != 0 {
-                mulInternal(powers)
-            }
-            powers.mulInternal() // sqr
-            bitMask = bitMask << 1
-        }
-        
-        let shiftBy =  { (shift: Int, num: Secpt256k1Scalar, prev: Secpt256k1Scalar) -> Secpt256k1Scalar in
+        let shiftBy = { (shift: Int, num: Secpt256k1Scalar, prev: Secpt256k1Scalar) -> Secpt256k1Scalar in
             var shiftedNum = num
             for _ in 0..<shift {
                 shiftedNum.mulInternal()
@@ -480,24 +456,122 @@ public struct Secpt256k1Scalar {
             return shiftedNum
         }
         
-        powers.mulInternal() // 0 at 129th bit.
+        let x1 = Secpt256k1Scalar(scalar: self)
+        setInt(1)
+        assert(isOne())
         
-        let x129 = powers // 1's in [129, 130)
+        let x2 = shiftBy(1, x1, x1)
+        let x4 = shiftBy(2, x2, x2)
+        let x8 = shiftBy(4, x4, x4)
+        let x16 = shiftBy(8, x8, x8)
+        let x32 = shiftBy(16, x16, x16)
+        let x64 = shiftBy(32, x32,  x32)
+        let x96 = shiftBy(32, x64, x32)
+        let x112 = shiftBy(16, x96, x16)
+        let x120 = shiftBy(8, x112, x8)
+        let x124 = shiftBy(4, x120, x4)
+        let x126 = shiftBy(2, x124, x2)
+        let x127 = shiftBy(1, x126, x1)
         
-        let x129_131 = shiftBy(1, x129, x129)
-        let x129_133 = shiftBy(2, x129_131, x129_131)
-        let x129_137 = shiftBy(4, x129_133, x129_133)
-        let x129_145 = shiftBy(8, x129_137, x129_137)
-        let x129_161 = shiftBy(16, x129_145, x129_145)
-        let x129_193 = shiftBy(32, x129_161,  x129_161)
-        let x129_225 = shiftBy(32, x129_193, x129_161)
-        let x129_241 = shiftBy(16, x129_225, x129_145)
-        let x129_249 = shiftBy(8, x129_241, x129_137)
-        let x129_253 = shiftBy(4, x129_249, x129_133)
-        let x129_255 = shiftBy(2, x129_253, x129_131)
-        let x129_256 = shiftBy(1, x129_255, x129)
+        var x3 = x2
+        x3.mulInternal()
+        x3.mulInternal(x1)
         
-        mulInternal(x129_256)
+        var x5 = x3
+        x5.mulInternal()
+        x5.mulInternal()
+        x5.mulInternal(x2)
+        
+        var x6 = x5
+        x6.mulInternal()
+        x6.mulInternal(x1)
+        
+        ///
+        mulInternal(x127)
+        mulInternal()
+        
+        // 1011101010101110110111001110011010101111010010001010000000111011
+        ones(1, x1)
+        zeros(1)
+        ones(3, x3)
+        zeros(1)
+        ones(1, x1)
+        zeros(1)
+        ones(1, x1)
+        zeros(1)
+        ones(1, x1)
+        zeros(1)
+        ones(3, x3)
+        zeros(1)
+        ones(2, x2)
+        zeros(1)
+        ones(3, x3)
+        zeros(2)
+        ones(3, x3)
+        zeros(2)
+        ones(2, x2)
+        zeros(1)
+        ones(1, x1)
+        zeros(1)
+        ones(1, x1)
+        zeros(1)
+        ones(4, x4)
+        zeros(1)
+        ones(1, x1)
+        zeros(2)
+        ones(1, x1)
+        zeros(3)
+        ones(1, x1)
+        zeros(1)
+        ones(1, x1)
+        zeros(7)
+        ones(3, x3)
+        zeros(1)
+        ones(2, x2)
+        
+        // 1011111111010010010111101000110011010000001101100100000100111111
+        ones(1, x1)
+        zeros(1)
+        ones(8, x8)
+        zeros(1)
+        ones(1, x1)
+        zeros(2)
+        ones(1, x1)
+        zeros(2)
+        ones(1, x1)
+        zeros(1)
+        ones(4, x4)
+        zeros(1)
+        ones(1, x1)
+        zeros(3)
+        ones(2, x2)
+        zeros(2)
+        ones(2, x2)
+        zeros(1)
+        ones(1, x1)
+        zeros(6)
+        ones(2, x2)
+        zeros(1)
+        ones(2, x2)
+        zeros(2)
+        ones(1, x1)
+        zeros(5)
+        ones(1, x1)
+        zeros(2)
+        ones(6, x6)
+    }
+    
+    private mutating func ones(_ count: Int, _ x: Secpt256k1Scalar) {
+        for _ in 0..<count {
+            mulInternal()
+        }
+        mulInternal(x)
+    }
+    
+    private mutating func zeros(_ count: Int) {
+        for _ in 0..<count {
+            self.mulInternal()
+        }
     }
     
     public mutating func inverse() {
