@@ -500,10 +500,11 @@ public struct Secpt256k1Scalar {
         shiftMul(4, x1)
         shiftMul(2, x1)
         shiftMul(10,x3)
-        shiftMul(3, x2)
         
+        //shiftMul(3, x2)
         // 1011,1111,1101,0010,0101,1110,1000,1100,1101,0000,0011,0110,0100,0001,0011,1111
-        shiftMul(1, x1)
+        shiftMul(4, x3)
+        
         shiftMul(9, x8)
         shiftMul(2, x1)
         shiftMul(3, x1)
