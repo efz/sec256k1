@@ -774,4 +774,22 @@ final class ScalarTests: XCTestCase {
             XCTAssertEqual(r2, zz)
         }
     }
+    
+    func testOverflow() throws {
+        let x1 = Secpt256k1Scalar(words64: [Secpt256k1Scalar.p.0 - 1, Secpt256k1Scalar.p.1, Secpt256k1Scalar.p.2, Secpt256k1Scalar.p.3])
+        let x2 = Secpt256k1Scalar(words64: [0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, Secpt256k1Scalar.p.2, Secpt256k1Scalar.p.3 - 1])
+        let x3 = Secpt256k1Scalar(words64: [0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, Secpt256k1Scalar.p.2 - 1, Secpt256k1Scalar.p.3])
+        let r1 = x1 * x1
+        let r2 = x2 * x2
+        let r3 = x3 * x3
+        XCTAssertTrue(!r1.isZero())
+        XCTAssertTrue(!r2.isZero())
+        XCTAssertTrue(!r3.isZero())
+        let r4 = x1 * x2
+        let r5 = x3 * x1
+        let r6 = x2 * x3
+        XCTAssertTrue(!r4.isZero())
+        XCTAssertTrue(!r5.isZero())
+        XCTAssertTrue(!r6.isZero())
+    }
 }

@@ -29,7 +29,8 @@ public struct Secpt256k1Field {
     static let wordBitWidth = UInt64.bitWidth
     
     static let p : Bits64x4 = (0xFFFFFFFEFFFFFC2F, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
-    static let pMinus2 : Bits64x4 = (0xFFFFFFFEFFFFFC2D, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
+    static let pMinus2 : Bits64x4 = (p.0 - 2, p.1, p.2, p.3)
+    //(0xFFFFFFFEFFFFFC2D, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
     static let pComp: Bits64x4 = (~p.0 + 1, ~p.1, ~p.2, ~p.3)
     static let pCompLeadingZeros = 223
     static let pCompWordWidth = 1
@@ -289,17 +290,18 @@ public struct Secpt256k1Field {
         var bits384: Bits64x6 = (0, 0, 0, 0, 0, 0)
         // round 1
         bits384.0 = bits512.0
-        bits384.1 = bits512.1
         
-        acc.reset(bits512.2)
+        acc.reset(bits512.1)
+        acc.mulAddFast(bits512.5, Secpt256k1Field.pComp.0)
+        bits384.1 = acc.extractFast()
         acc.mulAddFast(bits512.6, Secpt256k1Field.pComp.0)
+        acc.sumAddFast(bits512.2)
         bits384.2 = acc.extractFast()
-        acc.mulAdd(bits512.7, Secpt256k1Field.pComp.0)
-        acc.sumAdd(bits512.3)
-        bits384.3 = acc.extract()
-        acc.sumAdd(bits512.4)
+        acc.mulAddFast(bits512.7, Secpt256k1Field.pComp.0)
+        acc.sumAddFast(bits512.3)
+        bits384.3 = acc.extractFast()
+        acc.sumAddFast(bits512.4)
         bits384.4 = acc.extractFast()
-        acc.sumAdd(bits512.5)
         bits384.5 = acc.extractFast()
         assert(acc.isZero())
         
@@ -307,17 +309,15 @@ public struct Secpt256k1Field {
         acc.reset(bits384.0)
         acc.mulAddFast(bits384.4, Secpt256k1Field.pComp.0)
         d.0 = acc.extractFast()
-        acc.mulAdd(bits384.5, Secpt256k1Field.pComp.0)
-        acc.sumAdd(bits384.1)
-        d.1 = acc.extract()
-        acc.sumAdd(bits384.2)
-        d.2 = acc.extract()
-        acc.sumAdd(bits384.3)
+        acc.mulAddFast(bits384.5, Secpt256k1Field.pComp.0)
+        acc.sumAddFast(bits384.1)
+        d.1 = acc.extractFast()
+        acc.sumAddFast(bits384.2)
+        d.2 = acc.extractFast()
+        acc.sumAddFast(bits384.3)
         d.3 = acc.extractFast()
-        assert(acc.isZero())
         
         let overflow = acc.extractFast()
-        assert(overflow == 0)
         assert(acc.isZero())
         reduce(overflow: overflow)
     }
@@ -443,12 +443,11 @@ public struct Secpt256k1Field {
         x22.shiftMul(4, x4)
         x22.shiftMul(2, x2)
         
-        let x32 = shiftNumMul(16, x16, x16)
-        let x64 = shiftNumMul(32, x32, x32)
-        let x128 = shiftNumMul(64, x64, x64)
-        let x192 = shiftNumMul(64, x128, x64)
-        let x214 = shiftNumMul(22, x192, x22)
-        let x222 = shiftNumMul(8, x214, x8)
+        let x44 = shiftNumMul(22, x22, x22)
+        let x88 = shiftNumMul(44, x44, x44)
+        let x176 = shiftNumMul(88, x88, x88)
+        let x220 = shiftNumMul(44, x176, x44)
+        let x222 = shiftNumMul(2, x220, x2)
         let x223 = shiftNumMul(1, x222, x1)
         
         ///
