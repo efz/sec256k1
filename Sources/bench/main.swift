@@ -25,6 +25,8 @@ let init_y : [UInt8] = [
 let count = 200000
 let inverse_count = 2000
 
+// Scalar
+
 func randScalar() -> Secpt256k1Scalar {
     var s: Secpt256k1Scalar
     repeat {
@@ -116,6 +118,57 @@ func bench_random_scalar_inverse() {
     }
 }
 
+// Field
+
+func randField() -> Secpt256k1Field {
+    var f: Secpt256k1Field
+    repeat {
+        let words: [UInt32] = (0..<8).map { _ in
+            UInt32.random(in: UInt32.min..<UInt32.max)
+        }
+        f = Secpt256k1Field(words: words)
+    } while f.checkOverflow() || f.isZero()
+    return f
+}
+
+func bench_field_mul() {
+    var field_x = Secpt256k1Field(bytes: init_x)
+    let field_y = Secpt256k1Field(bytes: init_y)
+    
+    for _ in 0..<count {
+        field_x.mul(field_y)
+    }
+}
+
+func bench_random_field_mul() {
+    var field_x = randField()
+    let field_y = randField()
+    
+    for _ in 0..<count {
+        field_x.mul(field_y)
+    }
+}
+
+func bench_field_inverse() {
+    var field_x = Secpt256k1Field(bytes: init_x)
+    let field_y = Secpt256k1Field(bytes: init_y)
+    
+    for _ in 0..<inverse_count {
+        field_x.inverse()
+        field_x.add(field_y)
+    }
+}
+
+func bench_random_field_inverse() {
+    var field_x = randField()
+    let field_y = randField()
+    
+    for _ in 0..<inverse_count {
+        field_x.inverse()
+        field_x.add(field_y)
+    }
+}
+
 func runBenchmark(name: String, benchFunc: () -> Void, count: Int) {
     print("** \(name) benchmark starting...")
     var minElapsed: Double = Double(Int.max)
@@ -150,3 +203,8 @@ runBenchmark(name: "Scalar Sqr", benchFunc: bench_scalar_sqr, count: count)
 runBenchmark(name: "Random Scalar Sqr", benchFunc: bench_random_scalar_sqr, count: count)
 runBenchmark(name: "Scalar Inverse", benchFunc: bench_scalar_inverse, count: inverse_count)
 runBenchmark(name: "Random Scalar Inverse", benchFunc: bench_random_scalar_inverse, count: inverse_count)
+
+runBenchmark(name: "Feild Mul", benchFunc: bench_field_mul, count: count)
+runBenchmark(name: "Random Feild Mul", benchFunc: bench_random_field_mul, count: count)
+runBenchmark(name: "Feild Inverse", benchFunc: bench_field_inverse, count: inverse_count)
+runBenchmark(name: "Random Feild Inverse", benchFunc: bench_random_field_inverse, count: inverse_count)
