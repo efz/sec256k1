@@ -279,7 +279,7 @@ public struct Secpt256k1Field {
         var r2 = Secpt256k1Field.init(field: y)
         r2.negate()
         r1.add(r2)
-        return r2
+        return r1
     }
     
     public static func -(x : Secpt256k1Field, y : Secpt256k1Field) -> Secpt256k1Field {

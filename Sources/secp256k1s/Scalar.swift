@@ -276,7 +276,7 @@ public struct Secpt256k1Scalar {
         var r2 = Secpt256k1Scalar.init(scalar: y)
         r2.negate()
         r1.add(r2)
-        return r2
+        return r1
     }
     
     public static func -(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {

@@ -56,4 +56,17 @@ class FieldTests: XCTestCase {
         XCTAssertTrue(!r5.isZero())
         XCTAssertTrue(!r6.isZero())
     }
+    
+    func testMisc() throws {
+        let x = randField()
+        let x2 = x + x
+        let x3 = x2 + x
+        let x3z = x * Secpt256k1Field(int: 3)
+        XCTAssertEqual(x3, x3z)
+        
+        let x5 = x * Secpt256k1Field(int: 5)
+        let x3zz = x5 - x - x
+        XCTAssertEqual(x3, x3zz)
+        XCTAssertEqual(x3, x5 - x2)
+    }
 }
