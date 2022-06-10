@@ -69,4 +69,50 @@ class FieldTests: XCTestCase {
         XCTAssertEqual(x3, x3zz)
         XCTAssertEqual(x3, x5 - x2)
     }
+    
+    func verifySqrt(_ x: Secpt256k1Field, _ awn: Secpt256k1Field) {
+        var neg_awn = awn
+        neg_awn.negate()
+        
+        XCTAssertTrue(x == awn || x == neg_awn)
+    }
+    
+    func testSqrt() throws {
+        /* Check sqrt(0) is 0 */
+        var z = Secpt256k1Field.zero
+        z.sqrt()
+        XCTAssertTrue(z.isZero())
+        
+        /* Check sqrt of small squares (and their negatives) */
+        for i in 0..<100 {
+            let x = Secpt256k1Field(int: UInt32(i))
+            let xx = x * x
+            var xx_sqrt = xx
+            xx_sqrt.sqrt()
+            verifySqrt(xx_sqrt, x)
+            
+            var neg_x = x
+            neg_x.negate()
+            let neg_xx = neg_x * neg_x
+            var neg_xx_sqrt = neg_xx
+            neg_xx_sqrt.sqrt()
+            verifySqrt(neg_xx_sqrt, neg_x)
+        }
+        
+        /* Consistency checks for large random values */
+        for _ in 0..<100 {
+            let x = randField()
+            let xx = x * x
+            var xx_sqrt = xx
+            xx_sqrt.sqrt()
+            verifySqrt(xx_sqrt, x)
+            
+            var neg_x = x
+            neg_x.negate()
+            let neg_xx = neg_x * neg_x
+            var neg_xx_sqrt = neg_xx
+            neg_xx_sqrt.sqrt()
+            verifySqrt(neg_xx_sqrt, neg_x)
+        }
+    }
 }

@@ -32,6 +32,7 @@ public struct Secpt256k1Field {
     static let pMinus2 : Bits64x4 = (p.0 - 2, p.1, p.2, p.3)
     //(0xFFFFFFFEFFFFFC2D, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
     static let pComp: Bits64x4 = (~p.0 + 1, ~p.1, ~p.2, ~p.3)
+    static let pPlus1Div4: Bits64x4 = (0xFFFFFFFFBFFFFF0C, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFF3)
     static let pCompLeadingZeros = 223
     static let pCompWordWidth = 1
     
@@ -444,6 +445,67 @@ public struct Secpt256k1Field {
         shiftMul(5, x1)
         shiftMul(3, x2)
         shiftMul(2, x1)
+    }
+    
+    public mutating func sqrt() {
+        assert(!checkOverflow())
+        
+        let initalVal = self
+        
+        sqrtByPowers()
+        reduce()
+        
+        var x = self
+        x.sqr()
+        if x == initalVal {
+            return
+        }
+        negate()
+        assert({() -> Bool in
+            var y = self
+            y.sqr()
+            return y == initalVal
+        }())
+    }
+    
+    private mutating func sqrtByPowers() {
+        let shiftNumMul = { (shift: Int, num: Secpt256k1Field, prev: Secpt256k1Field) -> Secpt256k1Field in
+            var shiftedNum = num
+            for _ in 0..<shift {
+                shiftedNum.mulInternal()
+            }
+            shiftedNum.mulInternal(prev)
+            return shiftedNum
+        }
+        
+        let x1 = Secpt256k1Field(field: self)
+        setInt(1)
+        assert(isOne())
+        
+        let x2 = shiftNumMul(1, x1, x1)
+        let x4 = shiftNumMul(2, x2, x2)
+        let x8 = shiftNumMul(4, x4, x4)
+        let x16 = shiftNumMul(8, x8, x8)
+        
+        var x22 = x16
+        x22.shiftMul(4, x4)
+        x22.shiftMul(2, x2)
+        
+        let x44 = shiftNumMul(22, x22, x22)
+        let x88 = shiftNumMul(44, x44, x44)
+        let x176 = shiftNumMul(88, x88, x88)
+        let x220 = shiftNumMul(44, x176, x44)
+        let x222 = shiftNumMul(2, x220, x2)
+        let x223 = shiftNumMul(1, x222, x1)
+        
+        ///
+        mulInternal(x223)
+        mulInternal()
+        
+        // ...1111,1011,1111,1111,1111,1111,1111,0000,1100
+        shiftMul(22, x22)
+        shiftMul(6, x2)
+        shift(2)
     }
     
     private mutating func shiftMul(_ count: Int, _ x: Secpt256k1Field) {

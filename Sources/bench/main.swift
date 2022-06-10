@@ -185,6 +185,26 @@ func bench_random_field_sqr() {
     }
 }
 
+func bench_field_sqrt() {
+    var field_x = Secpt256k1Field(bytes: init_x)
+    let field_y = Secpt256k1Field(bytes: init_y)
+    
+    for _ in 0..<inverse_count {
+        field_x.sqrt()
+        field_x.add(field_y)
+    }
+}
+
+func bench_random_field_sqrt() {
+    var field_x = randField()
+    let field_y = randField()
+    
+    for _ in 0..<inverse_count {
+        field_x.sqrt()
+        field_x.add(field_y)
+    }
+}
+
 func runBenchmark(name: String, benchFunc: () -> Void, count: Int) {
     print("** \(name) benchmark starting...")
     var minElapsed: Double = Double(Int.max)
@@ -226,3 +246,5 @@ runBenchmark(name: "Feild Sqr", benchFunc: bench_field_sqr, count: count)
 runBenchmark(name: "Random Feild Sqr", benchFunc: bench_random_field_sqr, count: count)
 runBenchmark(name: "Feild Inverse", benchFunc: bench_field_inverse, count: inverse_count)
 runBenchmark(name: "Random Feild Inverse", benchFunc: bench_random_field_inverse, count: inverse_count)
+runBenchmark(name: "Feild Sqrt", benchFunc: bench_field_sqrt, count: inverse_count)
+runBenchmark(name: "Random Feild Sqrt", benchFunc: bench_field_sqrt, count: inverse_count)
