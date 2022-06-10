@@ -145,28 +145,24 @@ public struct Secpt256k1Scalar {
         assert(overflow <= 1)
         
         var reduced: Bits64x4 = (0, 0, 0, 0)
-        var t : UInt64 = 0
-        var carry = false
+ 
+        acc.reset(d.0)
+        acc.sumAddFast(Secpt256k1Scalar.pComp.0)
+        reduced.0 = acc.extractFast()
+        acc.sumAddFast(d.1)
+        acc.sumAddFast(Secpt256k1Scalar.pComp.1)
+        reduced.1 = acc.extractFast()
+        acc.sumAddFast(d.2)
+        acc.sumAddFast(Secpt256k1Scalar.pComp.2)
+        reduced.2 = acc.extractFast()
+        acc.sumAddFast(d.3)
+        reduced.3 = acc.extractFast()
         
-        (reduced.0, carry) = d.0.addingReportingOverflow(Secpt256k1Scalar.pComp.0)
-        t += carry ? 1 : 0
+        let carry = acc.extractFast()
+        assert(carry <= 1)
+        assert(acc.isZero())
         
-        (reduced.1, carry) = d.1.addingReportingOverflow(t)
-        t = carry ? 1 : 0
-        (reduced.1, carry) = reduced.1.addingReportingOverflow(Secpt256k1Scalar.pComp.1)
-        t += carry ? 1 : 0
-        
-        (reduced.2, carry) = d.2.addingReportingOverflow(t)
-        t = carry ? 1 : 0
-        (reduced.2, carry) = reduced.2.addingReportingOverflow(Secpt256k1Scalar.pComp.2)
-        t += carry ? 1 : 0
-        
-        (reduced.3, carry) = d.3.addingReportingOverflow(t)
-        t = carry ? 1 : 0
-        
-        assert(t <= 1)
-        
-        if overflow > 0 || t == 1 {// ??
+        if overflow > 0 || carry == 1 {
             d = reduced
         }
     }
@@ -174,30 +170,25 @@ public struct Secpt256k1Scalar {
     public mutating func add(_ y : Secpt256k1Scalar, carry: UInt64 = 0) {
         assert(!checkOverflow())
         assert(!y.checkOverflow())
+
+        acc.reset(d.0)
+        acc.sumAddFast(y.d.0)
+        d.0 = acc.extractFast()
+        acc.sumAddFast(d.1)
+        acc.sumAddFast(y.d.1)
+        d.1 = acc.extractFast()
+        acc.sumAddFast(d.2)
+        acc.sumAddFast(y.d.2)
+        d.2 = acc.extractFast()
+        acc.sumAddFast(d.3)
+        acc.sumAddFast(y.d.3)
+        d.3 = acc.extractFast()
         
-        var t : UInt64 = carry
-        var overflow = false
+        let overflow = acc.extractFast()
+        assert(acc.isZero())
         
-        (d.0, overflow) = d.0.addingReportingOverflow(y.d.0)
-        t += overflow ? 1 : 0
-        
-        (d.1, overflow) = d.1.addingReportingOverflow(t)
-        t = overflow ? 1 : 0
-        (d.1, overflow) = d.1.addingReportingOverflow(y.d.1)
-        t += overflow ? 1 : 0
-        
-        (d.2, overflow) = d.2.addingReportingOverflow(t)
-        t = overflow ? 1 : 0
-        (d.2, overflow) = d.2.addingReportingOverflow(y.d.2)
-        t += overflow ? 1 : 0
-        
-        (d.3, overflow) = d.3.addingReportingOverflow(t)
-        t = overflow ? 1 : 0
-        (d.3, overflow) = d.3.addingReportingOverflow(y.d.3)
-        t += overflow ? 1 : 0
-        
-        assert(t <= 1)
-        reduce(overflow: t)
+        assert(overflow <= 1)
+        reduce(overflow: overflow)
     }
     
     public static func add(_ x : Secpt256k1Scalar, _ y : Secpt256k1Scalar) -> Secpt256k1Scalar {
