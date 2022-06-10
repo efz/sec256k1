@@ -123,22 +123,22 @@ public struct Secpt256k1Scalar {
     }
     
     public func checkOverflow() -> Bool {
-        var strictOverflow = false
-        var equals = true
+        var accC = Accumulator(d.0)
+        accC.sumAddFast(Secpt256k1Scalar.pComp.0)
+        let _ = accC.extractFast()
+        accC.sumAddFast(d.1)
+        accC.sumAddFast(Secpt256k1Scalar.pComp.1)
+        let _ = accC.extractFast()
+        accC.sumAddFast(d.2)
+        accC.sumAddFast(Secpt256k1Scalar.pComp.2)
+        let _ = accC.extractFast()
+        accC.sumAddFast(d.3)
+        let _ = accC.extractFast()
         
-        strictOverflow = d.3 > Secpt256k1Scalar.p.3
-        equals = d.3 == Secpt256k1Scalar.p.3
-        
-        strictOverflow = (d.2 > Secpt256k1Scalar.p.2 && equals) || strictOverflow
-        equals = d.2 == Secpt256k1Scalar.p.2 && equals
-        
-        strictOverflow = (d.1 > Secpt256k1Scalar.p.1 && equals) || strictOverflow
-        equals = d.1 == Secpt256k1Scalar.p.1 && equals
-        
-        strictOverflow = (d.0 > Secpt256k1Scalar.p.0 && equals) || strictOverflow
-        equals = d.0 == Secpt256k1Scalar.p.0 && equals
-        
-        return strictOverflow || equals
+        let overflow = accC.extractFast()
+        assert(accC.isZero())
+        assert(overflow <= 1)
+        return overflow != 0
     }
     
     mutating func reduce(overflow : UInt64 = 0) {
