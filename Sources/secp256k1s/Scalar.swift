@@ -148,27 +148,25 @@ public struct Secpt256k1Scalar {
         var t : UInt64 = 0
         var carry = false
         
-        (reduced.0, carry) = d.0.subtractingReportingOverflow(Secpt256k1Scalar.p.0)
+        (reduced.0, carry) = d.0.addingReportingOverflow(Secpt256k1Scalar.pComp.0)
         t += carry ? 1 : 0
         
-        (reduced.1, carry) = d.1.subtractingReportingOverflow(t)
+        (reduced.1, carry) = d.1.addingReportingOverflow(t)
         t = carry ? 1 : 0
-        (reduced.1, carry) = reduced.1.subtractingReportingOverflow(Secpt256k1Scalar.p.1)
+        (reduced.1, carry) = reduced.1.addingReportingOverflow(Secpt256k1Scalar.pComp.1)
         t += carry ? 1 : 0
         
-        (reduced.2, carry) = d.2.subtractingReportingOverflow(t)
+        (reduced.2, carry) = d.2.addingReportingOverflow(t)
         t = carry ? 1 : 0
-        (reduced.2, carry) = reduced.2.subtractingReportingOverflow(Secpt256k1Scalar.p.2)
+        (reduced.2, carry) = reduced.2.addingReportingOverflow(Secpt256k1Scalar.pComp.2)
         t += carry ? 1 : 0
         
-        (reduced.3, carry) = d.3.subtractingReportingOverflow(t)
+        (reduced.3, carry) = d.3.addingReportingOverflow(t)
         t = carry ? 1 : 0
-        (reduced.3, carry) = reduced.3.subtractingReportingOverflow(Secpt256k1Scalar.p.3)
-        t += carry ? 1 : 0
         
         assert(t <= 1)
         
-        if overflow > 0 || t == 0 {
+        if overflow > 0 || t == 1 {// ??
             d = reduced
         }
     }

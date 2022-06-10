@@ -150,27 +150,21 @@ public struct Secpt256k1Field {
         var t : UInt64 = 0
         var carry = false
         
-        (reduced.0, carry) = d.0.subtractingReportingOverflow(Secpt256k1Field.p.0)
+        (reduced.0, carry) = d.0.addingReportingOverflow(Secpt256k1Field.pComp.0)
         t += carry ? 1 : 0
         
-        (reduced.1, carry) = d.1.subtractingReportingOverflow(t)
+        (reduced.1, carry) = d.1.addingReportingOverflow(t)
         t = carry ? 1 : 0
-        (reduced.1, carry) = reduced.1.subtractingReportingOverflow(Secpt256k1Field.p.1)
-        t += carry ? 1 : 0
         
-        (reduced.2, carry) = d.2.subtractingReportingOverflow(t)
+        (reduced.2, carry) = d.2.addingReportingOverflow(t)
         t = carry ? 1 : 0
-        (reduced.2, carry) = reduced.2.subtractingReportingOverflow(Secpt256k1Field.p.2)
-        t += carry ? 1 : 0
         
-        (reduced.3, carry) = d.3.subtractingReportingOverflow(t)
+        (reduced.3, carry) = d.3.addingReportingOverflow(t)
         t = carry ? 1 : 0
-        (reduced.3, carry) = reduced.3.subtractingReportingOverflow(Secpt256k1Field.p.3)
-        t += carry ? 1 : 0
         
         assert(t <= 1)
         
-        if overflow > 0 || t == 0 {
+        if overflow > 0 || t == 1 { // ??
             d = reduced
         }
     }
