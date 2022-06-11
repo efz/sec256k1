@@ -1,6 +1,6 @@
 public struct Secpt256k1Scalar: UInt256p {
     var d: Bits64x4
-    private var acc: Accumulator
+    var acc: Accumulator
     
     static let wordWidth = 4
     static let pCompWordWidth = 3
@@ -50,11 +50,11 @@ public struct Secpt256k1Scalar: UInt256p {
         return overflow != 0
     }
     
-    mutating func reduce(overflow : UInt64 = 0) {
+    mutating func reduce(overflow: UInt64 = 0) {
         assert(overflow <= 1)
         
         var reduced: Bits64x4 = (0, 0, 0, 0)
- 
+        
         acc.reset(d.0)
         acc.sumAddFast(Secpt256k1Scalar.pComp.0)
         reduced.0 = acc.extractFast()
@@ -76,10 +76,10 @@ public struct Secpt256k1Scalar: UInt256p {
         }
     }
     
-    public mutating func add(_ y : Secpt256k1Scalar, carry: UInt64 = 0) {
+    public mutating func add(_ y: Secpt256k1Scalar, carry: UInt64 = 0) {
         assert(!checkOverflow())
         assert(!y.checkOverflow())
-
+        
         acc.reset(d.0)
         acc.sumAddFast(y.d.0)
         d.0 = acc.extractFast()
@@ -100,30 +100,14 @@ public struct Secpt256k1Scalar: UInt256p {
         reduce(overflow: overflow)
     }
     
-    public static func add(_ x : Secpt256k1Scalar, _ y : Secpt256k1Scalar) -> Secpt256k1Scalar {
+    public static func add(_ x: Secpt256k1Scalar, _ y: Secpt256k1Scalar) -> Secpt256k1Scalar {
         var r = Secpt256k1Scalar.init(scalar: x)
         r.add(y)
         return r
     }
     
-    public static func +(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {
+    public static func +(_ x: Secpt256k1Scalar, _ y: Secpt256k1Scalar) -> Secpt256k1Scalar {
         return Secpt256k1Scalar.add(x, y)
-    }
-    
-    public func isZero() -> Bool {
-        return d.0 | d.1 | d.2 | d.3 == 0
-    }
-    
-    public func isOne() -> Bool {
-        return d.0 == 1 && d.1 | d.2 | d.3 == 0
-    }
-    
-    public func isEven() -> Bool {
-        return d.0 & 1 == 0
-    }
-    
-    public mutating func clear() {
-        d = (0, 0, 0, 0)
     }
     
     public mutating func negate() {
@@ -152,7 +136,7 @@ public struct Secpt256k1Scalar: UInt256p {
         assert(!overflow)
     }
     
-    public static func substract(_ x : Secpt256k1Scalar, _ y : Secpt256k1Scalar) -> Secpt256k1Scalar {
+    public static func substract(_ x: Secpt256k1Scalar, _ y: Secpt256k1Scalar) -> Secpt256k1Scalar {
         var r1 = Secpt256k1Scalar.init(scalar: x)
         var r2 = Secpt256k1Scalar.init(scalar: y)
         r2.negate()
@@ -160,11 +144,11 @@ public struct Secpt256k1Scalar: UInt256p {
         return r1
     }
     
-    public static func -(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {
+    public static func -(_ x: Secpt256k1Scalar, _ y: Secpt256k1Scalar) -> Secpt256k1Scalar {
         return Secpt256k1Scalar.substract(x, y)
     }
     
-    private mutating func reduceByPcomp(_ bits512: Bits64x8) {
+    mutating func reduce512Bits(_ bits512: Bits64x8) {
         assert(Secpt256k1Scalar.pComp.2 == 1)
         
         var bits448: Bits64x7 = (0, 0, 0, 0, 0, 0, 0)
@@ -230,99 +214,19 @@ public struct Secpt256k1Scalar: UInt256p {
         let overflow = acc.extractFast()
         assert(overflow <= 1)
         assert(acc.isZero())
+        assert(!(overflow > 0 && checkOverflow())) // ??
         reduce(overflow: overflow)
     }
     
-    private mutating func mulArraysFast(_ x: Bits64x4, _ y: Bits64x4) -> Bits64x8 {
-        acc.reset(0)
-        var res: Bits64x8 = (0, 0, 0, 0, 0, 0, 0, 0)
-        
-        acc.mulAddFast(x.0, y.0)
-        res.0 = acc.extractFast()
-        
-        acc.mulAdd(x.0, y.1)
-        acc.mulAdd(x.1, y.0)
-        res.1 = acc.extract()
-        
-        acc.mulAdd(x.0, y.2)
-        acc.mulAdd(x.2, y.0)
-        acc.mulAdd(x.1, y.1)
-        res.2 = acc.extract()
-        
-        acc.mulAdd(x.0, y.3)
-        acc.mulAdd(x.3, y.0)
-        acc.mulAdd(x.1, y.2)
-        acc.mulAdd(x.2, y.1)
-        res.3 = acc.extract()
-        
-        acc.mulAdd(x.1, y.3)
-        acc.mulAdd(x.3, y.1)
-        acc.mulAdd(x.2, y.2)
-        res.4 = acc.extract()
-        
-        acc.mulAdd(x.2, y.3)
-        acc.mulAdd(x.3, y.2)
-        res.5 = acc.extract()
-        
-        acc.mulAddFast(x.3, y.3)
-        res.6 = acc.extractFast()
-        res.7 = acc.extractFast()
-        
-        assert(acc.extractFast() == 0)
-        
-        return res
-    }
-    
-    private mutating func sqrArrayFast(_ x: Bits64x4) -> Bits64x8 {
-        acc.reset(0)
-        var res: Bits64x8 = (0, 0, 0, 0, 0, 0, 0, 0)
-        
-        acc.mulAddFast(x.0, x.0)
-        res.0 = acc.extractFast()
-        
-        acc.mulAdd2(x.0, x.1)
-        res.1 = acc.extract()
-        
-        acc.mulAdd2(x.0, x.2)
-        acc.mulAdd(x.1, x.1)
-        res.2 = acc.extract()
-        
-        acc.mulAdd2(x.0, x.3)
-        acc.mulAdd2(x.1, x.2)
-        res.3 = acc.extract()
-        
-        acc.mulAdd2(x.1, x.3)
-        acc.mulAdd(x.2, x.2)
-        res.4 = acc.extract()
-        
-        acc.mulAdd2(x.2, x.3)
-        res.5 = acc.extract()
-        
-        acc.mulAddFast(x.3, x.3)
-        res.6 = acc.extractFast()
-        
-        res.7 = acc.extractFast()
-        
-        assert(acc.extractFast() == 0)
-        return res
-    }
-    
-    public mutating func mul(_ y : Secpt256k1Scalar) {
+    public mutating func mul(_ y: Secpt256k1Scalar) {
         assert(!checkOverflow())
         assert(!y.checkOverflow())
         
-        let bits512 = mulArraysFast(d, y.d)
-        reduceByPcomp(bits512)
+        let bits512 = mulArrays(d, y.d)
+        reduce512Bits(bits512)
     }
     
-    public mutating func sqr() {
-        assert(!checkOverflow())
-        
-        let bits512 = sqrArrayFast(d)
-        reduceByPcomp(bits512)
-    }
-    
-    private mutating func inverseByPowers() {
+    public mutating func inverse() {
         let shiftNumMul = { (shift: Int, num: Secpt256k1Scalar, prev: Secpt256k1Scalar) -> Secpt256k1Scalar in
             var shiftedNum = num
             for _ in 0..<shift {
@@ -405,25 +309,14 @@ public struct Secpt256k1Scalar: UInt256p {
         mul(x)
     }
     
-    private mutating func shift(_ count: Int) {
-        for _ in 0..<count {
-            self.sqr()
-        }
-    }
-    
-    public mutating func inverse() {
-        inverseByPowers()
-        reduce()
-    }
-    
-    public static func mul(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {
+    public static func mul(_ x: Secpt256k1Scalar, _ y: Secpt256k1Scalar) -> Secpt256k1Scalar {
         var r = x
         r.mul(y)
         return r
     }
     
-    public static func *(x : Secpt256k1Scalar, y : Secpt256k1Scalar) -> Secpt256k1Scalar {
-        return Secpt256k1Scalar.mul(x: x, y: y)
+    public static func *(_ x: Secpt256k1Scalar, _ y: Secpt256k1Scalar) -> Secpt256k1Scalar {
+        return Secpt256k1Scalar.mul(x, y)
     }
 }
 

@@ -16,6 +16,12 @@ public protocol UInt256pInterface {
     
     func getBits64(offset: Int, count: Int) -> UInt64
     func getBits(offset: Int, count: Int) -> UInt32
+    func isZero() -> Bool
+    func isOne() -> Bool
+    func isEven() -> Bool
+    mutating func clear()
+    
+    mutating func sqr()
 }
 
 protocol UInt256p: UInt256pInterface {
@@ -24,6 +30,7 @@ protocol UInt256p: UInt256pInterface {
     static var wordBitWidth: Int { get }
     static var wordMask: UInt64 { get }
     var d: Bits64x4 { get set }
+    var acc: Accumulator { get set }
     init(bits64x4: Bits64x4, overflowed: inout Bool)
     
     func checkOverflow() -> Bool
@@ -31,6 +38,11 @@ protocol UInt256p: UInt256pInterface {
     mutating func reduce()
     func getWord(_ idx: Int) -> UInt64
     mutating func setInt(_ v: UInt64)
+    
+    mutating func mulArrays(_ x: Bits64x4, _ y: Bits64x4) -> Bits64x8
+    mutating func sqrArray(_ x: Bits64x4) -> Bits64x8
+    mutating func shift(_ count: Int)
+    mutating func reduce512Bits(_ bits512: Bits64x8) 
 }
 
 extension UInt256p {
@@ -149,6 +161,113 @@ extension UInt256p {
     public func getBits(offset: Int, count: Int) -> UInt32 {
         assert(count < UInt32.bitWidth)
         return UInt32(getBits64(offset: offset, count: count))
+    }
+    
+    public func isZero() -> Bool {
+        return d.0 | d.1 | d.2 | d.3 == 0
+    }
+    
+    public func isOne() -> Bool {
+        return d.0 == 1 && d.1 | d.2 | d.3 == 0
+    }
+    
+    public func isEven() -> Bool {
+        return d.0 & 1 == 0
+    }
+    
+    public mutating func clear() {
+        d = (0, 0, 0, 0)
+    }
+    
+    @inline(__always)
+    mutating func mulArrays(_ x: Bits64x4, _ y: Bits64x4) -> Bits64x8 {
+        acc.reset(0)
+        var res: Bits64x8 = (0, 0, 0, 0, 0, 0, 0, 0)
+        
+        acc.mulAddFast(x.0, y.0)
+        res.0 = acc.extractFast()
+        
+        acc.mulAdd(x.0, y.1)
+        acc.mulAdd(x.1, y.0)
+        res.1 = acc.extract()
+        
+        acc.mulAdd(x.0, y.2)
+        acc.mulAdd(x.2, y.0)
+        acc.mulAdd(x.1, y.1)
+        res.2 = acc.extract()
+        
+        acc.mulAdd(x.0, y.3)
+        acc.mulAdd(x.3, y.0)
+        acc.mulAdd(x.1, y.2)
+        acc.mulAdd(x.2, y.1)
+        res.3 = acc.extract()
+        
+        acc.mulAdd(x.1, y.3)
+        acc.mulAdd(x.3, y.1)
+        acc.mulAdd(x.2, y.2)
+        res.4 = acc.extract()
+        
+        acc.mulAdd(x.2, y.3)
+        acc.mulAdd(x.3, y.2)
+        res.5 = acc.extract()
+        
+        acc.mulAddFast(x.3, y.3)
+        res.6 = acc.extractFast()
+        res.7 = acc.extractFast()
+        
+        assert(acc.extractFast() == 0)
+        
+        return res
+    }
+    
+    @inline(__always)
+    mutating func sqrArray(_ x: Bits64x4) -> Bits64x8 {
+        acc.reset(0)
+        var res: Bits64x8 = (0, 0, 0, 0, 0, 0, 0, 0)
+        
+        acc.mulAddFast(x.0, x.0)
+        res.0 = acc.extractFast()
+        
+        acc.mulAdd2(x.0, x.1)
+        res.1 = acc.extract()
+        
+        acc.mulAdd2(x.0, x.2)
+        acc.mulAdd(x.1, x.1)
+        res.2 = acc.extract()
+        
+        acc.mulAdd2(x.0, x.3)
+        acc.mulAdd2(x.1, x.2)
+        res.3 = acc.extract()
+        
+        acc.mulAdd2(x.1, x.3)
+        acc.mulAdd(x.2, x.2)
+        res.4 = acc.extract()
+        
+        acc.mulAdd2(x.2, x.3)
+        res.5 = acc.extract()
+        
+        acc.mulAddFast(x.3, x.3)
+        res.6 = acc.extractFast()
+        
+        res.7 = acc.extractFast()
+        
+        assert(acc.extractFast() == 0)
+        return res
+    }
+    
+    @inline(__always)
+    mutating func shift(_ count: Int) {
+        for _ in 0..<count {
+            sqr()
+        }
+    }
+    
+    @inline(__always)
+    public mutating func sqr() {
+        assert(!checkOverflow())
+        
+        let bits512 = sqrArray(d)
+        reduce512Bits(bits512)
     }
 }
 
