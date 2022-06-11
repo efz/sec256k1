@@ -378,33 +378,24 @@ public struct Secpt256k1Field {
         assert(!checkOverflow())
         assert(!y.checkOverflow())
         
-        mulInternal(y)
-    }
-    
-    private mutating func mulInternal(_ y : Secpt256k1Field? = nil) {
-        let bits512: Bits64x8
-        
-        if let other = y {
-            bits512 = mulArraysFast(d, other.d)
-        } else {
-            bits512 = sqrArrayFast(d)
-        }
+        let bits512 = mulArraysFast(d, y.d)
         reduceByPcomp(bits512)
     }
     
     public mutating func sqr() {
         assert(!checkOverflow())
         
-        mulInternal()
+        let bits512 = sqrArrayFast(d)
+        reduceByPcomp(bits512)
     }
     
     private mutating func inverseByPowers() {
         let shiftNumMul = { (shift: Int, num: Secpt256k1Field, prev: Secpt256k1Field) -> Secpt256k1Field in
             var shiftedNum = num
             for _ in 0..<shift {
-                shiftedNum.mulInternal()
+                shiftedNum.sqr()
             }
-            shiftedNum.mulInternal(prev)
+            shiftedNum.mul(prev)
             return shiftedNum
         }
         
@@ -429,8 +420,8 @@ public struct Secpt256k1Field {
         let x223 = shiftNumMul(1, x222, x1)
         
         ///
-        mulInternal(x223)
-        mulInternal()
+        mul(x223)
+        sqr()
         
         // 1111,1111,1111,1111,1111,1100,0010,1101
         shiftMul(22, x22)
@@ -464,9 +455,9 @@ public struct Secpt256k1Field {
         let shiftNumMul = { (shift: Int, num: Secpt256k1Field, prev: Secpt256k1Field) -> Secpt256k1Field in
             var shiftedNum = num
             for _ in 0..<shift {
-                shiftedNum.mulInternal()
+                shiftedNum.sqr()
             }
-            shiftedNum.mulInternal(prev)
+            shiftedNum.mul(prev)
             return shiftedNum
         }
         
@@ -491,8 +482,8 @@ public struct Secpt256k1Field {
         let x223 = shiftNumMul(1, x222, x1)
         
         ///
-        mulInternal(x223)
-        mulInternal()
+        mul(x223)
+        sqr()
         
         // ...1111,1011,1111,1111,1111,1111,1111,0000,1100
         shiftMul(22, x22)
@@ -502,14 +493,14 @@ public struct Secpt256k1Field {
     
     private mutating func shiftMul(_ count: Int, _ x: Secpt256k1Field) {
         for _ in 0..<count {
-            mulInternal()
+            sqr()
         }
-        mulInternal(x)
+        mul(x)
     }
     
     private mutating func shift(_ count: Int) {
         for _ in 0..<count {
-            self.mulInternal()
+            self.sqr()
         }
     }
     

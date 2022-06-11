@@ -1,11 +1,4 @@
 public struct Secpt256k1Scalar {
-    typealias Bits64x3 = (UInt64, UInt64, UInt64)
-    typealias Bits64x4 = (UInt64, UInt64, UInt64, UInt64)
-    typealias Bits64x5 = (UInt64, UInt64, UInt64, UInt64, UInt64)
-    typealias Bits64x6 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
-    typealias Bits64x7 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
-    typealias Bits64x8 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
-    
     private var d: Bits64x4
     private var acc: Accumulator
     
@@ -420,33 +413,24 @@ public struct Secpt256k1Scalar {
         assert(!checkOverflow())
         assert(!y.checkOverflow())
         
-        mulInternal(y)
-    }
-    
-    private mutating func mulInternal(_ y : Secpt256k1Scalar? = nil) {
-        let bits512: Bits64x8
-        
-        if let other = y {
-            bits512 = mulArraysFast(d, other.d)
-        } else {
-            bits512 = sqrArrayFast(d)
-        }
+        let bits512 = mulArraysFast(d, y.d)
         reduceByPcomp(bits512)
     }
     
     public mutating func sqr() {
         assert(!checkOverflow())
         
-        mulInternal()
+        let bits512 = sqrArrayFast(d)
+        reduceByPcomp(bits512)
     }
     
     private mutating func inverseByPowers() {
         let shiftNumMul = { (shift: Int, num: Secpt256k1Scalar, prev: Secpt256k1Scalar) -> Secpt256k1Scalar in
             var shiftedNum = num
             for _ in 0..<shift {
-                shiftedNum.mulInternal()
+                shiftedNum.sqr()
             }
-            shiftedNum.mulInternal(prev)
+            shiftedNum.mul(prev)
             return shiftedNum
         }
         
@@ -466,14 +450,14 @@ public struct Secpt256k1Scalar {
         let x124 = shiftNumMul(4, x120, x4)
         
         var x3 = x2
-        x3.mulInternal()
-        x3.mulInternal(x1)
+        x3.sqr()
+        x3.mul(x1)
         
         let x127 = shiftNumMul(3, x124, x3)
         
         ///
-        mulInternal(x127)
-        mulInternal()
+        mul(x127)
+        sqr()
         
         // 1011,1010,1010,1110,1101,1100,1110,0110,1010,1111,0100,1000,1010,0000,0011,1011
         shiftMul(1, x1)
@@ -518,14 +502,14 @@ public struct Secpt256k1Scalar {
     
     private mutating func shiftMul(_ count: Int, _ x: Secpt256k1Scalar) {
         for _ in 0..<count {
-            mulInternal()
+            sqr()
         }
-        mulInternal(x)
+        mul(x)
     }
     
     private mutating func shift(_ count: Int) {
         for _ in 0..<count {
-            self.mulInternal()
+            self.sqr()
         }
     }
     
