@@ -227,6 +227,10 @@ public struct Secpt256k1Scalar: UInt256p {
     }
     
     public mutating func inverse() {
+        guard !isZero() else {
+            fatalError("Devide by zero")
+        }
+        
         let shiftNumMul = { (shift: Int, num: Secpt256k1Scalar, prev: Secpt256k1Scalar) -> Secpt256k1Scalar in
             var shiftedNum = num
             for _ in 0..<shift {
@@ -317,6 +321,22 @@ public struct Secpt256k1Scalar: UInt256p {
     
     public static func *(_ x: Secpt256k1Scalar, _ y: Secpt256k1Scalar) -> Secpt256k1Scalar {
         return Secpt256k1Scalar.mul(x, y)
+    }
+    
+    public mutating func div(_ y: Secpt256k1Scalar) {
+        var yInv = y
+        yInv.inverse()
+        mul(yInv)
+    }
+    
+    public static func div(_ x: Secpt256k1Scalar, _ y: Secpt256k1Scalar) -> Secpt256k1Scalar {
+        var r = x
+        r.div(y)
+        return r
+    }
+    
+    public static func /(_ x: Secpt256k1Scalar, _ y: Secpt256k1Scalar) -> Secpt256k1Scalar {
+        return Secpt256k1Scalar.div(x, y)
     }
 }
 

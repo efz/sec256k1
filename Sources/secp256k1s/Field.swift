@@ -22,7 +22,7 @@ public struct Secpt256k1Field: UInt256p {
         d = (0, 0, 0, 0)
         acc = Accumulator()
     }
-
+    
     public init(field s: Secpt256k1Field) {
         assert(!s.checkOverflow())
         self.init()
@@ -192,7 +192,11 @@ public struct Secpt256k1Field: UInt256p {
         reduce512Bits(bits512)
     }
     
-   public mutating func inverse() {
+    public mutating func inverse() {
+        guard !isZero() else {
+            fatalError("Devide by zero")
+        }
+        
         let shiftNumMul = { (shift: Int, num: Secpt256k1Field, prev: Secpt256k1Field) -> Secpt256k1Field in
             var shiftedNum = num
             for _ in 0..<shift {
@@ -308,6 +312,22 @@ public struct Secpt256k1Field: UInt256p {
     
     public static func *(_ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
         return Secpt256k1Field.mul(x, y)
+    }
+    
+    public mutating func div(_ y: Secpt256k1Field) {
+        var yInv = y
+        yInv.inverse()
+        mul(yInv)
+    }
+    
+    public static func div(_ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
+        var r = x
+        r.div(y)
+        return r
+    }
+    
+    public static func /(_ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
+        return Secpt256k1Field.div(x, y)
     }
 }
 

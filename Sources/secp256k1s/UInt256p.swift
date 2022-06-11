@@ -42,7 +42,7 @@ protocol UInt256p: UInt256pInterface {
     mutating func mulArrays(_ x: Bits64x4, _ y: Bits64x4) -> Bits64x8
     mutating func sqrArray(_ x: Bits64x4) -> Bits64x8
     mutating func shift(_ count: Int)
-    mutating func reduce512Bits(_ bits512: Bits64x8) 
+    mutating func reduce512Bits(_ bits512: Bits64x8)
 }
 
 extension UInt256p {
