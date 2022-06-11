@@ -13,9 +13,16 @@ public protocol UInt256pInterface {
     init(bytes: [UInt8], overflowed: inout Bool)
     init(int32 v: UInt32)
     init(int64 v: UInt64)
+    
+    func getBits64(offset: Int, count: Int) -> UInt64
+    func getBits(offset: Int, count: Int) -> UInt32
 }
 
 protocol UInt256p: UInt256pInterface {
+    static var p: Bits64x4 { get }
+    static var wordWidth: Int { get }
+    static var wordBitWidth: Int { get }
+    static var wordMask: UInt64 { get }
     var d: Bits64x4 { get set }
     init(bits64x4: Bits64x4, overflowed: inout Bool)
     
@@ -124,6 +131,24 @@ extension UInt256p {
         default:
             fatalError("invalid index \(idx)")
         }
+    }
+    
+    public func getBits64(offset: Int, count: Int) -> UInt64 {
+        assert(offset + count <= Self.wordBitWidth * Self.wordWidth)
+        assert(count < Self.wordBitWidth)
+        if offset >> 6 == (count + offset - 1) >> 6 {
+            return UInt64((getWord(offset >> 6) >> (offset & 0x3F)) & ((1 << count) - 1))
+        } else {
+            assert((offset >> 6) + 1 < 4)
+            let firstHalf = UInt64(getWord(offset >> 6) >> (offset & 0x3F))
+            let secondHalf = UInt64((getWord((offset >> 6) + 1) << (64 - (offset & 0x3F)) & Self.wordMask))
+            return (firstHalf | secondHalf) & ((1 << count) - 1)
+        }
+    }
+    
+    public func getBits(offset: Int, count: Int) -> UInt32 {
+        assert(count < UInt32.bitWidth)
+        return UInt32(getBits64(offset: offset, count: count))
     }
 }
 

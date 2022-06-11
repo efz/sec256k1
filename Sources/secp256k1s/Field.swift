@@ -120,24 +120,6 @@ public struct Secpt256k1Field: UInt256p {
         return d.0 & 1 == 0
     }
     
-    public func getBits64(offset : Int, count : Int) -> UInt64 {
-        assert(offset + count <= Secpt256k1Field.wordBitWidth * Secpt256k1Field.wordWidth)
-        assert(count < Secpt256k1Field.wordBitWidth)
-        if offset >> 6 == (count + offset - 1) >> 6 {
-            return UInt64((getWord(offset >> 6) >> (offset & 0x3F)) & ((1 << count) - 1))
-        } else {
-            assert((offset >> 6) + 1 < 4)
-            let firstHalf = UInt64(getWord(offset >> 6) >> (offset & 0x3F))
-            let secondHalf = UInt64((getWord((offset >> 6) + 1) << (64 - (offset & 0x3F)) & Secpt256k1Field.wordMask))
-            return (firstHalf | secondHalf) & ((1 << count) - 1)
-        }
-    }
-    
-    public func getBits(offset : Int, count : Int) -> UInt32 {
-        assert(count < UInt32.bitWidth)
-        return UInt32(getBits64(offset: offset, count: count))
-    }
-    
     public mutating func clear() {
         d = (0, 0, 0, 0)
     }
