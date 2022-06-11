@@ -29,12 +29,13 @@ let inverse_count = 2000
 
 func randScalar() -> Secpt256k1Scalar {
     var s: Secpt256k1Scalar
+    var overflowed = false
     repeat {
         let words: [UInt32] = (0..<8).map { _ in
             UInt32.random(in: UInt32.min..<UInt32.max)
         }
-        s = Secpt256k1Scalar(words: words)
-    } while s.checkOverflow() || s.isZero()
+        s = Secpt256k1Scalar(words32: words, overflowed: &overflowed)
+    } while overflowed || s.isZero()
     return s
 }
 
@@ -49,8 +50,9 @@ func bench_random_scalar_add() {
 
 
 func bench_scalar_add() {
-    var scalar_x = Secpt256k1Scalar(bytes: init_x)
-    let scalar_y = Secpt256k1Scalar(bytes: init_y)
+    var overflow = false
+    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
+    let scalar_y = Secpt256k1Scalar(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<count {
         scalar_x.add(scalar_y)
@@ -58,15 +60,17 @@ func bench_scalar_add() {
 }
 
 func bench_scalar_negate() {
-    var scalar_x = Secpt256k1Scalar(bytes: init_x)
+    var overflow = false
+    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
     for _ in 0..<count {
         scalar_x.negate()
     }
 }
 
 func bench_scalar_mul() {
-    var scalar_x = Secpt256k1Scalar(bytes: init_x)
-    let scalar_y = Secpt256k1Scalar(bytes: init_y)
+    var overflow = false
+    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
+    let scalar_y = Secpt256k1Scalar(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<count {
         scalar_x.mul(scalar_y)
@@ -83,7 +87,8 @@ func bench_random_scalar_mul() {
 }
 
 func bench_scalar_sqr() {
-    var scalar_x = Secpt256k1Scalar(bytes: init_x)
+    var overflow = false
+    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
     
     for _ in 0..<count {
         scalar_x.sqr()
@@ -99,8 +104,9 @@ func bench_random_scalar_sqr() {
 }
 
 func bench_scalar_inverse() {
-    var scalar_x = Secpt256k1Scalar(bytes: init_x)
-    let scalar_y = Secpt256k1Scalar(bytes: init_y)
+    var overflow = false
+    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
+    let scalar_y = Secpt256k1Scalar(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<inverse_count {
         scalar_x.inverse()
@@ -122,18 +128,20 @@ func bench_random_scalar_inverse() {
 
 func randField() -> Secpt256k1Field {
     var f: Secpt256k1Field
+    var overflowed = false
     repeat {
         let words: [UInt32] = (0..<8).map { _ in
             UInt32.random(in: UInt32.min..<UInt32.max)
         }
-        f = Secpt256k1Field(words: words)
-    } while f.checkOverflow() || f.isZero()
+        f = Secpt256k1Field(words32: words, overflowed: &overflowed)
+    } while overflowed || f.isZero()
     return f
 }
 
 func bench_field_mul() {
-    var field_x = Secpt256k1Field(bytes: init_x)
-    let field_y = Secpt256k1Field(bytes: init_y)
+    var overflow = false
+    var field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<count {
         field_x.mul(field_y)
@@ -150,8 +158,9 @@ func bench_random_field_mul() {
 }
 
 func bench_field_inverse() {
-    var field_x = Secpt256k1Field(bytes: init_x)
-    let field_y = Secpt256k1Field(bytes: init_y)
+    var overflow = false
+    var field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<inverse_count {
         field_x.inverse()
@@ -170,7 +179,8 @@ func bench_random_field_inverse() {
 }
 
 func bench_field_sqr() {
-    var field_x = Secpt256k1Field(bytes: init_x)
+    var overflow = false
+    var field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
     
     for _ in 0..<count {
         field_x.sqr()
@@ -186,8 +196,9 @@ func bench_random_field_sqr() {
 }
 
 func bench_field_sqrt() {
-    var field_x = Secpt256k1Field(bytes: init_x)
-    let field_y = Secpt256k1Field(bytes: init_y)
+    var overflow = false
+    var field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<inverse_count {
         field_x.sqrt()

@@ -1,21 +1,6 @@
-public struct Secpt256k1Field {
-    private var d: Bits64x4
+public struct Secpt256k1Field: UInt256p {
+    var d: Bits64x4
     private var acc: Accumulator
-    
-    private func getWord(_ idx: Int) throws -> UInt64 {
-        switch idx {
-        case 0:
-            return d.0
-        case 1:
-            return d.1
-        case 2:
-            return d.2
-        case 3:
-            return d.3
-        default:
-            fatalError("invalid index \(idx)")
-        }
-    }
     
     static let wordWidth = 4
     static let wordBitWidth = UInt64.bitWidth
@@ -29,11 +14,7 @@ public struct Secpt256k1Field {
     static let pCompWordWidth = 1
     
     public static let zero = Secpt256k1Field()
-    public static let one = Secpt256k1Field(int: 1)
-    
-    public static var prime : Secpt256k1Field {
-        return Secpt256k1Field(bits64x4: p)
-    }
+    public static let one = Secpt256k1Field(int32: 1)
     
     static let wordMask = UInt64.max
     
@@ -41,80 +22,15 @@ public struct Secpt256k1Field {
         d = (0, 0, 0, 0)
         acc = Accumulator()
     }
-    
-    public init(words : [UInt32]) {
-        self.init()
-        d.0 = UInt64(words[1]) << UInt32.bitWidth | UInt64(words[0])
-        d.1 = UInt64(words[2 * 1 + 1]) << UInt32.bitWidth | UInt64(words[2*1])
-        d.2 = UInt64(words[2 * 2 + 1]) << UInt32.bitWidth | UInt64(words[2*2])
-        d.3 = UInt64(words[2 * 3 + 1]) << UInt32.bitWidth | UInt64(words[2*3])
-        reduce()
-    }
-    
-    init(bits64x4 : Bits64x4) {
-        self.init()
-        d.0 = bits64x4.0
-        d.1 = bits64x4.1
-        d.2 = bits64x4.2
-        d.3 = bits64x4.3
-        reduce()
-    }
-    
-    public init(words64 : [UInt64]) {
-        self.init()
-        d.0 = words64[0]
-        d.1 = words64[1]
-        d.2 = words64[2]
-        d.3 = words64[3]
-        reduce()
-    }
-    
-    public init(bytes : [UInt8]) {
-        self.init()
-        for i in 0..<bytes.count {
-            let wordIdx = 3 - i / 8
-            let byteIdx = 7 - i % 8
-            let val = UInt64(bytes[i]) << (byteIdx * 8)
-            switch wordIdx {
-            case 0:
-                d.0 |= val
-            case 1:
-                d.1 |= val
-            case 2:
-                d.2 |= val
-            case 3:
-                d.3 |= val
-            default:
-                fatalError("invalid index \(wordIdx)")
-            }
-        }
-        reduce()
-    }
-    
-    public init(int v : UInt32) {
-        self.init()
-        d.0 = UInt64(v)
-    }
-    
-    public init(int64 v : UInt64) {
-        self.init()
-        d.0 = v
-    }
-    
+
     public init(field s: Secpt256k1Field) {
+        assert(!s.checkOverflow())
         self.init()
         d.0 = s.d.0
         d.1 = s.d.1
         d.2 = s.d.2
         d.3 = s.d.3
         reduce()
-    }
-    
-    mutating func setInt(_ v: UInt64) {
-        d.0 = v
-        d.1 = 0
-        d.2 = 0
-        d.3 = 0
     }
     
     public func checkOverflow() -> Bool {
@@ -204,22 +120,22 @@ public struct Secpt256k1Field {
         return d.0 & 1 == 0
     }
     
-    public func getBits64(offset : Int, count : Int) throws -> UInt64 {
+    public func getBits64(offset : Int, count : Int) -> UInt64 {
         assert(offset + count <= Secpt256k1Field.wordBitWidth * Secpt256k1Field.wordWidth)
         assert(count < Secpt256k1Field.wordBitWidth)
         if offset >> 6 == (count + offset - 1) >> 6 {
-            return UInt64((try getWord(offset >> 6) >> (offset & 0x3F)) & ((1 << count) - 1))
+            return UInt64((getWord(offset >> 6) >> (offset & 0x3F)) & ((1 << count) - 1))
         } else {
             assert((offset >> 6) + 1 < 4)
-            let firstHalf = UInt64(try getWord(offset >> 6) >> (offset & 0x3F))
-            let secondHalf = UInt64((try getWord((offset >> 6) + 1) << (64 - (offset & 0x3F)) & Secpt256k1Field.wordMask))
+            let firstHalf = UInt64(getWord(offset >> 6) >> (offset & 0x3F))
+            let secondHalf = UInt64((getWord((offset >> 6) + 1) << (64 - (offset & 0x3F)) & Secpt256k1Field.wordMask))
             return (firstHalf | secondHalf) & ((1 << count) - 1)
         }
     }
     
-    public func getBits(offset : Int, count : Int) throws -> UInt32 {
+    public func getBits(offset : Int, count : Int) -> UInt32 {
         assert(count < UInt32.bitWidth)
-        return UInt32(try getBits64(offset: offset, count: count))
+        return UInt32(getBits64(offset: offset, count: count))
     }
     
     public mutating func clear() {
