@@ -22,9 +22,21 @@ public protocol UInt256pInterface {
     mutating func clear()
     
     mutating func sqr()
+    mutating func negate()
+    mutating func inverse()
+    mutating func mul(_ y: Self)
+    mutating func add(_ y: Self)
+    mutating func add(_ y: Self, carry: UInt64)
+    mutating func div(_ y: Self)
+    mutating func sub(_ y: Self)
+    
+    static func *(_ x: Self, _ y: Self) -> Self
+    static func +(_ x : Self,_ y : Self) -> Self
+    static func -(_ x: Self, _ y: Self) -> Self
+    static func /(_ x : Self,_ y : Self) -> Self
 }
 
-protocol UInt256p: UInt256pInterface {
+protocol UInt256p: UInt256pInterface, Equatable {
     static var p: Bits64x4 { get }
     static var wordWidth: Int { get }
     static var wordBitWidth: Int { get }
@@ -43,6 +55,7 @@ protocol UInt256p: UInt256pInterface {
     mutating func sqrArray(_ x: Bits64x4) -> Bits64x8
     mutating func shift(_ count: Int)
     mutating func reduce512Bits(_ bits512: Bits64x8)
+    mutating func shiftMul(_ count: Int, _ x: Self)
 }
 
 extension UInt256p {
@@ -268,6 +281,102 @@ extension UInt256p {
         
         let bits512 = sqrArray(d)
         reduce512Bits(bits512)
+    }
+    
+    @inline(__always)
+    public mutating func mul(_ y: Self) {
+        assert(type(of: y).p == Self.p)
+        assert(!checkOverflow())
+        assert(!y.checkOverflow())
+        
+        let bits512 = mulArrays(d, y.d)
+        reduce512Bits(bits512)
+    }
+    
+    @inline(__always)
+    mutating func shiftMul(_ count: Int, _ x: Self) {
+        assert(type(of: x).p == Self.p)
+        for _ in 0..<count {
+            sqr()
+        }
+        mul(x)
+    }
+    
+    public mutating func add(_ y: Self, carry: UInt64) {
+        assert(type(of: y).p == Self.p)
+        assert(!checkOverflow())
+        assert(!y.checkOverflow())
+        
+        acc.reset(d.0)
+        acc.sumAddFast(y.d.0)
+        d.0 = acc.extractFast()
+        acc.sumAddFast(d.1)
+        acc.sumAddFast(y.d.1)
+        d.1 = acc.extractFast()
+        acc.sumAddFast(d.2)
+        acc.sumAddFast(y.d.2)
+        d.2 = acc.extractFast()
+        acc.sumAddFast(d.3)
+        acc.sumAddFast(y.d.3)
+        d.3 = acc.extractFast()
+        
+        let overflow = acc.extractFast()
+        assert(acc.isZero())
+        
+        assert(overflow <= 1)
+        reduce(overflow: overflow)
+    }
+    
+    public mutating func add(_ y: Self) {
+        add(y, carry: 0)
+    }
+    
+    public mutating func sub(_ y: Self) {
+        assert(type(of: y).p == Self.p)
+        var ny = y
+        ny.negate()
+        add(ny)
+    }
+    
+    public static func +(_ x : Self, _ y : Self) -> Self {
+        assert(type(of: x).p == type(of: y).p)
+        var r = x
+        r.add(y)
+        return r
+    }
+    
+    public static func -(_ x : Self, _ y : Self) -> Self {
+        assert(type(of: x).p == type(of: y).p)
+        var r = x
+        r.sub(y)
+        return r
+    }
+    
+    public static func *(_ x: Self, _ y: Self) -> Self {
+        assert(type(of: x).p == type(of: y).p)
+        var r = x
+        r.mul(y)
+        return r
+    }
+    
+    public mutating func div(_ y: Self) {
+        assert(type(of: y).p == Self.p)
+        var yInv = y
+        yInv.inverse()
+        mul(yInv)
+    }
+    
+    public static func /(_ x: Self, _ y: Self) -> Self {
+        assert(type(of: x).p == type(of: y).p)
+        var r = x
+        r.div(y)
+        return r
+    }
+}
+
+extension UInt256p {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        return lhs.d == rhs.d
     }
 }
 

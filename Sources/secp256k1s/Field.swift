@@ -23,16 +23,6 @@ public struct Secpt256k1Field: UInt256p {
         acc = Accumulator()
     }
     
-    public init(field s: Secpt256k1Field) {
-        assert(!s.checkOverflow())
-        self.init()
-        d.0 = s.d.0
-        d.1 = s.d.1
-        d.2 = s.d.2
-        d.3 = s.d.3
-        reduce()
-    }
-    
     public func checkOverflow() -> Bool {
         var accC = Accumulator(d.0)
         accC.sumAddFast(Secpt256k1Field.pComp.0)
@@ -74,40 +64,6 @@ public struct Secpt256k1Field: UInt256p {
         }
     }
     
-    public mutating func add(_ y : Secpt256k1Field, carry: UInt64 = 0) {
-        assert(!checkOverflow())
-        assert(!y.checkOverflow())
-        
-        acc.reset(d.0)
-        acc.sumAddFast(y.d.0)
-        d.0 = acc.extractFast()
-        acc.sumAddFast(d.1)
-        acc.sumAddFast(y.d.1)
-        d.1 = acc.extractFast()
-        acc.sumAddFast(d.2)
-        acc.sumAddFast(y.d.2)
-        d.2 = acc.extractFast()
-        acc.sumAddFast(d.3)
-        acc.sumAddFast(y.d.3)
-        d.3 = acc.extractFast()
-        
-        let overflow = acc.extractFast()
-        assert(acc.isZero())
-        
-        assert(overflow <= 1)
-        reduce(overflow: overflow)
-    }
-    
-    public static func add(_ x : Secpt256k1Field, _ y : Secpt256k1Field) -> Secpt256k1Field {
-        var r = Secpt256k1Field.init(field: x)
-        r.add(y)
-        return r
-    }
-    
-    public static func +(x : Secpt256k1Field, y : Secpt256k1Field) -> Secpt256k1Field {
-        return Secpt256k1Field.add(x, y)
-    }
-    
     public mutating func negate() {
         assert(!checkOverflow())
         guard !isZero() else {
@@ -132,18 +88,6 @@ public struct Secpt256k1Field: UInt256p {
         (d.3, overflow) = t.subtractingReportingOverflow(d.3)
         
         assert(!overflow)
-    }
-    
-    public static func substract(_ x : Secpt256k1Field, _ y : Secpt256k1Field) -> Secpt256k1Field {
-        var r1 = Secpt256k1Field.init(field: x)
-        var r2 = Secpt256k1Field.init(field: y)
-        r2.negate()
-        r1.add(r2)
-        return r1
-    }
-    
-    public static func -(x : Secpt256k1Field, y : Secpt256k1Field) -> Secpt256k1Field {
-        return Secpt256k1Field.substract(x, y)
     }
     
     mutating func reduce512Bits(_ bits512: Bits64x8) {
@@ -184,14 +128,6 @@ public struct Secpt256k1Field: UInt256p {
         reduce(overflow: overflow)
     }
     
-    public mutating func mul(_ y : Secpt256k1Field) {
-        assert(!checkOverflow())
-        assert(!y.checkOverflow())
-        
-        let bits512 = mulArrays(d, y.d)
-        reduce512Bits(bits512)
-    }
-    
     public mutating func inverse() {
         guard !isZero() else {
             fatalError("Devide by zero")
@@ -206,7 +142,7 @@ public struct Secpt256k1Field: UInt256p {
             return shiftedNum
         }
         
-        let x1 = Secpt256k1Field(field: self)
+        let x1 = self
         setInt(1)
         assert(isOne())
         
@@ -264,7 +200,7 @@ public struct Secpt256k1Field: UInt256p {
             return shiftedNum
         }
         
-        let x1 = Secpt256k1Field(field: self)
+        let x1 = self
         setInt(1)
         assert(isOne())
         
@@ -293,46 +229,6 @@ public struct Secpt256k1Field: UInt256p {
         shiftMul(6, x2)
         shift(2)
     }
-    
-    private mutating func shiftMul(_ count: Int, _ x: Secpt256k1Field) {
-        for _ in 0..<count {
-            sqr()
-        }
-        mul(x)
-    }
-    
-    public static func mul(_ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
-        var r = x
-        r.mul(y)
-        return r
-    }
-    
-    public static func *(_ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
-        return Secpt256k1Field.mul(x, y)
-    }
-    
-    public mutating func div(_ y: Secpt256k1Field) {
-        var yInv = y
-        yInv.inverse()
-        mul(yInv)
-    }
-    
-    public static func div(_ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
-        var r = x
-        r.div(y)
-        return r
-    }
-    
-    public static func /(_ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
-        return Secpt256k1Field.div(x, y)
-    }
 }
-
-extension Secpt256k1Field: Equatable {
-    public static func == (lhs: Secpt256k1Field, rhs: Secpt256k1Field) -> Bool {
-        return lhs.d == rhs.d
-    }
-}
-
 
 

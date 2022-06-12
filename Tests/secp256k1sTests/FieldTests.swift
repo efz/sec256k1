@@ -20,7 +20,7 @@ class FieldTests: XCTestCase {
         let r = x * y
         XCTAssertTrue(r.isOne())
     }
-
+    
     func testInverse() throws {
         for _ in 0..<count {
             let x = randField()
