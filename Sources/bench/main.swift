@@ -201,7 +201,7 @@ func bench_field_sqrt() {
     let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<inverse_count {
-        field_x.sqrt()
+        let _ = field_x.sqrt()
         field_x.add(field_y)
     }
 }
@@ -211,7 +211,7 @@ func bench_random_field_sqrt() {
     let field_y = randField()
     
     for _ in 0..<inverse_count {
-        field_x.sqrt()
+        let _ = field_x.sqrt()
         field_x.add(field_y)
     }
 }

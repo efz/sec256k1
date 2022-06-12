@@ -68,49 +68,54 @@ class FieldTests: XCTestCase {
         XCTAssertEqual(x3, x5 - x2)
     }
     
-    func verifySqrt(_ x: Secpt256k1Field, _ awn: Secpt256k1Field) {
-        var neg_awn = awn
-        neg_awn.negate()
+    func verifySqrt(_ xx: Secpt256k1Field, _ optAwn: Secpt256k1Field?) {
+        var x = xx
+        let hasSqrt = x.sqrt()
+        XCTAssertTrue(!hasSqrt || optAwn != nil)
         
-        XCTAssertTrue(x == awn || x == neg_awn)
+        if let awn = optAwn {
+            var neg_awn = awn
+            neg_awn.negate()
+            XCTAssertTrue(x == awn || x == neg_awn)
+        }
     }
     
     func testSqrt() throws {
         /* Check sqrt(0) is 0 */
         var z = Secpt256k1Field.zero
-        z.sqrt()
+        let hasSqrt = z.sqrt()
+        XCTAssertTrue(hasSqrt)
         XCTAssertTrue(z.isZero())
         
         /* Check sqrt of small squares (and their negatives) */
-        for i in 0..<100 {
+        for i in 1..<101 {
             let x = Secpt256k1Field(int32: UInt32(i))
             let xx = x * x
-            var xx_sqrt = xx
-            xx_sqrt.sqrt()
-            verifySqrt(xx_sqrt, x)
+            verifySqrt(xx, x)
             
-            var neg_x = x
-            neg_x.negate()
-            let neg_xx = neg_x * neg_x
-            var neg_xx_sqrt = neg_xx
-            neg_xx_sqrt.sqrt()
-            verifySqrt(neg_xx_sqrt, neg_x)
+            var neg_xx = xx
+            neg_xx.negate()
+            verifySqrt(neg_xx, nil)
         }
         
         /* Consistency checks for large random values */
-        for _ in 0..<100 {
-            let x = randField()
-            let xx = x * x
-            var xx_sqrt = xx
-            xx_sqrt.sqrt()
-            verifySqrt(xx_sqrt, x)
-            
-            var neg_x = x
-            neg_x.negate()
-            let neg_xx = neg_x * neg_x
-            var neg_xx_sqrt = neg_xx
-            neg_xx_sqrt.sqrt()
-            verifySqrt(neg_xx_sqrt, neg_x)
+        for _ in 0..<10 {
+            var ns = randField()
+            while ns.sqrt() {
+                ns = randField()
+            }
+            for _ in 0..<count {
+                let x = randField()
+                let xx = x * x
+                verifySqrt(xx, x)
+                
+                var neg_xx = xx
+                neg_xx.negate()
+                verifySqrt(neg_xx, nil)
+                
+                let xx_ns = xx * ns
+                verifySqrt(xx_ns, nil)
+            }
         }
     }
 }

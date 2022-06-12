@@ -237,7 +237,7 @@ public struct Secpt256k1Field: UInt256p {
         shiftMul(2, x1)
     }
     
-    public mutating func sqrt() {
+    public mutating func sqrt() -> Bool {
         assert(!checkOverflow())
         
         let initalVal = self
@@ -247,14 +247,11 @@ public struct Secpt256k1Field: UInt256p {
         var x = self
         x.sqr()
         if x == initalVal {
-            return
+            return true
+        } else {
+            d = initalVal.d
+            return false
         }
-        negate()
-        assert({() -> Bool in
-            var y = self
-            y.sqr()
-            return y == initalVal
-        }())
     }
     
     private mutating func sqrtByPowers() {
