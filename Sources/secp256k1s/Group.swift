@@ -105,6 +105,14 @@ struct Secp256k1Group {
         
         assert(isValid())
     }
+    
+    mutating func reflect() {
+        assert(isValid())
+        guard !isInfinity else {
+            return
+        }
+        y.negate()
+    }
 }
 
 

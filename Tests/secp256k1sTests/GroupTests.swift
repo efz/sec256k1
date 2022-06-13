@@ -246,10 +246,13 @@ class GroupTests: XCTestCase {
         
         let a = Secp256k1Group(x: a_x, y: a_y)!
         XCTAssertTrue(a.isValid())
+        XCTAssertFalse(a.isInfinity)
         let b = Secp256k1Group(x: b_x, y: b_y)!
         XCTAssertTrue(b.isValid())
+        XCTAssertFalse(b.isInfinity)
         let c = Secp256k1Group(x: c_x, y: c_y)!
         XCTAssertTrue(c.isValid())
+        XCTAssertFalse(c.isInfinity)
         
         var d = a
         
@@ -259,13 +262,57 @@ class GroupTests: XCTestCase {
             d.add(b)
         }
         
+        XCTAssertTrue(d.isValid())
+        XCTAssertFalse(d.isInfinity)
         XCTAssertEqual(d, c)
+        
+        if a == b {
+            var bReflected = b
+            bReflected.reflect()
+            d = a
+            d.add(bReflected)
+            XCTAssertTrue(d.isValid())
+            XCTAssertTrue(d.isInfinity)
+        }
     }
     
     func testGroupOps() {
         for testVector in testVectors {
             verifyTestVector(testVector)
         }
+    }
+    
+    func testAddInfinity() {
+        let aVector: [[UInt64]] = [[0x7e00fcffffff, 0xf0ff7f000000, 0xffffffffffffff0f, 0x4000000000e0ff], [0x5747e9ab1ea0d93d, 0xe5af95824b6feaff, 0x6e9fdaf96207ac84, 0xdf2a39ec9abce698]]
+        var isOverflow = false
+        let a_x = Secpt256k1Field(words64: aVector[0], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        let a_y = Secpt256k1Field(words64: aVector[1], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        let a = Secp256k1Group(x: a_x, y: a_y)!
+        XCTAssertTrue(a.isValid())
+        XCTAssertFalse(a.isInfinity)
+        
+        let b = Secp256k1Group()
+        XCTAssertTrue(b.isValid())
+        XCTAssertTrue(b.isInfinity)
+        
+        var d = a
+        d.add(b)
+        XCTAssertTrue(d.isValid())
+        XCTAssertFalse(d.isInfinity)
+        XCTAssertEqual(d, a)
+        
+        d = b
+        d.add(a)
+        XCTAssertTrue(d.isValid())
+        XCTAssertFalse(d.isInfinity)
+        XCTAssertEqual(d, a)
+        
+        d = b
+        d.double()
+        XCTAssertTrue(d.isValid())
+        XCTAssertTrue(d.isInfinity)
     }
     
     func testOppesiteYdifferentX() {
