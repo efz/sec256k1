@@ -77,6 +77,8 @@ class FieldTests: XCTestCase {
             var neg_awn = awn
             neg_awn.negate()
             XCTAssertTrue(x == awn || x == neg_awn)
+            let x_neg = Secpt256k1Field.zero - x
+            XCTAssertEqual(xx, x_neg * x_neg)
         }
     }
     

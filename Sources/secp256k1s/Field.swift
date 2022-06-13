@@ -15,6 +15,8 @@ public struct Secpt256k1Field: UInt256p {
     
     public static let zero = Secpt256k1Field()
     public static let one = Secpt256k1Field(int32: 1)
+    static let three = Secpt256k1Field(int32: 3)
+    static let two = Secpt256k1Field(int32: 2)
     
     static let wordMask = UInt64.max
     
