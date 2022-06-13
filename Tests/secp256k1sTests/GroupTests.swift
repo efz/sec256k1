@@ -232,8 +232,6 @@ class GroupTests: XCTestCase {
     
     
     func testGroupOps() {
-        var doubleCount = 0
-        var addCount = 0
         for testVector in testVectors {
             var isOverflow = false
             let a_x = Secpt256k1Field(words64: testVector[0][0], overflowed: &isOverflow)
@@ -260,10 +258,8 @@ class GroupTests: XCTestCase {
             
             if a == b {
                 d.double()
-                doubleCount += 1
             } else {
                 d.add(b)
-                addCount += 1
             }
             
             XCTAssertEqual(d, c)
