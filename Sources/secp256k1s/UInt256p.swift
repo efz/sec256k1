@@ -34,6 +34,9 @@ public protocol UInt256pInterface {
     static func +(_ x : Self,_ y : Self) -> Self
     static func -(_ x: Self, _ y: Self) -> Self
     static func /(_ x : Self,_ y : Self) -> Self
+    static func neg(_ x: Self) -> Self
+    static func sqr(_ x: Self) -> Self
+    static func inv(_ x: Self) -> Self
 }
 
 protocol UInt256p: UInt256pInterface, Equatable {
@@ -370,6 +373,24 @@ extension UInt256p {
         assert(type(of: x).p == type(of: y).p)
         var r = x
         r.div(y)
+        return r
+    }
+    
+    public static func neg(_ x: Self) -> Self {
+        var r = x
+        r.negate()
+        return r
+    }
+    
+    public static func sqr(_ x: Self) -> Self {
+        var r = x
+        r.sqr()
+        return r
+    }
+    
+    public static func inv(_ x: Self) -> Self {
+        var r = x
+        r.inverse()
         return r
     }
 }
