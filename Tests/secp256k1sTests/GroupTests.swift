@@ -2,7 +2,6 @@ import XCTest
 @testable import secp256k1s
 
 class GroupTests: XCTestCase {
-    
     let testVectors: [[[[UInt64]]]]  = [
         [[[0xffffffffffffffff, 0xff0ff001ffffff, 0xffffffffff010000, 0xf8fffff7ffffff], [0xc4746ff0f43f799f, 0xbdef6c9f321e443f, 0xd75ebbd37aa2d5b5, 0xe08f23e1f0192d35]], [[0xffffffffffffffff, 0xff0ff001ffffff, 0xffffffffff010000, 0xf8fffff7ffffff], [0xc4746ff0f43f799f, 0xbdef6c9f321e443f, 0xd75ebbd37aa2d5b5, 0xe08f23e1f0192d35]], [[0x34c1e5c1466a8ed0, 0xa659b82346a44107, 0x95a4f32ac237094e, 0xda45fadff7623265], [0x873040c080f8be3a, 0xa4518a5fd3cceba2, 0x2955a9034650f393, 0x3d0deacf4e7997ef]]],
         [[[0xffffffffffffffff, 0xff0ff001ffffff, 0xffffffffff010000, 0xf8fffff7ffffff], [0xc4746ff0f43f799f, 0xbdef6c9f321e443f, 0xd75ebbd37aa2d5b5, 0xe08f23e1f0192d35]], [[0xffffffffffffffff, 0xff0ff001ffffff, 0xffffffffff010000, 0xf8fffff7ffffff], [0xc4746ff0f43f799f, 0xbdef6c9f321e443f, 0xd75ebbd37aa2d5b5, 0xe08f23e1f0192d35]], [[0x34c1e5c1466a8ed0, 0xa659b82346a44107, 0x95a4f32ac237094e, 0xda45fadff7623265], [0x873040c080f8be3a, 0xa4518a5fd3cceba2, 0x2955a9034650f393, 0x3d0deacf4e7997ef]]],
@@ -230,41 +229,48 @@ class GroupTests: XCTestCase {
         [[[0x7e00fcffffff, 0xf0ff7f000000, 0xffffffffffffff0f, 0x4000000000e0ff], [0x5747e9ab1ea0d93d, 0xe5af95824b6feaff, 0x6e9fdaf96207ac84, 0xdf2a39ec9abce698]], [[0x7e00fcffffff, 0xf0ff7f000000, 0xffffffffffffff0f, 0x4000000000e0ff], [0x5747e9ab1ea0d93d, 0xe5af95824b6feaff, 0x6e9fdaf96207ac84, 0xdf2a39ec9abce698]], [[0x59cef97538ca4f64, 0x8415a3faebda8427, 0xd2e820c30dab1062, 0x4e6ee8dbd3d73203], [0xd8f7977ae6bd01dc, 0xbd8034db05223c0b, 0x755ee42489b713a0, 0x98b8f3fa430b5b7d]]]
     ]
     
+    func verifyTestVector(_ testVector: [[[UInt64]]]) {
+        var isOverflow = false
+        let a_x = Secpt256k1Field(words64: testVector[0][0], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        let a_y = Secpt256k1Field(words64: testVector[0][1], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        let b_x = Secpt256k1Field(words64: testVector[1][0], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        let b_y = Secpt256k1Field(words64: testVector[1][1], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        let c_x = Secpt256k1Field(words64: testVector[2][0], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        let c_y = Secpt256k1Field(words64: testVector[2][1], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        
+        let a = Secp256k1Group(x: a_x, y: a_y)!
+        XCTAssertTrue(a.isValid())
+        let b = Secp256k1Group(x: b_x, y: b_y)!
+        XCTAssertTrue(b.isValid())
+        let c = Secp256k1Group(x: c_x, y: c_y)!
+        XCTAssertTrue(c.isValid())
+        
+        var d = a
+        
+        if a == b {
+            d.double()
+        } else {
+            d.add(b)
+        }
+        
+        XCTAssertEqual(d, c)
+    }
     
     func testGroupOps() {
         for testVector in testVectors {
-            var isOverflow = false
-            let a_x = Secpt256k1Field(words64: testVector[0][0], overflowed: &isOverflow)
-            XCTAssertFalse(isOverflow)
-            let a_y = Secpt256k1Field(words64: testVector[0][1], overflowed: &isOverflow)
-            XCTAssertFalse(isOverflow)
-            let b_x = Secpt256k1Field(words64: testVector[1][0], overflowed: &isOverflow)
-            XCTAssertFalse(isOverflow)
-            let b_y = Secpt256k1Field(words64: testVector[1][1], overflowed: &isOverflow)
-            XCTAssertFalse(isOverflow)
-            let c_x = Secpt256k1Field(words64: testVector[2][0], overflowed: &isOverflow)
-            XCTAssertFalse(isOverflow)
-            let c_y = Secpt256k1Field(words64: testVector[2][1], overflowed: &isOverflow)
-            XCTAssertFalse(isOverflow)
-            
-            let a = Secp256k1Group(x: a_x, y: a_y)!
-            XCTAssertTrue(a.isValid())
-            let b = Secp256k1Group(x: b_x, y: b_y)!
-            XCTAssertTrue(b.isValid())
-            let c = Secp256k1Group(x: c_x, y: c_y)!
-            XCTAssertTrue(c.isValid())
-            
-            var d = a
-            
-            if a == b {
-                d.double()
-            } else {
-                d.add(b)
-            }
-            
-            XCTAssertEqual(d, c)
+            verifyTestVector(testVector)
         }
     }
+    
+    func testOppesiteYdifferentX() {
+        let testVector: [[[UInt64]]] = [[[0x2f8ec030d58977cb, 0x643d79f05a59614, 0x3c54350544238d30, 0x8d24cd950a355af1], [0x44e6d2f39190117d, 0x4d72c879d7681924, 0x6c0f386d0b1293a8, 0x1e337a38093dcd]], [[0xd013bd7bbf92d2a7, 0x95f6ff75f19a4ce9, 0xabd0937d164a0d86, 0xc7b742061f788cd9], [0xbb192d0b6e6feab2, 0xb28d37862897e6db, 0x93f0c792f4ed6c57, 0xffe1cc85c7f6c232]], [[0x5c86d390184a8f7a, 0xb3d69010278625c3, 0x389a779824356027, 0x671a63c03efdad4c], [0x8f0d893cbed8fbbe, 0xda65180170e95caf, 0x511fd37525071d08, 0x5f6409c22ce01f2b]]]
+        
+        verifyTestVector(testVector)
+    }
 }
-
-
