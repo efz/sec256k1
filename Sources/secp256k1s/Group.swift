@@ -67,7 +67,7 @@ public struct Secp256k1Group {
         return yExists ? computedY : nil
     }
     
-   public func isValid() -> Bool {
+    public func isValid() -> Bool {
         assert(z.isOne())
         
         if isInfinity {
@@ -161,11 +161,44 @@ public struct Secp256k1Group {
         let mj2 = Secpt256k1Field.sqr(mj)
         
         let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
-        x = mj2 - x * xDiffJ2 * bz2 - b.x *  xDiffJ2 * z2
+        x = mj2 - xDiffJ2 * (x * bz2 + b.x * z2)
         
         z = xDiffJ * z * b.z
         
-        let cj = b.y * z3 * xDiffJ2 * xDiffJ - mj * b.x * z2 * xDiffJ2
+        let cj = xDiffJ2 * (b.y * z3  * xDiffJ - mj * b.x * z2)
+        y = mj * x + cj
+        y.negate()
+    }
+    
+    public mutating func addAffine2J(_ b: Secp256k1Group) {
+        assert(isValidJ() && b.isValid())
+        
+        if b.isInfinity {
+            return
+        } else if isInfinity {
+            self = b
+            return
+        }
+        
+        let z2 = Secpt256k1Field.sqr(z)
+        let xDiffJ = (b.x * z2 - x)
+        if xDiffJ.isZero() {
+            y = Secpt256k1Field.zero
+            isInfinity = true
+            return
+        }
+        
+        let z3 = z2 * z
+        let yDiffJ = b.y * z3 - y
+        let mj = yDiffJ
+        let mj2 = Secpt256k1Field.sqr(mj)
+        
+        let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
+        x = mj2 - xDiffJ2 * (x + b.x * z2)
+        
+        z = xDiffJ * z
+        
+        let cj = xDiffJ2 * (b.y * z3  * xDiffJ - mj * b.x * z2)
         y = mj * x + cj
         y.negate()
     }
@@ -218,8 +251,7 @@ public struct Secp256k1Group {
         let mj2 = Secpt256k1Field.sqr(mj)
         
         let y2 = Secpt256k1Field.sqr(y)
-        let y4 = Secpt256k1Field.sqr(y2)
-        let cj = y4 - y2 * mj * x
+        let cj = y2 * (y2 - mj * x)
         
         x = mj2 - Secpt256k1Field.two * x * y2
         

@@ -296,7 +296,7 @@ func bench_random_group_add() {
     }
 }
 
-/*func bench_group_add_affine2j() {
+func bench_group_add_affine2j() {
     var overflow = false
     let field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
     var group_x = Secp256k1Group(x: field_x, odd: false)!
@@ -307,7 +307,7 @@ func bench_random_group_add() {
     for _ in 0..<count {
         group_x.addAffine2J(group_y)
     }
-}*/
+}
 
 // warmup
 for _ in 0..<5 {
@@ -337,4 +337,4 @@ runBenchmark(name: "Group Double", benchFunc: bench_group_double, count: count)
 runBenchmark(name: "Random Group Double", benchFunc: bench_random_group_double, count: count)
 runBenchmark(name: "Group Add", benchFunc: bench_random_group_add, count: count)
 runBenchmark(name: "Random Group Add", benchFunc: bench_random_group_add, count: count)
-//runBenchmark(name: "Group Add Affine 2 J", benchFunc: bench_group_add_affine2j, count: count)
+runBenchmark(name: "Group Add Affine 2 J", benchFunc: bench_group_add_affine2j, count: count)
