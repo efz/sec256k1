@@ -210,6 +210,7 @@ struct Secp256k1Group {
         x = mj2 - Secpt256k1Field.two * x * y2
         
         y = mj * x + cj
+        y.negate()
     }
     
     mutating func reflect() {

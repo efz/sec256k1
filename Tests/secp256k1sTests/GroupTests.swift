@@ -389,5 +389,26 @@ class GroupTests: XCTestCase {
         XCTAssertTrue(g1pg2jn.z.isOne())
         
         XCTAssertEqual(g1pg2jn, g1pg2n)
+        
+        // double
+        var g1dn = g1n
+        g1dn.double()
+        XCTAssertTrue(g1dn.isValid())
+        XCTAssertFalse(g1dn.isInfinity)
+        XCTAssertTrue(g1dn.z.isOne())
+        
+        var g1dj = g1
+        g1dj.doubleJ()
+        XCTAssertTrue(g1dj.isValidJ())
+        XCTAssertFalse(g1dj.isInfinity)
+        XCTAssertFalse(g1dj.z.isOne())
+        
+        var g1djn = g1dj
+        g1djn.normalizeJ()
+        XCTAssertTrue(g1djn.isValid())
+        XCTAssertFalse(g1djn.isInfinity)
+        XCTAssertTrue(g1djn.z.isOne())
+        
+        XCTAssertEqual(g1djn, g1dn)
     }
 }
