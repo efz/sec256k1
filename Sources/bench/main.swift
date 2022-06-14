@@ -236,6 +236,79 @@ func runBenchmark(name: String, benchFunc: () -> Void, count: Int) {
     print("Elapsed time min: \(minElapsed)us, ave: \(averageElaped)us, max: \(maxElapsed)us ")
 }
 
+//Group
+func randGroup() -> Secp256k1Group {
+    var g: Secp256k1Group? = nil
+    while g == nil || !g!.isValidJ() || g!.isInfinity {
+        let x = randField()
+        let z = randField()
+        let z2 = Secpt256k1Field.sqr(z)
+        var x3 = Secpt256k1Field.sqr(x)
+        x3.mul(x)
+        var z6 = Secpt256k1Field.sqr(z2)
+        z6.mul(z2)
+        var y2 = Secp256k1Group.curvB
+        y2.mul(z6)
+        y2.add(x3)
+        let y = Secpt256k1Field.sqrt(y2)
+        g = y == nil ? nil : Secp256k1Group(x: x, y: y!, z: z)!
+    }
+    return g!
+}
+
+func bench_group_double() {
+    var overflow = false
+    let field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    var group_x = Secp256k1Group(x: field_x, odd: false)!
+    
+    for _ in 0..<count {
+        group_x.doubleJ()
+    }
+}
+
+func bench_random_group_double() {
+    var group_x = randGroup()
+    
+    for _ in 0..<count {
+        group_x.doubleJ()
+    }
+}
+
+func bench_group_add() {
+    var overflow = false
+    let field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    var group_x = Secp256k1Group(x: field_x, odd: false)!
+    
+    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
+    let group_y = Secp256k1Group(x: field_y, odd: true)!
+    
+    for _ in 0..<count {
+        group_x.addJ(group_y)
+    }
+}
+
+func bench_random_group_add() {
+    var group_x = randGroup()
+    let group_y = randGroup()
+    
+    for _ in 0..<count {
+        group_x.addJ(group_y)
+    }
+}
+
+/*func bench_group_add_affine2j() {
+    var overflow = false
+    let field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    var group_x = Secp256k1Group(x: field_x, odd: false)!
+    
+    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
+    let group_y = Secp256k1Group(x: field_y, odd: true)!
+    
+    for _ in 0..<count {
+        group_x.addAffine2J(group_y)
+    }
+}*/
+
 // warmup
 for _ in 0..<5 {
     bench_scalar_add()
@@ -259,3 +332,9 @@ runBenchmark(name: "Feild Inverse", benchFunc: bench_field_inverse, count: inver
 runBenchmark(name: "Random Feild Inverse", benchFunc: bench_random_field_inverse, count: inverse_count)
 runBenchmark(name: "Feild Sqrt", benchFunc: bench_field_sqrt, count: inverse_count)
 runBenchmark(name: "Random Feild Sqrt", benchFunc: bench_field_sqrt, count: inverse_count)
+
+runBenchmark(name: "Group Double", benchFunc: bench_group_double, count: count)
+runBenchmark(name: "Random Group Double", benchFunc: bench_random_group_double, count: count)
+runBenchmark(name: "Group Add", benchFunc: bench_random_group_add, count: count)
+runBenchmark(name: "Random Group Add", benchFunc: bench_random_group_add, count: count)
+//runBenchmark(name: "Group Add Affine 2 J", benchFunc: bench_group_add_affine2j, count: count)

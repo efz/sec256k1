@@ -1,22 +1,22 @@
-struct Secp256k1Group {
-    static let curvA = Secpt256k1Field.zero
-    static let curvB = Secpt256k1Field(int64: 7)
-    static let infinity = Secp256k1Group()
+public struct Secp256k1Group {
+    public static let curvA = Secpt256k1Field.zero
+    public static let curvB = Secpt256k1Field(int64: 7)
+    public static let infinity = Secp256k1Group()
     static let threeDivTwo = Secpt256k1Field(int32: 3) / Secpt256k1Field(int32: 2)
     
-    var x: Secpt256k1Field
-    var y: Secpt256k1Field
-    var z: Secpt256k1Field
-    var isInfinity: Bool
+    public var x: Secpt256k1Field
+    public var y: Secpt256k1Field
+    public var z: Secpt256k1Field
+    public var isInfinity: Bool
     
-    init() {
+    public init() {
         x = Secpt256k1Field.zero
         y = Secpt256k1Field.zero
         z = Secpt256k1Field.one
         isInfinity = true
     }
     
-    init?(x: Secpt256k1Field, y: Secpt256k1Field) {
+    public init?(x: Secpt256k1Field, y: Secpt256k1Field) {
         self.x = x
         self.y = y
         z = Secpt256k1Field.one
@@ -26,7 +26,7 @@ struct Secp256k1Group {
         }
     }
     
-    init?(x: Secpt256k1Field, y: Secpt256k1Field, z: Secpt256k1Field) {
+    public init?(x: Secpt256k1Field, y: Secpt256k1Field, z: Secpt256k1Field) {
         self.x = x
         self.y = y
         self.z = z
@@ -36,7 +36,7 @@ struct Secp256k1Group {
         }
     }
     
-    init?(x: Secpt256k1Field) {
+    public init?(x: Secpt256k1Field) {
         self.x = x
         z = Secpt256k1Field.one
         isInfinity = false
@@ -47,13 +47,27 @@ struct Secp256k1Group {
         }
     }
     
+    public init?(x: Secpt256k1Field, odd: Bool) {
+        self.x = x
+        z = Secpt256k1Field.one
+        isInfinity = false
+        if let computedY = Secp256k1Group.calcY(x: x) {
+            y = computedY
+        } else {
+            return nil
+        }
+        if odd && y.isEven() {
+            y.negate()
+        }
+    }
+    
     static func calcY(x: Secpt256k1Field) -> Secpt256k1Field? {
         var computedY = x * x * x + Secp256k1Group.curvB
         let yExists = computedY.sqrt()
         return yExists ? computedY : nil
     }
     
-    func isValid() -> Bool {
+   public func isValid() -> Bool {
         assert(z.isOne())
         
         if isInfinity {
@@ -67,7 +81,7 @@ struct Secp256k1Group {
         return true
     }
     
-    func isValidJ() -> Bool {
+    public func isValidJ() -> Bool {
         if isInfinity {
             return true
         }
@@ -82,7 +96,7 @@ struct Secp256k1Group {
         return true
     }
     
-    mutating func add(_ b: Secp256k1Group) {
+    public mutating func add(_ b: Secp256k1Group) {
         assert(z.isOne() && b.z.isOne())
         assert(isValid() && b.isValid())
         
@@ -113,7 +127,7 @@ struct Secp256k1Group {
         assert(isValid())
     }
     
-    mutating func normalizeJ() {
+    public mutating func normalizeJ() {
         let z2 = Secpt256k1Field.sqr(z)
         let z3 = z2 * z
         z = Secpt256k1Field.one
@@ -121,7 +135,7 @@ struct Secp256k1Group {
         y = y / z3
     }
     
-    mutating func addJ(_ b: Secp256k1Group) {
+    public mutating func addJ(_ b: Secp256k1Group) {
         assert(isValidJ() && b.isValidJ())
         
         if b.isInfinity {
@@ -156,7 +170,7 @@ struct Secp256k1Group {
         y.negate()
     }
     
-    mutating func double() {
+    public mutating func double() {
         assert(z.isOne())
         assert(isValid())
         
@@ -185,7 +199,7 @@ struct Secp256k1Group {
         assert(isValid())
     }
     
-    mutating func doubleJ() {
+    public mutating func doubleJ() {
         assert(isValidJ())
         
         guard !isInfinity else {
@@ -213,7 +227,7 @@ struct Secp256k1Group {
         y.negate()
     }
     
-    mutating func reflect() {
+    public mutating func reflect() {
         assert(isValid())
         guard !isInfinity else {
             return
