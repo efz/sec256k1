@@ -192,6 +192,12 @@ public struct Secpt256k1Field: UInt256p {
         }
     }
     
+    public static func sqrt(_ x: Secpt256k1Field) -> Secpt256k1Field? {
+        var r = x
+        let hasSqrt = r.sqrt()
+        return hasSqrt ? r : nil
+    }
+    
     private mutating func sqrtByPowers() {
         let shiftNumMul = { (shift: Int, num: Secpt256k1Field, prev: Secpt256k1Field) -> Secpt256k1Field in
             var shiftedNum = num

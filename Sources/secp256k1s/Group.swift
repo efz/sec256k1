@@ -2,28 +2,43 @@ struct Secp256k1Group {
     static let curvA = Secpt256k1Field.zero
     static let curvB = Secpt256k1Field(int64: 7)
     static let infinity = Secp256k1Group()
+    static let threeDivTwo = Secpt256k1Field(int32: 3) / Secpt256k1Field(int32: 2)
     
     var x: Secpt256k1Field
     var y: Secpt256k1Field
+    var z: Secpt256k1Field
     var isInfinity: Bool
     
     init() {
         x = Secpt256k1Field.zero
         y = Secpt256k1Field.zero
+        z = Secpt256k1Field.one
         isInfinity = true
     }
     
     init?(x: Secpt256k1Field, y: Secpt256k1Field) {
         self.x = x
         self.y = y
+        z = Secpt256k1Field.one
         isInfinity = false
         if !isValid() {
             return nil
         }
     }
     
+    init?(x: Secpt256k1Field, y: Secpt256k1Field, z: Secpt256k1Field) {
+        self.x = x
+        self.y = y
+        self.z = z
+        isInfinity = false
+        if !isValidJ() {
+            return nil
+        }
+    }
+    
     init?(x: Secpt256k1Field) {
         self.x = x
+        z = Secpt256k1Field.one
         isInfinity = false
         if let computedY = Secp256k1Group.calcY(x: x) {
             y = computedY
@@ -39,6 +54,8 @@ struct Secp256k1Group {
     }
     
     func isValid() -> Bool {
+        assert(z.isOne())
+        
         if isInfinity {
             return true
         }
@@ -50,8 +67,25 @@ struct Secp256k1Group {
         return true
     }
     
+    func isValidJ() -> Bool {
+        if isInfinity {
+            return true
+        }
+        let z2 = z * z
+        let z6 = z2 * z2 * z2
+        
+        let rhs = x * x * x + z6 * Secp256k1Group.curvB
+        let lhs = y * y
+        if rhs != lhs {
+            return false
+        }
+        return true
+    }
+    
     mutating func add(_ b: Secp256k1Group) {
+        assert(z.isOne() && b.z.isOne())
         assert(isValid() && b.isValid())
+        
         if b.isInfinity {
             return
         } else if isInfinity {
@@ -79,8 +113,53 @@ struct Secp256k1Group {
         assert(isValid())
     }
     
+    mutating func normalizeJ() {
+        let z2 = Secpt256k1Field.sqr(z)
+        let z3 = z2 * z
+        z = Secpt256k1Field.one
+        x = x / z2
+        y = y / z3
+    }
+    
+    mutating func addJ(_ b: Secp256k1Group) {
+        assert(isValidJ() && b.isValidJ())
+        
+        if b.isInfinity {
+            return
+        } else if isInfinity {
+            self = b
+            return
+        }
+        
+        let z2 = Secpt256k1Field.sqr(z)
+        let bz2 = Secpt256k1Field.sqr(b.z)
+        let xDiffJ = (b.x * z2 - x * bz2)
+        if xDiffJ.isZero() {
+            y = Secpt256k1Field.zero
+            isInfinity = true
+            return
+        }
+        
+        let z3 = z2 * z
+        let bz3 = bz2 * b.z
+        let yDiffJ = b.y * z3 - y * bz3
+        let mj = yDiffJ
+        let mj2 = Secpt256k1Field.sqr(mj)
+        
+        let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
+        x = mj2 - x * xDiffJ2 * bz2 - b.x *  xDiffJ2 * z2
+        
+        z = xDiffJ * z * b.z
+        
+        let cj = b.y * z3 * xDiffJ2 * xDiffJ - mj * b.x * z2 * xDiffJ2
+        y = mj * x + cj
+        y.negate()
+    }
+    
     mutating func double() {
+        assert(z.isOne())
         assert(isValid())
+        
         guard !isInfinity else {
             return
         }
@@ -104,6 +183,33 @@ struct Secp256k1Group {
         y.negate()
         
         assert(isValid())
+    }
+    
+    mutating func doubleJ() {
+        assert(isValidJ())
+        
+        guard !isInfinity else {
+            return
+        }
+        
+        if y.isZero() {
+            isInfinity = true
+            return
+        }
+        
+        z = y * z
+        
+        let x2 = Secpt256k1Field.sqr(x)
+        let mj = Secp256k1Group.threeDivTwo * x2
+        let mj2 = Secpt256k1Field.sqr(mj)
+        
+        let y2 = Secpt256k1Field.sqr(y)
+        let y4 = Secpt256k1Field.sqr(y2)
+        let cj = y4 - y2 * mj * x
+        
+        x = mj2 - Secpt256k1Field.two * x * y2
+        
+        y = mj * x + cj
     }
     
     mutating func reflect() {

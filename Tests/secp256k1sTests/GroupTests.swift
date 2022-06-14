@@ -320,4 +320,74 @@ class GroupTests: XCTestCase {
         
         verifyTestVector(testVector)
     }
+    
+    func randField() -> Secpt256k1Field {
+        var f: Secpt256k1Field
+        var overflowed = false
+        repeat {
+            let words: [UInt32] = (0..<8).map { _ in
+                UInt32(UInt64.random(in: UInt64(UInt32.min)..<UInt64(UInt32.max)+1))
+            }
+            f = Secpt256k1Field(words32: words, overflowed: &overflowed)
+        } while overflowed || f.isZero()
+        return f
+    }
+    
+    func randGroup() -> Secp256k1Group {
+        var g: Secp256k1Group? = nil
+        while g == nil || !g!.isValidJ() || g!.isInfinity {
+            let x = randField()
+            let z = randField()
+            let z2 = Secpt256k1Field.sqr(z)
+            let x3 = x * x * x
+            let z6 = z2 * z2 * z2
+            let y2 = x3 + z6 * Secp256k1Group.curvB
+            let y = Secpt256k1Field.sqrt(y2)
+            g = y == nil ? nil : Secp256k1Group(x: x, y: y!, z: z)!
+        }
+        return g!
+    }
+    
+    func testGroupOpsJ() {
+        let g1 = randGroup()
+        XCTAssertTrue(g1.isValidJ())
+        XCTAssertFalse(g1.isInfinity)
+        XCTAssertFalse(g1.z.isOne())
+        let g2 = randGroup()
+        XCTAssertTrue(g2.isValidJ())
+        XCTAssertFalse(g2.isInfinity)
+        XCTAssertFalse(g2.z.isOne())
+        
+        var g1n = g1
+        g1n.normalizeJ()
+        XCTAssertTrue(g1n.isValid())
+        XCTAssertFalse(g1n.isInfinity)
+        XCTAssertTrue(g1n.z.isOne())
+        
+        var g2n = g2
+        g2n.normalizeJ()
+        XCTAssertTrue(g2n.isValid())
+        XCTAssertFalse(g2n.isInfinity)
+        XCTAssertTrue(g2n.z.isOne())
+        
+        var g1pg2n = g1n
+        g1pg2n.add(g2n)
+        XCTAssertTrue(g1pg2n.isValid())
+        XCTAssertFalse(g1pg2n.isInfinity)
+        XCTAssertTrue(g1pg2n.z.isOne())
+        
+        var g1pg2j = g1
+        g1pg2j.addJ(g2)
+        XCTAssertTrue(g1pg2j.isValidJ())
+        XCTAssertFalse(g1pg2j.isInfinity)
+        XCTAssertFalse(g1pg2j.z.isOne())
+        
+        var g1pg2jn = g1pg2j
+        g1pg2jn.normalizeJ()
+        XCTAssertTrue(g1pg2jn.isValid())
+        XCTAssertFalse(g1pg2jn.isInfinity)
+        XCTAssertTrue(g1pg2jn.z.isOne())
+        
+        XCTAssertEqual(g1pg2jn, g1pg2n)
+    }
 }
