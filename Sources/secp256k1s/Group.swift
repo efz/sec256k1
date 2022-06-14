@@ -155,7 +155,9 @@ public struct Secp256k1Group {
         
         let z2 = Secpt256k1Field.sqr(z)
         let bz2 = Secpt256k1Field.sqr(b.z)
-        let xDiffJ = (b.x * z2 - x * bz2)
+        let bxz2 = b.x * z2
+        let xbz2 = x * bz2
+        let xDiffJ = bxz2 - xbz2
         if xDiffJ.isZero() {
             y = Secpt256k1Field.zero
             isInfinity = true
@@ -164,17 +166,17 @@ public struct Secp256k1Group {
         
         let z3 = z2 * z
         let bz3 = bz2 * b.z
-        let yDiffJ = b.y * z3 - y * bz3
-        let mj = yDiffJ
-        let mj2 = Secpt256k1Field.sqr(mj)
+        let byz3 =  b.y * z3
+        let yDiffJ = byz3 - y * bz3 // yDiffJ = mj
+        let yDiffJ2 = Secpt256k1Field.sqr(yDiffJ) // yDiffJ2 = mj2
         
         let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
-        x = mj2 - xDiffJ2 * (x * bz2 + b.x * z2)
+        x = yDiffJ2 - xDiffJ2 * (xbz2 + bxz2)
         
         z = xDiffJ * z * b.z
         
-        let cj = xDiffJ2 * (b.y * z3  * xDiffJ - mj * b.x * z2)
-        y = mj * x + cj
+        let cj = xDiffJ2 * (byz3 * xDiffJ - yDiffJ * bxz2)
+        y = yDiffJ * x + cj
         y.negate()
     }
     
@@ -190,7 +192,8 @@ public struct Secp256k1Group {
         }
         
         let z2 = Secpt256k1Field.sqr(z)
-        let xDiffJ = (b.x * z2 - x)
+        let bxz2 = b.x * z2
+        let xDiffJ = bxz2 - x
         if xDiffJ.isZero() {
             y = Secpt256k1Field.zero
             isInfinity = true
@@ -198,16 +201,17 @@ public struct Secp256k1Group {
         }
         
         let z3 = z2 * z
-        let yDiffJ = b.y * z3 - y
+        let byz3 = b.y * z3
+        let yDiffJ = byz3 - y
         let mj = yDiffJ
         let mj2 = Secpt256k1Field.sqr(mj)
         
         let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
-        x = mj2 - xDiffJ2 * (x + b.x * z2)
+        x = mj2 - xDiffJ2 * (x + bxz2)
         
         z = xDiffJ * z
         
-        let cj = xDiffJ2 * (b.y * z3  * xDiffJ - mj * b.x * z2)
+        let cj = xDiffJ2 * (byz3  * xDiffJ - mj * bxz2)
         y = mj * x + cj
         y.negate()
     }
@@ -262,7 +266,8 @@ public struct Secp256k1Group {
         let y2 = Secpt256k1Field.sqr(y)
         let cj = y2 * (y2 - mj * x)
         
-        x = mj2 - Secpt256k1Field.two * x * y2
+        let xy2 = x * y2
+        x = mj2 - xy2 - xy2
         
         y = mj * x + cj
         y.negate()
@@ -280,6 +285,7 @@ public struct Secp256k1Group {
 
 extension Secp256k1Group: Equatable {
     public static func == (lhs: Secp256k1Group, rhs: Secp256k1Group) -> Bool {
+        assert(lhs.z.isOne() && rhs.z.isOne())
         return lhs.x == rhs.x && lhs.y == rhs.y && lhs.isInfinity == rhs.isInfinity
     }
 }
