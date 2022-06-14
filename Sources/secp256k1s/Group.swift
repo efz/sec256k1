@@ -99,6 +99,7 @@ public struct Secp256k1Group {
     public mutating func add(_ b: Secp256k1Group) {
         assert(z.isOne() && b.z.isOne())
         assert(isValid() && b.isValid())
+        assert(self != b) // double?
         
         if b.isInfinity {
             return
@@ -127,6 +128,12 @@ public struct Secp256k1Group {
         assert(isValid())
     }
     
+    public static func normalizeJ(_ a: Secp256k1Group) -> Secp256k1Group {
+        var r: Secp256k1Group = a
+        r.normalizeJ()
+        return r
+    }
+    
     public mutating func normalizeJ() {
         let z2 = Secpt256k1Field.sqr(z)
         let z3 = z2 * z
@@ -137,6 +144,7 @@ public struct Secp256k1Group {
     
     public mutating func addJ(_ b: Secp256k1Group) {
         assert(isValidJ() && b.isValidJ())
+        assert(Secp256k1Group.normalizeJ(self) != Secp256k1Group.normalizeJ(b)) // double?
         
         if b.isInfinity {
             return
@@ -172,6 +180,7 @@ public struct Secp256k1Group {
     
     public mutating func addAffine2J(_ b: Secp256k1Group) {
         assert(isValidJ() && b.isValid())
+        assert(Secp256k1Group.normalizeJ(self) != b) // double?
         
         if b.isInfinity {
             return

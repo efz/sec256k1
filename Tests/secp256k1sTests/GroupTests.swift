@@ -349,66 +349,89 @@ class GroupTests: XCTestCase {
     }
     
     func testGroupOpsJ() {
-        let g1 = randGroup()
-        XCTAssertTrue(g1.isValidJ())
-        XCTAssertFalse(g1.isInfinity)
-        XCTAssertFalse(g1.z.isOne())
-        let g2 = randGroup()
-        XCTAssertTrue(g2.isValidJ())
-        XCTAssertFalse(g2.isInfinity)
-        XCTAssertFalse(g2.z.isOne())
-        
-        var g1n = g1
-        g1n.normalizeJ()
-        XCTAssertTrue(g1n.isValid())
-        XCTAssertFalse(g1n.isInfinity)
-        XCTAssertTrue(g1n.z.isOne())
-        
-        var g2n = g2
-        g2n.normalizeJ()
-        XCTAssertTrue(g2n.isValid())
-        XCTAssertFalse(g2n.isInfinity)
-        XCTAssertTrue(g2n.z.isOne())
-        
-        var g1pg2n = g1n
-        g1pg2n.add(g2n)
-        XCTAssertTrue(g1pg2n.isValid())
-        XCTAssertFalse(g1pg2n.isInfinity)
-        XCTAssertTrue(g1pg2n.z.isOne())
-        
-        var g1pg2j = g1
-        g1pg2j.addJ(g2)
-        XCTAssertTrue(g1pg2j.isValidJ())
-        XCTAssertFalse(g1pg2j.isInfinity)
-        XCTAssertFalse(g1pg2j.z.isOne())
-        
-        var g1pg2jn = g1pg2j
-        g1pg2jn.normalizeJ()
-        XCTAssertTrue(g1pg2jn.isValid())
-        XCTAssertFalse(g1pg2jn.isInfinity)
-        XCTAssertTrue(g1pg2jn.z.isOne())
-        
-        XCTAssertEqual(g1pg2jn, g1pg2n)
-        
-        // double
-        var g1dn = g1n
-        g1dn.double()
-        XCTAssertTrue(g1dn.isValid())
-        XCTAssertFalse(g1dn.isInfinity)
-        XCTAssertTrue(g1dn.z.isOne())
-        
-        var g1dj = g1
-        g1dj.doubleJ()
-        XCTAssertTrue(g1dj.isValidJ())
-        XCTAssertFalse(g1dj.isInfinity)
-        XCTAssertFalse(g1dj.z.isOne())
-        
-        var g1djn = g1dj
-        g1djn.normalizeJ()
-        XCTAssertTrue(g1djn.isValid())
-        XCTAssertFalse(g1djn.isInfinity)
-        XCTAssertTrue(g1djn.z.isOne())
-        
-        XCTAssertEqual(g1djn, g1dn)
+        for _ in 0..<20 {
+            let g1 = randGroup()
+            XCTAssertTrue(g1.isValidJ())
+            XCTAssertFalse(g1.isInfinity)
+            XCTAssertFalse(g1.z.isOne())
+            let g2 = randGroup()
+            XCTAssertTrue(g2.isValidJ())
+            XCTAssertFalse(g2.isInfinity)
+            XCTAssertFalse(g2.z.isOne())
+            
+            var g1n = g1
+            g1n.normalizeJ()
+            XCTAssertTrue(g1n.isValid())
+            XCTAssertFalse(g1n.isInfinity)
+            XCTAssertTrue(g1n.z.isOne())
+            
+            var g2n = g2
+            g2n.normalizeJ()
+            XCTAssertTrue(g2n.isValid())
+            XCTAssertFalse(g2n.isInfinity)
+            XCTAssertTrue(g2n.z.isOne())
+            
+            var g1pg2n = g1n
+            g1pg2n.add(g2n)
+            XCTAssertTrue(g1pg2n.isValid())
+            XCTAssertFalse(g1pg2n.isInfinity)
+            XCTAssertTrue(g1pg2n.z.isOne())
+            
+            var g1pg2j = g1
+            g1pg2j.addJ(g2)
+            XCTAssertTrue(g1pg2j.isValidJ())
+            XCTAssertFalse(g1pg2j.isInfinity)
+            XCTAssertFalse(g1pg2j.z.isOne())
+            
+            var g1pg2jn = g1pg2j
+            g1pg2jn.normalizeJ()
+            XCTAssertTrue(g1pg2jn.isValid())
+            XCTAssertFalse(g1pg2jn.isInfinity)
+            XCTAssertTrue(g1pg2jn.z.isOne())
+            
+            XCTAssertEqual(g1pg2jn, g1pg2n)
+            
+            // add affine to j
+            var g1jpg2 = g1
+            g1jpg2.addAffine2J(g2n)
+            XCTAssertTrue(g1pg2j.isValidJ())
+            XCTAssertFalse(g1pg2j.isInfinity)
+            XCTAssertFalse(g1pg2j.z.isOne())
+            g1jpg2.normalizeJ()
+            XCTAssertTrue(g1jpg2.isValid())
+            XCTAssertFalse(g1jpg2.isInfinity)
+            XCTAssertTrue(g1jpg2.z.isOne())
+            
+            XCTAssertEqual(g1jpg2, g1pg2n)
+            
+            // add infinity to j
+            var g1jpinf = g1
+            g1jpinf.addJ(Secp256k1Group())
+            XCTAssertTrue(g1jpinf.isValidJ())
+            XCTAssertFalse(g1jpinf.isInfinity)
+            g1jpinf.normalizeJ()
+            XCTAssertEqual(g1jpinf, g1n)
+            
+            // double
+            var g1dn = g1n
+            g1dn.double()
+            XCTAssertTrue(g1dn.isValid())
+            XCTAssertFalse(g1dn.isInfinity)
+            XCTAssertTrue(g1dn.z.isOne())
+            
+            var g1dj = g1
+            g1dj.doubleJ()
+            XCTAssertTrue(g1dj.isValidJ())
+            XCTAssertFalse(g1dj.isInfinity)
+            XCTAssertFalse(g1dj.z.isOne())
+            
+            var g1djn = g1dj
+            g1djn.normalizeJ()
+            XCTAssertTrue(g1djn.isValid())
+            XCTAssertFalse(g1djn.isInfinity)
+            XCTAssertTrue(g1djn.z.isOne())
+            
+            XCTAssertEqual(g1djn, g1dn)
+        }
     }
 }
