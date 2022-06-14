@@ -305,6 +305,7 @@ extension UInt256p {
         mul(x)
     }
     
+    @inline(__always)
     public mutating func add(_ y: Self, carry: UInt64) {
         assert(type(of: y).p == Self.p)
         assert(!checkOverflow())
@@ -330,10 +331,12 @@ extension UInt256p {
         reduce(overflow: overflow)
     }
     
+    @inline(__always)
     public mutating func add(_ y: Self) {
         add(y, carry: 0)
     }
     
+    @inline(__always)
     public mutating func sub(_ y: Self) {
         assert(type(of: y).p == Self.p)
         var ny = y
@@ -341,6 +344,7 @@ extension UInt256p {
         add(ny)
     }
     
+    @inline(__always)
     public static func +(_ x : Self, _ y : Self) -> Self {
         assert(type(of: x).p == type(of: y).p)
         var r = x
@@ -348,6 +352,7 @@ extension UInt256p {
         return r
     }
     
+    @inline(__always)
     public static func -(_ x : Self, _ y : Self) -> Self {
         assert(type(of: x).p == type(of: y).p)
         var r = x
@@ -355,6 +360,7 @@ extension UInt256p {
         return r
     }
     
+    @inline(__always)
     public static func *(_ x: Self, _ y: Self) -> Self {
         assert(type(of: x).p == type(of: y).p)
         var r = x
@@ -376,12 +382,14 @@ extension UInt256p {
         return r
     }
     
+    @inline(__always)
     public static func neg(_ x: Self) -> Self {
         var r = x
         r.negate()
         return r
     }
     
+    @inline(__always)
     public static func sqr(_ x: Self) -> Self {
         var r = x
         r.sqr()
