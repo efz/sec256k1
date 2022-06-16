@@ -237,6 +237,50 @@ public struct Secpt256k1Field: UInt256p {
         shiftMul(6, x2)
         shift(2)
     }
+    
+    @inline(__always)
+    mutating func mulInt(_ y: UInt64) {
+        assert(y < UInt64(UInt8.max))
+        acc.reset(0)
+        var res: Bits64x5 = (0, 0, 0, 0, 0)
+        
+        acc.mulAddFast(d.0, y)
+        res.0 = acc.extractFast()
+        
+        acc.mulAddFast(d.1, y)
+        res.1 = acc.extractFast()
+        
+        acc.mulAddFast(d.2, y)
+        res.2 = acc.extractFast()
+        
+        acc.mulAddFast(d.3, y)
+        res.3 = acc.extractFast()
+        res.4 = acc.extractFast()
+        
+        assert(acc.isZero())
+        
+        acc.reset(res.0)
+        acc.mulAddFast(res.4, Secpt256k1Field.pComp.0)
+        d.0 = acc.extractFast()
+        
+        acc.sumAddFast(res.1)
+        d.1 = acc.extractFast()
+        
+        acc.sumAddFast(res.2)
+        d.2 = acc.extractFast()
+        
+        acc.sumAddFast(res.3)
+        d.3 = acc.extractFast()
+        
+        assert(acc.isZero())
+    }
+    
+    @inline(__always)
+    public static func mulInt(_ x: Secpt256k1Field, _ y: UInt64) -> Secpt256k1Field {
+        var r = x
+        r.mulInt(y)
+        return r
+    }
 }
 
 

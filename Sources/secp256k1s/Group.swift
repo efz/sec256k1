@@ -3,6 +3,9 @@ public struct Secp256k1Group {
     public static let curvB = Secpt256k1Field(int64: 7)
     public static let infinity = Secp256k1Group()
     static let threeDivTwo = Secpt256k1Field(int32: 3) / Secpt256k1Field(int32: 2)
+    static let three = Secpt256k1Field(int32: 3)
+    static let two = Secpt256k1Field(int32: 2)
+    static let eight = Secpt256k1Field(int32: 8)
     
     public var x: Secpt256k1Field
     public var y: Secpt256k1Field
@@ -257,19 +260,28 @@ public struct Secp256k1Group {
             return
         }
         
-        z = y * z
+        z = Secpt256k1Field.mulInt(y * z, 2)
         
         let x2 = Secpt256k1Field.sqr(x)
-        let mj = Secp256k1Group.threeDivTwo * x2
-        let mj2 = Secpt256k1Field.sqr(mj)
-        
         let y2 = Secpt256k1Field.sqr(y)
-        let cj = y2 * (y2 - mj * x)
+        let x3 = x2 * x
+        let x6 = Secpt256k1Field.sqr(x3)
         
-        let xy2 = x * y2
-        x = mj2 - xy2 - xy2
+        // x = x * (9 * x^3 - 8 * y^2)
+        let y2by8 = Secpt256k1Field.mulInt(y2, 8)
+        let x3by9 =  Secpt256k1Field.mulInt(x3, 9)
+        let t1 = x3by9 - y2by8
+        x = x * t1
         
-        y = mj * x + cj
+        // y = 27 * x^6 - 4 * y^2 * (9 * x^3 - 2 * y^2)
+        let x6by27 =  Secpt256k1Field.mulInt(x6, 27)
+        let y2by4 = Secpt256k1Field.mulInt(y2, 4)
+        
+        let t2 = x3by9 - Secpt256k1Field.mulInt(y2, 2)
+        let t3 = y2by4 * t2
+        
+        y = x6by27 - t3
+        
         y.negate()
     }
     
