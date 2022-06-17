@@ -94,7 +94,7 @@ public struct Secpt256k1Field: UInt256p {
         assert(!overflow)
     }
     
-    mutating func reduce512Bits(_ bits512: Bits64x8) {
+    mutating func reduce512To257Bits(_ bits512: Bits64x8) -> Bits64x5 {
         var bits384: Bits64x6 = (0, 0, 0, 0, 0, 0)
         // round 1
         bits384.0 = bits512.0
@@ -113,16 +113,63 @@ public struct Secpt256k1Field: UInt256p {
         bits384.5 = acc.extractFast()
         assert(acc.isZero())
         
+        var bits257: Bits64x5 = (0, 0, 0, 0, 0)
         // round 2
         acc.reset(bits384.0)
         acc.mulAddFast(bits384.4, Secpt256k1Field.pComp.0)
-        d.0 = acc.extractFast()
+        bits257.0 = acc.extractFast()
         acc.mulAddFast(bits384.5, Secpt256k1Field.pComp.0)
         acc.sumAddFast(bits384.1)
-        d.1 = acc.extractFast()
+        bits257.1 = acc.extractFast()
         acc.sumAddFast(bits384.2)
-        d.2 = acc.extractFast()
+        bits257.2 = acc.extractFast()
         acc.sumAddFast(bits384.3)
+        bits257.3 = acc.extractFast()
+        
+        bits257.4 = acc.extractFast()
+        assert(bits257.4 <= 1)
+        assert(acc.isZero())
+        return bits257
+    }
+    
+    mutating func reduce512Bits(_ bits512: Bits64x8) {
+        let bits257 = reduce512To257Bits(bits512)
+        assert(bits257.4 <= 1)
+        d = (bits257.0, bits257.1, bits257.2, bits257.3)
+        reduce(overflow: bits257.4)
+    }
+    
+    mutating func reduce576Bits(_ bits576: Bits64x9) {
+        var bits448: Bits64x7 = (0, 0, 0, 0, 0, 0, 0)
+        // round 1
+        bits448.0 = bits576.0
+        bits448.1 = bits576.1
+        
+        acc.reset(bits576.2)
+        acc.mulAddFast(bits576.6, Secpt256k1Field.pComp.0)
+        bits448.2 = acc.extractFast()
+        acc.mulAddFast(bits576.7, Secpt256k1Field.pComp.0)
+        acc.sumAddFast(bits576.3)
+        bits448.3 = acc.extractFast()
+        acc.mulAddFast(bits576.8, Secpt256k1Field.pComp.0)
+        acc.sumAddFast(bits576.4)
+        bits448.4 = acc.extractFast()
+        acc.sumAddFast(bits576.5)
+        bits448.5 = acc.extractFast()
+        bits448.6 = acc.extractFast()
+        assert(acc.isZero())
+        
+        // round 2
+        acc.reset(bits448.0)
+        acc.mulAddFast(bits448.4, Secpt256k1Field.pComp.0)
+        d.0 = acc.extractFast()
+        acc.mulAddFast(bits448.5, Secpt256k1Field.pComp.0)
+        acc.sumAddFast(bits448.1)
+        d.1 = acc.extractFast()
+        acc.mulAddFast(bits448.6, Secpt256k1Field.pComp.0)
+        acc.sumAddFast(bits448.2)
+        d.2 = acc.extractFast()
+        acc.sumAddFast(bits448.3)
         d.3 = acc.extractFast()
         
         let overflow = acc.extractFast()
@@ -269,21 +316,7 @@ public struct Secpt256k1Field: UInt256p {
         
         assert(acc.isZero())
         
-        acc.reset(res.0)
-        acc.mulAddFast(res.4, Secpt256k1Field.pComp.0)
-        d.0 = acc.extractFast()
-        
-        acc.sumAddFast(res.1)
-        d.1 = acc.extractFast()
-        
-        acc.sumAddFast(res.2)
-        d.2 = acc.extractFast()
-        
-        acc.sumAddFast(res.3)
-        d.3 = acc.extractFast()
-        
-        assert(acc.isZero())
-        reduce()
+        reduce320Bits(res)
     }
     
     @inline(__always)
@@ -304,6 +337,133 @@ public struct Secpt256k1Field: UInt256p {
     public static func mulIntSub(_ x: Secpt256k1Field,  _ m: UInt64,  _ y: Secpt256k1Field = Secpt256k1Field.zero, _ n: UInt64 = 1) -> Secpt256k1Field {
         var r = x
         r.mulIntAdd(m, Secpt256k1Field.neg(y), n)
+        return r
+    }
+    
+    
+    @inline(__always)
+    mutating func mulMulIntAdd(_ b: Secpt256k1Field,  _ m: UInt64, _ x: Secpt256k1Field, _ y: Secpt256k1Field,  _ n: UInt64) {
+        assert(!checkOverflow())
+        assert(!b.checkOverflow())
+        assert(!x.checkOverflow())
+        assert(!y.checkOverflow())
+        assert(m < UInt64(UInt8.max))
+        assert(n < UInt64(UInt8.max))
+        
+        let ab = mulArrays(d, b.d)
+        let xy = mulArrays(x.d, y.d)
+        
+        var abm_xyn: Bits64x9 = (0, 0, 0, 0, 0, 0, 0, 0, 0)
+        
+        acc.reset(0)
+        
+        acc.mulAddFast(ab.0, m)
+        acc.mulAddFast(xy.0, n)
+        abm_xyn.0 = acc.extractFast()
+        
+        acc.mulAddFast(ab.1, m)
+        acc.mulAddFast(xy.1, n)
+        abm_xyn.1 = acc.extractFast()
+        
+        acc.mulAddFast(ab.2, m)
+        acc.mulAddFast(xy.2, n)
+        abm_xyn.2 = acc.extractFast()
+        
+        acc.mulAddFast(ab.3, m)
+        acc.mulAddFast(xy.3, n)
+        abm_xyn.3 = acc.extractFast()
+        
+        acc.mulAddFast(ab.4, m)
+        acc.mulAddFast(xy.4, n)
+        abm_xyn.4 = acc.extractFast()
+        
+        acc.mulAddFast(ab.5, m)
+        acc.mulAddFast(xy.5, n)
+        abm_xyn.5 = acc.extractFast()
+        
+        acc.mulAddFast(ab.6, m)
+        acc.mulAddFast(xy.6, n)
+        abm_xyn.6 = acc.extractFast()
+        
+        acc.mulAddFast(ab.7, m)
+        acc.mulAddFast(xy.7, n)
+        abm_xyn.7 = acc.extractFast()
+        abm_xyn.8 = acc.extractFast()
+        assert(acc.isZero())
+        
+        reduce576Bits(abm_xyn)
+    }
+    
+    @inline(__always)
+    static func mulMulIntAdd(_ a: Secpt256k1Field, _ b: Secpt256k1Field,  _ m: UInt64, _ x: Secpt256k1Field, _ y: Secpt256k1Field,  _ n: UInt64) -> Secpt256k1Field {
+        var r = a
+        r.mulMulIntAdd(b, m, x, y, n)
+        return r
+    }
+    
+    @inline(__always)
+    static func mulMulIntSub(_ a: Secpt256k1Field, _ b: Secpt256k1Field,  _ m: UInt64, _ x: Secpt256k1Field, _ y: Secpt256k1Field,  _ n: UInt64) -> Secpt256k1Field {
+        var r = a
+        let nx = neg(x)
+        r.mulMulIntAdd(b, m, nx, y, n)
+        return r
+    }
+    
+    @inline(__always)
+    mutating func reduce320Bits(_ bits320: Bits64x5) {
+        acc.reset(bits320.0)
+        acc.mulAddFast(bits320.4, Secpt256k1Field.pComp.0)
+        d.0 = acc.extractFast()
+        
+        acc.sumAddFast(bits320.1)
+        d.1 = acc.extractFast()
+        
+        acc.sumAddFast(bits320.2)
+        d.2 = acc.extractFast()
+        
+        acc.sumAddFast(bits320.3)
+        d.3 = acc.extractFast()
+        
+        assert(acc.isZero())
+        reduce()
+    }
+    
+    @inline(__always)
+    mutating func mulMulInt(_ b: Secpt256k1Field,  _ m: UInt64) {
+        assert(!checkOverflow())
+        assert(!b.checkOverflow())
+        assert(m < UInt64(UInt8.max))
+        
+        let ab = mulArrays(d, b.d)
+        var bits320 = reduce512To257Bits(ab)
+        assert(bits320.4 <= 1)
+        
+        acc.reset(0)
+        
+        acc.mulAddFast(bits320.0, m)
+        bits320.0 = acc.extractFast()
+        
+        acc.mulAddFast(bits320.1, m)
+        bits320.1 = acc.extractFast()
+        
+        acc.mulAddFast(bits320.2, m)
+        bits320.2 = acc.extractFast()
+        
+        acc.mulAddFast(bits320.3, m)
+        bits320.3 = acc.extractFast()
+        
+        acc.mulAddFast(bits320.4, m)
+        bits320.4 = acc.extractFast()
+        
+        assert(acc.isZero())
+        
+        reduce320Bits(bits320)
+    }
+    
+    @inline(__always)
+    static func mulMulInt(_ a: Secpt256k1Field, _ b: Secpt256k1Field,  _ m: UInt64) -> Secpt256k1Field {
+        var r = a
+        r.mulMulInt(b, m)
         return r
     }
 }

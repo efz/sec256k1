@@ -5,6 +5,7 @@ typealias Bits64x5 = (UInt64, UInt64, UInt64, UInt64, UInt64)
 typealias Bits64x6 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
 typealias Bits64x7 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
 typealias Bits64x8 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
+typealias Bits64x9 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
 
 public protocol UInt256pInterface {
     init()
