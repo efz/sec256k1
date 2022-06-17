@@ -260,7 +260,8 @@ public struct Secp256k1Group {
             return
         }
         
-        z = Secpt256k1Field.mulInt(y * z, 2)
+        let yz = y * z
+        z = Secpt256k1Field.mulInt(yz, 2)
         
         let x2 = Secpt256k1Field.sqr(x)
         let y2 = Secpt256k1Field.sqr(y)
@@ -274,7 +275,7 @@ public struct Secp256k1Group {
         x = x * t1
         
         // y = 27 * x^6 - 4 * y^2 * (9 * x^3 - 2 * y^2)
-        let x6by27 =  Secpt256k1Field.mulInt(x6, 27)
+        let x6by27 = Secpt256k1Field.mulInt(x6, 27)
         let y2by4 = Secpt256k1Field.mulInt(y2, 4)
         
         let t2 = x3by9 - Secpt256k1Field.mulInt(y2, 2)

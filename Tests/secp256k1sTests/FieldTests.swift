@@ -120,4 +120,20 @@ class FieldTests: XCTestCase {
             }
         }
     }
+    
+    func testMulInt() {
+        var pHalfBits: Bits64x4 = (0, 0, 0, 0)
+        pHalfBits.0 = Secpt256k1Field.p.1  & 1 << 63 | Secpt256k1Field.p.0 >> 1
+        pHalfBits.1 = Secpt256k1Field.p.2  & 1 << 63 | Secpt256k1Field.p.1 >> 1
+        pHalfBits.2 = Secpt256k1Field.p.3 & 1 << 63 | Secpt256k1Field.p.2 >> 1
+        pHalfBits.3 = Secpt256k1Field.p.3 >> 1
+        
+        var overflowed = false
+        let pHalf = Secpt256k1Field(bits64x4: pHalfBits, overflowed: &overflowed)
+        XCTAssertFalse(overflowed)
+        let pHalfPlus5 = pHalf + Secpt256k1Field(int32: 5)
+        
+        let mulby2 = Secpt256k1Field.mulInt(pHalfPlus5, 2)
+        XCTAssertFalse(mulby2.checkOverflow());
+    }
 }

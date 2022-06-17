@@ -42,27 +42,27 @@ public struct Secpt256k1Field: UInt256p {
         return overflow != 0
     }
     
-    mutating func reduce(overflow : UInt64 = 0) {
+    mutating func reduce(overflow: UInt64 = 0) {
         assert(overflow <= 1)
         
-        var reduced: Bits64x4 = (0, 0, 0, 0)
+        let dCopy = d
         
         acc.reset(d.0)
         acc.sumAddFast(Secpt256k1Field.pComp.0)
-        reduced.0 = acc.extractFast()
+        d.0 = acc.extractFast()
         acc.sumAddFast(d.1)
-        reduced.1 = acc.extractFast()
+        d.1 = acc.extractFast()
         acc.sumAddFast(d.2)
-        reduced.2 = acc.extractFast()
+        d.2 = acc.extractFast()
         acc.sumAddFast(d.3)
-        reduced.3 = acc.extractFast()
+        d.3 = acc.extractFast()
         
         let carry = acc.extractFast()
         assert(carry <= 1)
         assert(acc.isZero())
         
-        if overflow > 0 || carry == 1 {
-            d = reduced
+        if overflow | carry == 0 {
+            d = dCopy
         }
     }
     
@@ -240,7 +240,9 @@ public struct Secpt256k1Field: UInt256p {
     
     @inline(__always)
     mutating func mulInt(_ y: UInt64) {
+        assert(!checkOverflow())
         assert(y < UInt64(UInt8.max))
+        
         acc.reset(0)
         var res: Bits64x5 = (0, 0, 0, 0, 0)
         
@@ -273,6 +275,7 @@ public struct Secpt256k1Field: UInt256p {
         d.3 = acc.extractFast()
         
         assert(acc.isZero())
+        reduce()
     }
     
     @inline(__always)
