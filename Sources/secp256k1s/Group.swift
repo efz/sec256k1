@@ -276,12 +276,12 @@ public struct Secp256k1Group {
         
         // y = 27 * x^6 - 4 * y^2 * (9 * x^3 - 2 * y^2)
         //let x6by27 = Secpt256k1Field.mulInt(x6, 27)
-        let y2by4 = Secpt256k1Field.mulInt(y2, 4)
+        //let y2by4 = Secpt256k1Field.mulInt(y2, 4)
         
         let t2 = Secpt256k1Field.mulIntSub(x3, 9, y2, 2) //x3by9 - Secpt256k1Field.mulInt(y2, 2)
-        let t3 = y2by4 * t2
+        let t3 = y2 * t2
         
-        y = Secpt256k1Field.mulIntSub(x6, 27, t3, 1) //x6by27 - t3
+        y = Secpt256k1Field.mulIntSub(x6, 27, t3, 4) //x6by27 - t3
         
         y.negate()
     }
