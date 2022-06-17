@@ -269,19 +269,19 @@ public struct Secp256k1Group {
         let x6 = Secpt256k1Field.sqr(x3)
         
         // x = x * (9 * x^3 - 8 * y^2)
-        let y2by8 = Secpt256k1Field.mulInt(y2, 8)
-        let x3by9 =  Secpt256k1Field.mulInt(x3, 9)
-        let t1 = x3by9 - y2by8
+        //let y2by8 = Secpt256k1Field.mulInt(y2, 8)
+        //let x3by9 =  Secpt256k1Field.mulInt(x3, 9)
+        let t1 = Secpt256k1Field.mulIntSub(x3, 9, y2, 8) //x3by9 - y2by8
         x = x * t1
         
         // y = 27 * x^6 - 4 * y^2 * (9 * x^3 - 2 * y^2)
-        let x6by27 = Secpt256k1Field.mulInt(x6, 27)
+        //let x6by27 = Secpt256k1Field.mulInt(x6, 27)
         let y2by4 = Secpt256k1Field.mulInt(y2, 4)
         
-        let t2 = x3by9 - Secpt256k1Field.mulInt(y2, 2)
+        let t2 = Secpt256k1Field.mulIntSub(x3, 9, y2, 2) //x3by9 - Secpt256k1Field.mulInt(y2, 2)
         let t3 = y2by4 * t2
         
-        y = x6by27 - t3
+        y = Secpt256k1Field.mulIntSub(x6, 27, t3, 1) //x6by27 - t3
         
         y.negate()
     }
