@@ -25,6 +25,7 @@ public struct Secpt256k1Field: UInt256p {
         acc = Accumulator()
     }
     
+    @inline(__always)
     public func checkOverflow() -> Bool {
         var accC = Accumulator(d.0)
         accC.sumAddFast(Secpt256k1Field.pComp.0)
@@ -42,6 +43,7 @@ public struct Secpt256k1Field: UInt256p {
         return overflow != 0
     }
     
+    @inline(__always)
     mutating func reduce(overflow: UInt64 = 0) {
         assert(overflow <= 1)
         
