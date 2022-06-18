@@ -167,17 +167,18 @@ public struct Secp256k1Group {
         
         let z3 = z2 * z
         let bz3 = bz2 * b.z
-        let byz3 =  b.y * z3
-        let yDiffJ = byz3 - y * bz3 // yDiffJ = mj
-        let yDiffJ2 = Secpt256k1Field.sqr(yDiffJ) // yDiffJ2 = mj2
+        let byz3 = b.y * z3
+        let yDiffJ = Secpt256k1Field.mulSub(byz3, y, bz3) // yDiffJ = mj
         
         let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
-        x = yDiffJ2 - xDiffJ2 * (xbz2 + bxz2)
+        let t1 = xbz2 + bxz2
+        x = Secpt256k1Field.mulSub(yDiffJ, yDiffJ, xDiffJ2, t1)
         
-        z = xDiffJ * z * b.z
+        let zbz = z * b.z
+        z = xDiffJ * zbz
         
-        let cj = xDiffJ2 * (byz3 * xDiffJ - yDiffJ * bxz2)
-        y = yDiffJ * x + cj
+        let tc = Secpt256k1Field.mulSub(byz3, xDiffJ, yDiffJ, bxz2)
+        y = Secpt256k1Field.mulAdd(yDiffJ, x, xDiffJ2, tc)
         y.negate()
     }
     
@@ -205,15 +206,15 @@ public struct Secp256k1Group {
         let byz3 = b.y * z3
         let yDiffJ = byz3 - y
         let mj = yDiffJ
-        let mj2 = Secpt256k1Field.sqr(mj)
         
         let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
-        x = mj2 - xDiffJ2 * (x + bxz2)
+        let t1 = x + bxz2
+        x = Secpt256k1Field.mulSub(mj, mj, xDiffJ2, t1)
         
         z = xDiffJ * z
         
-        let cj = xDiffJ2 * (byz3  * xDiffJ - mj * bxz2)
-        y = mj * x + cj
+        let tc = Secpt256k1Field.mulSub(byz3, xDiffJ, mj, bxz2)
+        y = Secpt256k1Field.mulAdd(mj, x, xDiffJ2, tc)
         y.negate()
     }
     
