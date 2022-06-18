@@ -335,6 +335,6 @@ runBenchmark(name: "Random Feild Sqrt", benchFunc: bench_field_sqrt, count: inve
 
 runBenchmark(name: "Group Double", benchFunc: bench_group_double, count: count)
 runBenchmark(name: "Random Group Double", benchFunc: bench_random_group_double, count: count)
-runBenchmark(name: "Group Add", benchFunc: bench_random_group_add, count: count)
+runBenchmark(name: "Group Add", benchFunc: bench_group_add, count: count)
 runBenchmark(name: "Random Group Add", benchFunc: bench_random_group_add, count: count)
 runBenchmark(name: "Group Add Affine 2 J", benchFunc: bench_group_add_affine2j, count: count)

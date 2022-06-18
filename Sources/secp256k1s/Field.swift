@@ -114,6 +114,7 @@ public struct Secpt256k1Field: UInt256p {
         bits320.3 = acc.extractFast()
         bits320.4 = acc.extractFast()
         assert(acc.isZero())
+        assert(bits320.4.leadingZeroBitCount > 16)
         
         return bits320
     }
@@ -140,46 +141,6 @@ public struct Secpt256k1Field: UInt256p {
     mutating func reduce512Bits(_ bits512: Bits64x8) {
         let bits320 = reduce512To320Bits(bits512)
         reduce320Bits(bits320)
-    }
-    
-    mutating func reduce576Bits(_ bits576: Bits64x9) {
-        var bits448: Bits64x7 = (0, 0, 0, 0, 0, 0, 0)
-        // round 1
-        bits448.0 = bits576.0
-        bits448.1 = bits576.1
-        
-        acc.reset(bits576.2)
-        acc.mulAddFast(bits576.6, Secpt256k1Field.pComp.0)
-        bits448.2 = acc.extractFast()
-        acc.mulAddFast(bits576.7, Secpt256k1Field.pComp.0)
-        acc.sumAddFast(bits576.3)
-        bits448.3 = acc.extractFast()
-        acc.mulAddFast(bits576.8, Secpt256k1Field.pComp.0)
-        acc.sumAddFast(bits576.4)
-        bits448.4 = acc.extractFast()
-        acc.sumAddFast(bits576.5)
-        bits448.5 = acc.extractFast()
-        bits448.6 = acc.extractFast()
-        assert(acc.isZero())
-        
-        // round 2
-        acc.reset(bits448.0)
-        acc.mulAddFast(bits448.4, Secpt256k1Field.pComp.0)
-        d.0 = acc.extractFast()
-        acc.mulAddFast(bits448.5, Secpt256k1Field.pComp.0)
-        acc.sumAddFast(bits448.1)
-        d.1 = acc.extractFast()
-        acc.mulAddFast(bits448.6, Secpt256k1Field.pComp.0)
-        acc.sumAddFast(bits448.2)
-        d.2 = acc.extractFast()
-        acc.sumAddFast(bits448.3)
-        d.3 = acc.extractFast()
-        
-        let overflow = acc.extractFast()
-        assert(overflow <= 1)
-        assert(acc.isZero())
-        assert(!(overflow > 0 && checkOverflow())) // ??
-        reduce(overflow: overflow)
     }
     
     public mutating func inverse() {
@@ -354,47 +315,37 @@ public struct Secpt256k1Field: UInt256p {
         assert(n < UInt64(UInt8.max))
         
         let ab = mulArrays(d, b.d)
+        let ab320 = reduce512To320Bits(ab)
         let xy = mulArrays(x.d, y.d)
+        let xy320 = reduce512To320Bits(xy)
         
-        var abm_xyn: Bits64x9 = (0, 0, 0, 0, 0, 0, 0, 0, 0)
+        var abm_xyn: Bits64x5 = (0, 0, 0, 0, 0)
         
         acc.reset(0)
         
-        acc.mulAddFast(ab.0, m)
-        acc.mulAddFast(xy.0, n)
+        acc.mulAddFast(ab320.0, m)
+        acc.mulAddFast(xy320.0, n)
         abm_xyn.0 = acc.extractFast()
         
-        acc.mulAddFast(ab.1, m)
-        acc.mulAddFast(xy.1, n)
+        acc.mulAddFast(ab320.1, m)
+        acc.mulAddFast(xy320.1, n)
         abm_xyn.1 = acc.extractFast()
         
-        acc.mulAddFast(ab.2, m)
-        acc.mulAddFast(xy.2, n)
+        acc.mulAddFast(ab320.2, m)
+        acc.mulAddFast(xy320.2, n)
         abm_xyn.2 = acc.extractFast()
         
-        acc.mulAddFast(ab.3, m)
-        acc.mulAddFast(xy.3, n)
+        acc.mulAddFast(ab320.3, m)
+        acc.mulAddFast(xy320.3, n)
         abm_xyn.3 = acc.extractFast()
         
-        acc.mulAddFast(ab.4, m)
-        acc.mulAddFast(xy.4, n)
+        acc.mulAddFast(ab320.4, m)
+        acc.mulAddFast(xy320.4, n)
         abm_xyn.4 = acc.extractFast()
         
-        acc.mulAddFast(ab.5, m)
-        acc.mulAddFast(xy.5, n)
-        abm_xyn.5 = acc.extractFast()
-        
-        acc.mulAddFast(ab.6, m)
-        acc.mulAddFast(xy.6, n)
-        abm_xyn.6 = acc.extractFast()
-        
-        acc.mulAddFast(ab.7, m)
-        acc.mulAddFast(xy.7, n)
-        abm_xyn.7 = acc.extractFast()
-        abm_xyn.8 = acc.extractFast()
         assert(acc.isZero())
         
-        reduce576Bits(abm_xyn)
+        reduce320Bits(abm_xyn)
     }
     
     @inline(__always)
@@ -453,48 +404,37 @@ public struct Secpt256k1Field: UInt256p {
         assert(!y.checkOverflow())
         
         let ab = mulArrays(d, b.d)
+        let ab320 = reduce512To320Bits(ab)
         let xy = mulArrays(x.d, y.d)
+        let xy320 = reduce512To320Bits(xy)
         
-        var abm_xyn: Bits64x9 = (0, 0, 0, 0, 0, 0, 0, 0, 0)
+        var abm_xyn: Bits64x5 = (0, 0, 0, 0, 0)
         
         acc.reset(0)
         
-        acc.sumAddFast(ab.0)
-        acc.sumAddFast(xy.0)
+        acc.sumAddFast(ab320.0)
+        acc.sumAddFast(xy320.0)
         abm_xyn.0 = acc.extractFast()
         
-        acc.sumAddFast(ab.1)
-        acc.sumAddFast(xy.1)
+        acc.sumAddFast(ab320.1)
+        acc.sumAddFast(xy320.1)
         abm_xyn.1 = acc.extractFast()
         
-        acc.sumAddFast(ab.2)
-        acc.sumAddFast(xy.2)
+        acc.sumAddFast(ab320.2)
+        acc.sumAddFast(xy320.2)
         abm_xyn.2 = acc.extractFast()
         
-        acc.sumAddFast(ab.3)
-        acc.sumAddFast(xy.3)
+        acc.sumAddFast(ab320.3)
+        acc.sumAddFast(xy320.3)
         abm_xyn.3 = acc.extractFast()
         
-        acc.sumAddFast(ab.4)
-        acc.sumAddFast(xy.4)
+        acc.sumAddFast(ab320.4)
+        acc.sumAddFast(xy320.4)
         abm_xyn.4 = acc.extractFast()
         
-        acc.sumAddFast(ab.5)
-        acc.sumAddFast(xy.5)
-        abm_xyn.5 = acc.extractFast()
-        
-        acc.sumAddFast(ab.6)
-        acc.sumAddFast(xy.6)
-        abm_xyn.6 = acc.extractFast()
-        
-        acc.sumAddFast(ab.7)
-        acc.sumAddFast(xy.7)
-        abm_xyn.7 = acc.extractFast()
-        
-        abm_xyn.8 = acc.extractFast()
         assert(acc.isZero())
         
-        reduce576Bits(abm_xyn)
+        reduce320Bits(abm_xyn)
     }
     
     @inline(__always)
