@@ -60,6 +60,7 @@ protocol UInt256p: UInt256pInterface, Equatable {
     mutating func shift(_ count: Int)
     mutating func reduce512Bits(_ bits512: Bits64x8)
     mutating func shiftMul(_ count: Int, _ x: Self)
+    mutating func shiftNumMul(_ shift: Int, _ num: Self, _ prev: Self) -> Self
 }
 
 extension UInt256p {
@@ -304,6 +305,18 @@ extension UInt256p {
             sqr()
         }
         mul(x)
+    }
+    
+    @inline(__always)
+    mutating func shiftNumMul(_ shift: Int, _ num: Self, _ prev: Self) -> Self {
+        assert(type(of: num).p == Self.p)
+        assert(type(of: prev).p == Self.p)
+        var shiftedNum = num
+        for _ in 0..<shift {
+            shiftedNum.sqr()
+        }
+        shiftedNum.mul(prev)
+        return shiftedNum
     }
     
     @inline(__always)

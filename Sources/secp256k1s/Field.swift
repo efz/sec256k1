@@ -148,19 +148,7 @@ public struct Secpt256k1Field: UInt256p {
             fatalError("Devide by zero")
         }
         
-        let shiftNumMul = { (shift: Int, num: Secpt256k1Field, prev: Secpt256k1Field) -> Secpt256k1Field in
-            var shiftedNum = num
-            for _ in 0..<shift {
-                shiftedNum.sqr()
-            }
-            shiftedNum.mul(prev)
-            return shiftedNum
-        }
-        
         let x1 = self
-        setInt(1)
-        assert(isOne())
-        
         let x2 = shiftNumMul(1, x1, x1)
         let x4 = shiftNumMul(2, x2, x2)
         let x8 = shiftNumMul(4, x4, x4)
@@ -172,13 +160,12 @@ public struct Secpt256k1Field: UInt256p {
         
         let x44 = shiftNumMul(22, x22, x22)
         let x88 = shiftNumMul(44, x44, x44)
-        let x176 = shiftNumMul(88, x88, x88)
-        let x220 = shiftNumMul(44, x176, x44)
-        let x222 = shiftNumMul(2, x220, x2)
-        let x223 = shiftNumMul(1, x222, x1)
+        self = shiftNumMul(88, x88, x88) // self = x176
+        shiftMul(44, x44)
+        shiftMul(2, x2)
+        shiftMul(1, x1) // self = x223
         
         ///
-        mul(x223)
         sqr()
         
         // 1111,1111,1111,1111,1111,1100,0010,1101
@@ -212,19 +199,7 @@ public struct Secpt256k1Field: UInt256p {
     }
     
     private mutating func sqrtByPowers() {
-        let shiftNumMul = { (shift: Int, num: Secpt256k1Field, prev: Secpt256k1Field) -> Secpt256k1Field in
-            var shiftedNum = num
-            for _ in 0..<shift {
-                shiftedNum.sqr()
-            }
-            shiftedNum.mul(prev)
-            return shiftedNum
-        }
-        
         let x1 = self
-        setInt(1)
-        assert(isOne())
-        
         let x2 = shiftNumMul(1, x1, x1)
         let x4 = shiftNumMul(2, x2, x2)
         let x8 = shiftNumMul(4, x4, x4)
@@ -239,10 +214,9 @@ public struct Secpt256k1Field: UInt256p {
         let x176 = shiftNumMul(88, x88, x88)
         let x220 = shiftNumMul(44, x176, x44)
         let x222 = shiftNumMul(2, x220, x2)
-        let x223 = shiftNumMul(1, x222, x1)
+        self = shiftNumMul(1, x222, x1) // self = x223
         
         ///
-        mul(x223)
         sqr()
         
         // ...1111,1011,1111,1111,1111,1111,1111,0000,1100

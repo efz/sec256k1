@@ -167,19 +167,7 @@ public struct Secpt256k1Scalar: UInt256p {
             fatalError("Devide by zero")
         }
         
-        let shiftNumMul = { (shift: Int, num: Secpt256k1Scalar, prev: Secpt256k1Scalar) -> Secpt256k1Scalar in
-            var shiftedNum = num
-            for _ in 0..<shift {
-                shiftedNum.sqr()
-            }
-            shiftedNum.mul(prev)
-            return shiftedNum
-        }
-        
         let x1 = self
-        setInt(1)
-        assert(isOne())
-        
         let x2 = shiftNumMul(1, x1, x1)
         let x4 = shiftNumMul(2, x2, x2)
         let x8 = shiftNumMul(4, x4, x4)
@@ -195,10 +183,9 @@ public struct Secpt256k1Scalar: UInt256p {
         x3.sqr()
         x3.mul(x1)
         
-        let x127 = shiftNumMul(3, x124, x3)
+        self = shiftNumMul(3, x124, x3) // self = x127
         
         ///
-        mul(x127)
         sqr()
         
         // 1011,1010,1010,1110,1101,1100,1110,0110,1010,1111,0100,1000,1010,0000,0011,1011
