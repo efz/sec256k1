@@ -434,4 +434,40 @@ class GroupTests: XCTestCase {
             XCTAssertEqual(g1djn, g1dn)
         }
     }
+    
+    func testDoublingEqsAddions() {
+        let aVector: [[UInt64]] = [[0x7e00fcffffff, 0xf0ff7f000000, 0xffffffffffffff0f, 0x4000000000e0ff], [0x5747e9ab1ea0d93d, 0xe5af95824b6feaff, 0x6e9fdaf96207ac84, 0xdf2a39ec9abce698]]
+        
+        var isOverflow = false
+        let a_x = Secpt256k1Field(words64: aVector[0], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        let a_y = Secpt256k1Field(words64: aVector[1], overflowed: &isOverflow)
+        XCTAssertFalse(isOverflow)
+        let a = Secp256k1Group(x: a_x, y: a_y)!
+        XCTAssertTrue(a.isValid())
+        XCTAssertFalse(a.isInfinity)
+        
+        var a8 = a
+        a8.doubleJ()
+        a8.doubleJ()
+        a8.doubleJ()
+        XCTAssertTrue(a8.isValidJ())
+        XCTAssertFalse(a8.isInfinity)
+        
+        var aaaaaaaa = a
+        aaaaaaaa.doubleJ()
+        aaaaaaaa.addJ(a)
+        aaaaaaaa.addJ(a)
+        aaaaaaaa.addJ(a)
+        aaaaaaaa.addJ(a)
+        aaaaaaaa.addJ(a)
+        aaaaaaaa.addJ(a)
+        XCTAssertTrue(aaaaaaaa.isValidJ())
+        XCTAssertFalse(aaaaaaaa.isInfinity)
+        
+        a8.normalizeJ()
+        aaaaaaaa.normalizeJ()
+        
+        XCTAssertEqual(a8, aaaaaaaa)
+    }
 }
