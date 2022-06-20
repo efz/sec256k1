@@ -145,7 +145,7 @@ public struct Secp256k1Group {
     
     public mutating func addJ(_ b: Secp256k1Group) {
         assert(isValidJ() && b.isValidJ())
-        assert(Secp256k1Group.normalizeJ(self) != Secp256k1Group.normalizeJ(b)) // double?
+        //assert(Secp256k1Group.normalizeJ(self) != Secp256k1Group.normalizeJ(b)) // double?
         
         if b.isInfinity {
             return
@@ -159,16 +159,21 @@ public struct Secp256k1Group {
         let bxz2 = b.x * z2
         let xbz2 = x * bz2
         let xDiffJ = bxz2 - xbz2
-        if xDiffJ.isZero() {
-            y = Secpt256k1Field.zero
-            isInfinity = true
-            return
-        }
         
         let z3 = z2 * z
         let bz3 = bz2 * b.z
         let byz3 = b.y * z3
         let yDiffJ = Secpt256k1Field.mulSub(byz3, y, bz3) // yDiffJ = mj
+        
+        if xDiffJ.isZero() {
+            if yDiffJ.isZero() {
+                doubleJ()
+                return
+            }
+            y = Secpt256k1Field.zero
+            isInfinity = true
+            return
+        }
         
         let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
         let t1 = xbz2 + bxz2
@@ -184,7 +189,7 @@ public struct Secp256k1Group {
     
     public mutating func addAffine2J(_ b: Secp256k1Group) {
         assert(isValidJ() && b.isValid())
-        assert(Secp256k1Group.normalizeJ(self) != b) // double?
+        //assert(Secp256k1Group.normalizeJ(self) != b) // double?
         
         if b.isInfinity {
             return
@@ -196,15 +201,21 @@ public struct Secp256k1Group {
         let z2 = Secpt256k1Field.sqr(z)
         let bxz2 = b.x * z2
         let xDiffJ = bxz2 - x
+        
+        let z3 = z2 * z
+        let byz3 = b.y * z3
+        let yDiffJ = byz3 - y
+        
         if xDiffJ.isZero() {
+            if yDiffJ.isZero() {
+                doubleJ()
+                return
+            }
             y = Secpt256k1Field.zero
             isInfinity = true
             return
         }
         
-        let z3 = z2 * z
-        let byz3 = b.y * z3
-        let yDiffJ = byz3 - y
         let mj = yDiffJ
         
         let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)

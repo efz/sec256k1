@@ -14,9 +14,10 @@ public protocol UInt256pInterface {
     init(bytes: [UInt8], overflowed: inout Bool)
     init(int32 v: UInt32)
     init(int64 v: UInt64)
+    init(int v: Int)
     
     func getBits64(offset: Int, count: Int) -> UInt64
-    func getBits(offset: Int, count: Int) -> UInt32
+    func getBits(offset: Int, count: Int) -> Int
     func isZero() -> Bool
     func isOne() -> Bool
     func isEven() -> Bool
@@ -48,6 +49,7 @@ protocol UInt256p: UInt256pInterface, Equatable {
     var d: Bits64x4 { get set }
     var acc: Accumulator { get set }
     init(bits64x4: Bits64x4, overflowed: inout Bool)
+    init(words64: [UInt64])
     
     func checkOverflow() -> Bool
     mutating func reduce(overflow: UInt64)
@@ -74,6 +76,12 @@ extension UInt256p {
         if overflowed {
             reduce()
         }
+    }
+    
+    init(words64: [UInt64]) {
+        var overflowed = false
+        self.init(words64: words64, overflowed: &overflowed)
+        assert(!overflowed)
     }
     
     public init(words64: [UInt64], overflowed: inout Bool) {
@@ -135,6 +143,11 @@ extension UInt256p {
         d.0 = UInt64(v)
     }
     
+    public init(int v: Int) {
+        self.init()
+        d.0 = UInt64(v)
+    }
+    
     @inline(__always)
     mutating func setInt(_ v: UInt64) {
         d.0 = v
@@ -176,9 +189,9 @@ extension UInt256p {
         }
     }
     
-    public func getBits(offset: Int, count: Int) -> UInt32 {
+    public func getBits(offset: Int, count: Int) -> Int {
         assert(count < UInt32.bitWidth)
-        return UInt32(getBits64(offset: offset, count: count))
+        return Int(getBits64(offset: offset, count: count))
     }
     
     public func isZero() -> Bool {
