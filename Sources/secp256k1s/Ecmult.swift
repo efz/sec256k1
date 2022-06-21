@@ -104,4 +104,13 @@ struct Secp256k1Ecmult {
         assert(res.isValidJ())
         return res
     }
+    
+    func gen(point p: Secp256k1Group, pn: Secpt256k1Scalar, gn: Secpt256k1Scalar) -> Secp256k1Group {
+        let gpn = gen(gn: gn)
+        let ppn = gen(point: p, pn: pn)
+        
+        var res = gpn
+        res.addJ(ppn)
+        return res
+    }
 }
