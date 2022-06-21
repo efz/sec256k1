@@ -87,7 +87,7 @@ class EcmultTests: XCTestCase {
         }
     }
     
-    func testPointTimesOrder() {
+    func testRandomPoint() {
         /* random starting point A (on the curve)0 */
         let a = Secp256k1Group(
             x: Secpt256k1Field(words64:[0x6d986544_57ff52b8, 0xcf1b8126_5b802a5b, 0xa97f9263_b1e88044, 0x93351325_91bc450a].reversed()),
@@ -151,5 +151,82 @@ class EcmultTests: XCTestCase {
         x2.normalizeJ()
         x.normalizeJ()
         XCTAssertEqual(x2, x)
+    }
+    
+    func testCommutativity() {
+        let ecmult = Secp256k1Ecmult()
+        let a = ScalarTests.randScalar()
+        let b = ScalarTests.randScalar()
+        
+        var res1 = ecmult.gen(point: Secp256k1Ecmult.g, pn: a)
+        var res2 = ecmult.gen(point: Secp256k1Ecmult.g, pn: b)
+        
+        res1 = ecmult.gen(point: res1, pn: b)
+        res2 = ecmult.gen(point: res2, pn: a)
+        res1.normalizeJ()
+        res2.normalizeJ()
+        XCTAssertEqual(res1, res2)
+        
+        var res3 = ecmult.gen(gn: a)
+        var res4 = ecmult.gen(gn: b)
+        res3 = ecmult.gen(point: res3, pn: b)
+        res4 = ecmult.gen(point: res4, pn: a)
+        res3.normalizeJ()
+        res4.normalizeJ()
+        XCTAssertEqual(res3, res4)
+        
+        XCTAssertEqual(res1, res3)
+    }
+    
+    func testChainMult() {
+        let ecmult = Secp256k1Ecmult()
+        let scalar = Secpt256k1Scalar(words64: [0x4968d524_2abf9b7a, 0x466abbcf_34b11b6d,
+                                                0xcd83d307_827bed62, 0x05fad0ce_18fae63b].reversed())
+        let expectedPoint = Secp256k1Group(
+            x: Secpt256k1Field(words64:[0x5494c15d_32099706, 0xc2395f94_348745fd,
+                                        0x757ce30e_4e8c90fb, 0xa2bad184_f883c69f].reversed()),
+            y: Secpt256k1Field(words64:[0x5d195d20_e191bf7f, 0x1be3e55f_56a80196,
+                                        0x6071ad01_f1462f66, 0xc997fa94_db858435].reversed()))!
+        
+        var point = Secp256k1Ecmult.g
+        for _ in 0..<100 {
+            point = ecmult.gen(point: point, pn: scalar)
+        }
+        point.normalizeJ()
+        XCTAssertEqual(point, expectedPoint)
+    }
+    
+    func testPointTimesOrder() {
+        let ecmult = Secp256k1Ecmult()
+        var x = Secpt256k1Field(int: 2)
+        let xr = Secpt256k1Field(words64:[0x7603CB59_B0EF6C63, 0xFE608479_2A0C378C,
+                                          0xDB3233A8_0F8A9A09, 0xA877DEAD_31B38C45].reversed())
+        var count = 0
+        for _ in 0..<500 {
+            if let point = Secp256k1Group(x: x, odd: true) {
+                count += 1
+                let y = ScalarTests.randScalar()
+                let ny = Secpt256k1Scalar.neg(y)
+                /* calc res1 = y * point + y * G; */
+                var res1 = ecmult.gen(point: point, pn: y, gn: y)
+                /* calc res2 = (order - y) * point + (order - y) * G; */
+                let res2 = ecmult.gen(point: point, pn: ny, gn: ny)
+                
+                res1.addJ(res2)
+                XCTAssertTrue(res1.isInfinity)
+                
+                let res3 = ecmult.gen(point: point, pn: Secpt256k1Scalar.zero, gn: Secpt256k1Scalar.zero)
+                XCTAssertTrue(res3.isInfinity)
+                var res4 = ecmult.gen(point: point, pn: Secpt256k1Scalar.one, gn: Secpt256k1Scalar.zero)
+                res4.normalizeJ()
+                XCTAssertEqual(res4, point)
+                var res5 = ecmult.gen(point: point, pn: Secpt256k1Scalar.zero, gn: Secpt256k1Scalar.one)
+                res5.normalizeJ()
+                XCTAssertEqual(res5, Secp256k1Ecmult.g)
+            }
+            x = Secpt256k1Field.sqr(x)
+        }
+        XCTAssertEqual(x, xr)
+        XCTAssertTrue(count > 100)
     }
 }

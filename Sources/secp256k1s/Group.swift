@@ -57,7 +57,7 @@ public struct Secp256k1Group {
         } else {
             return nil
         }
-        if odd && y.isEven() {
+        if odd != !y.isEven() {
             y.negate()
         }
     }

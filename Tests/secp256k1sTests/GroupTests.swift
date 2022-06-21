@@ -321,7 +321,7 @@ class GroupTests: XCTestCase {
         verifyTestVector(testVector)
     }
     
-   static func randGroup() -> Secp256k1Group {
+    static func randGroup() -> Secp256k1Group {
         var g: Secp256k1Group? = nil
         while g == nil || !g!.isValidJ() || g!.isInfinity {
             let x = FieldTests.randField()
@@ -337,7 +337,7 @@ class GroupTests: XCTestCase {
     }
     
     func testGroupOpsJ() {
-        for _ in 0..<20 {
+        for _ in 0..<200 {
             let g1 = Self.randGroup()
             XCTAssertTrue(g1.isValidJ())
             XCTAssertFalse(g1.isInfinity)
@@ -457,5 +457,41 @@ class GroupTests: XCTestCase {
         aaaaaaaa.normalizeJ()
         
         XCTAssertEqual(a8, aaaaaaaa)
+    }
+    
+    func testGroupDecompress() {
+        var goodCount = 0
+        for _ in 0..<64*4 {
+            let x = FieldTests.randField()
+            
+            let yAny = Secp256k1Group(x: x)
+            let yOdd = Secp256k1Group(x: x, odd: true)
+            let yEven = Secp256k1Group(x: x, odd: false)
+            
+            XCTAssertEqual(yAny != nil, yOdd != nil)
+            XCTAssertEqual(yAny != nil, yEven != nil)
+            
+            if yAny == nil {
+                continue
+            }
+            
+            goodCount += 1
+            
+            XCTAssertFalse(yAny!.isInfinity)
+            XCTAssertFalse(yEven!.isInfinity)
+            XCTAssertFalse(yOdd!.isInfinity)
+            XCTAssertEqual(yAny!.x, x)
+            XCTAssertEqual(yEven!.x, x)
+            XCTAssertEqual(yOdd!.x, x)
+            
+            XCTAssertTrue(yEven!.y.isEven());
+            XCTAssertFalse(yOdd!.y.isEven());
+            
+            XCTAssertTrue(yAny!.isValid())
+            XCTAssertTrue(yEven!.isValid())
+            XCTAssertTrue(yOdd!.isValid())
+        }
+        XCTAssertTrue(goodCount > 32)
+        
     }
 }
