@@ -4,7 +4,7 @@ import XCTest
 class FieldTests: XCTestCase {
     let count = 64;
     
-    func randField() -> Secpt256k1Field {
+    static func randField() -> Secpt256k1Field {
         var f: Secpt256k1Field
         var overflowed = false
         repeat {
@@ -23,7 +23,7 @@ class FieldTests: XCTestCase {
     
     func testInverse() throws {
         for _ in 0..<count {
-            let x = randField()
+            let x = Self.randField()
             var x_inv = x
             x_inv.inverse()
             verifyInverse(x, x_inv)
@@ -56,7 +56,7 @@ class FieldTests: XCTestCase {
     }
     
     func testMisc() throws {
-        let x = randField()
+        let x = Self.randField()
         let x2 = x + x
         let x3 = x2 + x
         let x3z = x * Secpt256k1Field(int32: 3)
@@ -102,12 +102,12 @@ class FieldTests: XCTestCase {
         
         /* Consistency checks for large random values */
         for _ in 0..<10 {
-            var ns = randField()
+            var ns = Self.randField()
             while ns.sqrt() {
-                ns = randField()
+                ns = Self.randField()
             }
             for _ in 0..<count {
-                let x = randField()
+                let x = Self.randField()
                 let xx = x * x
                 verifySqrt(xx, x)
                 

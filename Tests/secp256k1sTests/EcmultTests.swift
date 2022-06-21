@@ -3,7 +3,51 @@ import XCTest
 
 class EcmultTests: XCTestCase {
     
-    func testPositiveConsts() {
+    func testPositiveConstsRandomPoint() {
+        let ecmult = Secp256k1Ecmult()
+        var p = GroupTests.randGroup()
+        p.normalizeJ()
+        var nP = p
+        nP.reflect()
+        
+        for i in 0..<36 {
+            let x = Secpt256k1Scalar(int: i)
+            var pi = ecmult.gen(point: p, pn: x)
+            
+            for j in 0..<i {
+                if j == i - 1 {
+                    pi.normalizeJ()
+                    XCTAssertEqual(pi, p)
+                }
+                pi.addJ(nP)
+            }
+            XCTAssertTrue(pi.isInfinity)
+        }
+    }
+    
+    func testNegativeConstsWithRandomPoint() {
+        let ecmult = Secp256k1Ecmult()
+        var p = GroupTests.randGroup()
+        p.normalizeJ()
+        var nP = p
+        nP.reflect()
+        
+        for i in 1..<37 {
+            let x = Secpt256k1Scalar.neg(Secpt256k1Scalar(int: i))
+            var pi = ecmult.gen(point: p, pn: x)
+            
+            for j in 0..<i {
+                if j == i - 1 {
+                    pi.normalizeJ()
+                    XCTAssertEqual(pi, nP)
+                }
+                pi.addJ(p)
+            }
+            XCTAssertTrue(pi.isInfinity)
+        }
+    }
+    
+    func testPositiveConstsWithG() {
         let ecmult = Secp256k1Ecmult()
         var ng = Secp256k1Ecmult.g
         ng.reflect()
@@ -14,8 +58,8 @@ class EcmultTests: XCTestCase {
             
             for j in 0..<i {
                 if j == i - 1 {
-                gi.normalizeJ()
-                XCTAssertEqual(gi, Secp256k1Ecmult.g)
+                    gi.normalizeJ()
+                    XCTAssertEqual(gi, Secp256k1Ecmult.g)
                 }
                 gi.addJ(ng)
             }
@@ -23,7 +67,7 @@ class EcmultTests: XCTestCase {
         }
     }
     
-    func testNegativeConsts() {
+    func testNegativeConstsWithG() {
         let ecmult = Secp256k1Ecmult()
         var ng = Secp256k1Ecmult.g
         ng.reflect()
@@ -34,8 +78,8 @@ class EcmultTests: XCTestCase {
             
             for j in 0..<i {
                 if j == i - 1 {
-                gi.normalizeJ()
-                XCTAssertEqual(gi, ng)
+                    gi.normalizeJ()
+                    XCTAssertEqual(gi, ng)
                 }
                 gi.addJ(Secp256k1Ecmult.g)
             }

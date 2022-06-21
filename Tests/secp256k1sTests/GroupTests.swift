@@ -321,23 +321,11 @@ class GroupTests: XCTestCase {
         verifyTestVector(testVector)
     }
     
-    func randField() -> Secpt256k1Field {
-        var f: Secpt256k1Field
-        var overflowed = false
-        repeat {
-            let words: [UInt32] = (0..<8).map { _ in
-                UInt32(UInt64.random(in: UInt64(UInt32.min)..<UInt64(UInt32.max)+1))
-            }
-            f = Secpt256k1Field(words32: words, overflowed: &overflowed)
-        } while overflowed || f.isZero()
-        return f
-    }
-    
-    func randGroup() -> Secp256k1Group {
+   static func randGroup() -> Secp256k1Group {
         var g: Secp256k1Group? = nil
         while g == nil || !g!.isValidJ() || g!.isInfinity {
-            let x = randField()
-            let z = randField()
+            let x = FieldTests.randField()
+            let z = FieldTests.randField()
             let z2 = Secpt256k1Field.sqr(z)
             let x3 = x * x * x
             let z6 = z2 * z2 * z2
@@ -350,11 +338,11 @@ class GroupTests: XCTestCase {
     
     func testGroupOpsJ() {
         for _ in 0..<20 {
-            let g1 = randGroup()
+            let g1 = Self.randGroup()
             XCTAssertTrue(g1.isValidJ())
             XCTAssertFalse(g1.isInfinity)
             XCTAssertFalse(g1.z.isOne())
-            let g2 = randGroup()
+            let g2 = Self.randGroup()
             XCTAssertTrue(g2.isValidJ())
             XCTAssertFalse(g2.isInfinity)
             XCTAssertFalse(g2.z.isOne())

@@ -550,7 +550,7 @@ final class ScalarTests: XCTestCase {
           0x5c, 0x02, 0x97, 0x1b, 0x62, 0x43, 0x86, 0xf5]]
     ]
     
-    func randScalar() -> Secpt256k1Scalar {
+    static func randScalar() -> Secpt256k1Scalar {
         var s: Secpt256k1Scalar
         var overflowed = false
         repeat {
@@ -563,9 +563,9 @@ final class ScalarTests: XCTestCase {
     }
     
     func randTestScalar() {
-        let s = randScalar()
-        let s1 = randScalar()
-        let s2 = randScalar();
+        let s = Self.randScalar()
+        let s1 = Self.randScalar()
+        let s2 = Self.randScalar();
         
         /* Test that fetching groups of 4 bits from a scalar and recursing n(i)=16*n(i-1)+p(i) reconstructs it. */
         {
