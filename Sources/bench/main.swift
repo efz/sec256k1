@@ -309,6 +309,17 @@ func bench_group_add_affine2j() {
     }
 }
 
+// Hash
+
+func bench_sha256_hash() {
+    var hash = init_x
+    for _ in 0..<20000 {
+        var hasher = Secp256k1sSha256()
+        hasher.write(bytes: hash)
+        hash = hasher.finalize()
+    }
+}
+
 // warmup
 for _ in 0..<5 {
     bench_scalar_add()
@@ -338,3 +349,5 @@ runBenchmark(name: "Random Group Double", benchFunc: bench_random_group_double, 
 runBenchmark(name: "Group Add", benchFunc: bench_group_add, count: count)
 runBenchmark(name: "Random Group Add", benchFunc: bench_random_group_add, count: count)
 runBenchmark(name: "Group Add Affine 2 J", benchFunc: bench_group_add_affine2j, count: count)
+
+runBenchmark(name: "Bench Sha256 Hash", benchFunc: bench_sha256_hash, count: 20000)
