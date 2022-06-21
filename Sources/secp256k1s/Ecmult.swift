@@ -3,12 +3,14 @@ struct Secp256k1Ecmult {
         x: Secpt256k1Field(words64: [0x59F2815B_16F81798, 0x029BFCDB_2DCE28D9, 0x55A06295_CE870B07, 0x79BE667E_F9DCBBAC]),
         y: Secpt256k1Field(words64: [0x9C47D08F_FB10D4B8, 0xFD17B448_A6855419, 0x5DA4FBFC_0E1108A8, 0x483ADA77_26A3C465]))!
     
-    static let gMultTable: [[Secp256k1Group]] = { () -> [[Secp256k1Group]] in
+    let gMultTable: [[Secp256k1Group]]
+    
+    init() {
         var res = [[Secp256k1Group]](repeating: [], count: 64)
         var gBase = Secp256k1Ecmult.g
         
         for i in 0..<64 {
-            var precj_i0 = Secp256k1Group.infinity
+            let precj_i0 = Secp256k1Group.infinity
             res[i].append(precj_i0)
             
             for k in 1..<16 {
@@ -35,14 +37,14 @@ struct Secp256k1Ecmult {
             return valid
         }())
         
-        return res
-    }();
+        gMultTable = res
+    }
     
     func gen(gn: Secpt256k1Scalar) -> Secp256k1Group {
         var res = Secp256k1Group.infinity
         for i in 0..<64 {
             let idx = gn.getBits(offset: i * 4, count: 4)
-            let prec = Secp256k1Ecmult.gMultTable[i][idx]
+            let prec = gMultTable[i][idx]
             res.addAffine2J(prec)
             assert(res.isValidJ())
         }
