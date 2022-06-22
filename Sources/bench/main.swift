@@ -313,8 +313,8 @@ func bench_group_add_affine2j() {
 
 func bench_sha256_hash() {
     var hash = init_x
+    var hasher = Secp256k1sSha256()
     for _ in 0..<20000 {
-        var hasher = Secp256k1sSha256()
         hasher.write(bytes: hash)
         hash = hasher.finalize()
     }
