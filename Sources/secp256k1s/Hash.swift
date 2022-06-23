@@ -2,12 +2,12 @@ public struct Secp256k1sSha256 {
     typealias ABCDEFGH = (a: UInt32, b: UInt32, c: UInt32, d: UInt32, e: UInt32, f: UInt32, g: UInt32, h: UInt32)
     
     static let blockSizeBytes = 64
-    static let blackSizeWords = 16
+    static let blockSizeWords = 16
     static let sSize = 8
     static let hs: ABCDEFGH = (0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19)
     
     var s = Secp256k1sSha256.hs
-    var ws = [UInt32](repeating: 0, count: Secp256k1sSha256.blackSizeWords)
+    var ws = [UInt32](repeating: 0, count: Secp256k1sSha256.blockSizeWords)
     var bytesCount = 0
     var totalBytesCount = 0
     var abcdefgh = Secp256k1sSha256.hs
@@ -65,10 +65,6 @@ public struct Secp256k1sSha256 {
     private mutating func transform() {
         assert(bytesCount == Secp256k1sSha256.blockSizeBytes)
         
-        defer {
-            abcdefgh = s
-        }
-        
         for i in 0..<16 {
             let wi = i & 0xF
             
@@ -96,6 +92,7 @@ public struct Secp256k1sSha256 {
         }
         totalBytesCount += Secp256k1sSha256.blockSizeBytes
         bytesCount = 0
+        abcdefgh = s
     }
     
     public mutating func write(bytes: [UInt8]) {
@@ -140,17 +137,7 @@ public struct Secp256k1sSha256 {
             transform()
         }
     }
-    
-    mutating func fill(count: Int) {
-        let wordCount = count >> 2
-        for _ in 0..<count - wordCount * 4 {
-            write(byte: 0)
-        }
-        for _ in 0..<wordCount {
-            write(word: 0)
-        }
-    }
-    
+
     @inline(__always)
     func extractBytes(from word: UInt32, to bytes: inout [UInt8], at start: Int) {
         bytes[start] = UInt8(word >> 24 & 0xFF)
@@ -160,22 +147,14 @@ public struct Secp256k1sSha256 {
     }
     
     public mutating func finalize() -> [UInt8] {
-        defer {
-            s = Secp256k1sSha256.hs
-            abcdefgh = Secp256k1sSha256.hs
-            bytesCount = 0
-            totalBytesCount = 0
-        }
         let writtenSizeBits = (totalBytesCount + bytesCount) * 8
         write(byte: 0x80)
-        let fillSize: Int
+
         if (Secp256k1sSha256.blockSizeBytes - bytesCount < 8) {
-            fillSize = Secp256k1sSha256.blockSizeBytes - bytesCount +  Secp256k1sSha256.blockSizeBytes - 8
-        } else {
-            fillSize = Secp256k1sSha256.blockSizeBytes - bytesCount - 8
+            bytesCount = Secp256k1sSha256.blockSizeBytes
+            transform()
         }
-        fill(count: fillSize)
-        write(word: 0)
+        bytesCount = Secp256k1sSha256.blockSizeBytes - 4
         write(word: UInt32(writtenSizeBits))
         
         var hash = [UInt8](repeating: 0, count: 32)
@@ -187,6 +166,12 @@ public struct Secp256k1sSha256 {
         extractBytes(from: s.f, to: &hash, at: 5 * 4)
         extractBytes(from: s.g, to: &hash, at: 6 * 4)
         extractBytes(from: s.h, to: &hash, at: 7 * 4)
+        
+        // reset
+        s = Secp256k1sSha256.hs
+        abcdefgh = Secp256k1sSha256.hs
+        bytesCount = 0
+        totalBytesCount = 0
         
         return hash
     }
