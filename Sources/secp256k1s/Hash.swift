@@ -63,33 +63,242 @@ public struct Secp256k1sSha256 {
     
     private mutating func transform() {
         assert(bytesCount == Secp256k1sSha256.blockSizeBytes)
-        var a: UInt32 = s.a
-        var b: UInt32 = s.b
-        var c: UInt32 = s.c
-        var d: UInt32 = s.d
-        var e: UInt32 = s.e
-        var f: UInt32 = s.f
-        var g: UInt32 = s.g
-        var h: UInt32 = s.h
+        var t1: UInt32 = 0
+        var t2: UInt32 = 0
+        var w0 = ws[0], w1 = ws[1], w2 = ws[2], w3 = ws[3], w4 = ws[4], w5 = ws[5], w6 = ws[6], w7 = ws[7]
+        var w8 = ws[8], w9 = ws[9], w10 = ws[10], w11 = ws[11], w12 = ws[12], w13 = ws[13], w14 = ws[14], w15 = ws[15]
         
-        for i in 0..<16 {
-            let wi = i & 0xF
+        var a = s.a, b = s.b, c = s.c, d = s.d, e = s.e, f = s.f, g = s.g, h = s.h
+        var stepi = 0
+        
+        t1 = h &+ bigSigma1(e) &+ ch(x: e, y: f, z: g) &+ Secp256k1sSha256.k0[stepi] &+ w0
+        t2 = bigSigma0(a) &+ maj(x: a, y: b, z: c)
+        h = t1 &+ t2
+        d = d &+ t1
+        stepi += 1
+        
+        t1 = g &+ bigSigma1(d) &+ ch(x: d, y: e, z: f) &+ Secp256k1sSha256.k0[stepi] &+ w1
+        t2 = bigSigma0(h) &+ maj(x: h, y: a, z: b)
+        g = t1 &+ t2
+        c = c &+ t1
+        stepi += 1
+        
+        t1 = f &+ bigSigma1(c) &+ ch(x: c, y: d, z: e) &+ Secp256k1sSha256.k0[stepi] &+ w2
+        t2 = bigSigma0(g) &+ maj(x: g, y: h, z: a)
+        f = t1 &+ t2
+        b = b &+ t1
+        stepi += 1
+        
+        t1 = e &+ bigSigma1(b) &+ ch(x: b, y: c, z: d) &+ Secp256k1sSha256.k0[stepi] &+ w3
+        t2 = bigSigma0(f) &+ maj(x: f, y: g, z: h)
+        e = t1 &+ t2
+        a = a &+ t1
+        stepi += 1
+        
+        t1 = d &+ bigSigma1(a) &+ ch(x: a, y: b, z: c) &+ Secp256k1sSha256.k0[stepi] &+ w4
+        t2 = bigSigma0(e) &+ maj(x: e, y: f, z: g)
+        d = t1 &+ t2
+        h = h &+ t1
+        stepi += 1
+        
+        t1 = c &+ bigSigma1(h) &+ ch(x: h, y: a, z: b) &+ Secp256k1sSha256.k0[stepi] &+ w5
+        t2 = bigSigma0(d) &+ maj(x: d, y: e, z: f)
+        c = t1 &+ t2
+        g = g &+ t1
+        stepi += 1
+        
+        t1 = b &+ bigSigma1(g) &+ ch(x: g, y: h, z: a) &+ Secp256k1sSha256.k0[stepi] &+ w6
+        t2 = bigSigma0(c) &+ maj(x: c, y: d, z: e)
+        b = t1 &+ t2
+        f = f &+ t1
+        stepi += 1
+        
+        t1 = a &+ bigSigma1(f) &+ ch(x: f, y: g, z: h) &+ Secp256k1sSha256.k0[stepi] &+ w7
+        t2 = bigSigma0(b) &+ maj(x: b, y: c, z: d)
+        a = t1 &+ t2
+        e = e &+ t1
+        stepi += 1
+        
+        /**********/
+        t1 = h &+ bigSigma1(e) &+ ch(x: e, y: f, z: g) &+ Secp256k1sSha256.k0[stepi] &+ w8
+        t2 = bigSigma0(a) &+ maj(x: a, y: b, z: c)
+        h = t1 &+ t2
+        d = d &+ t1
+        stepi += 1
+        
+        t1 = g &+ bigSigma1(d) &+ ch(x: d, y: e, z: f) &+ Secp256k1sSha256.k0[stepi] &+ w9
+        t2 = bigSigma0(h) &+ maj(x: h, y: a, z: b)
+        g = t1 &+ t2
+        c = c &+ t1
+        stepi += 1
+        
+        t1 = f &+ bigSigma1(c) &+ ch(x: c, y: d, z: e) &+ Secp256k1sSha256.k0[stepi] &+ w10
+        t2 = bigSigma0(g) &+ maj(x: g, y: h, z: a)
+        f = t1 &+ t2
+        b = b &+ t1
+        stepi += 1
+        
+        t1 = e &+ bigSigma1(b) &+ ch(x: b, y: c, z: d) &+ Secp256k1sSha256.k0[stepi] &+ w11
+        t2 = bigSigma0(f) &+ maj(x: f, y: g, z: h)
+        e = t1 &+ t2
+        a = a &+ t1
+        stepi += 1
+        
+        t1 = d &+ bigSigma1(a) &+ ch(x: a, y: b, z: c) &+ Secp256k1sSha256.k0[stepi] &+ w12
+        t2 = bigSigma0(e) &+ maj(x: e, y: f, z: g)
+        d = t1 &+ t2
+        h = h &+ t1
+        stepi += 1
+        
+        t1 = c &+ bigSigma1(h) &+ ch(x: h, y: a, z: b) &+ Secp256k1sSha256.k0[stepi] &+ w13
+        t2 = bigSigma0(d) &+ maj(x: d, y: e, z: f)
+        c = t1 &+ t2
+        g = g &+ t1
+        stepi += 1
+        
+        t1 = b &+ bigSigma1(g) &+ ch(x: g, y: h, z: a) &+ Secp256k1sSha256.k0[stepi] &+ w14
+        t2 = bigSigma0(c) &+ maj(x: c, y: d, z: e)
+        b = t1 &+ t2
+        f = f &+ t1
+        stepi += 1
+        
+        t1 = a &+ bigSigma1(f) &+ ch(x: f, y: g, z: h) &+ Secp256k1sSha256.k0[stepi] &+ w15
+        t2 = bigSigma0(b) &+ maj(x: b, y: c, z: d)
+        a = t1 &+ t2
+        e = e &+ t1
+        stepi += 1
+        
+        for _ in 0..<3 {
+            w0 = sigma1(w14) &+ w9 &+ sigma0(w1) &+ w0
             
-            let t1 = h &+ bigSigma1(e) &+ ch(x: e, y: f, z: g) &+ Secp256k1sSha256.k0[i] &+ ws[wi]
-            let t2 = bigSigma0(a) &+ maj(x: a, y: b, z: c)
+            t1 = h &+ bigSigma1(e) &+ ch(x: e, y: f, z: g) &+ Secp256k1sSha256.k0[stepi] &+ w0
+            t2 = bigSigma0(a) &+ maj(x: a, y: b, z: c)
+            h = t1 &+ t2
+            d = d &+ t1
+            stepi += 1
             
-            (a, b, c, d, e, f, g, h) = (t1 &+ t2, a, b, c, d &+ t1, e, f, g)
+            w1 = sigma1(w15) &+ w10 &+ sigma0(w2) &+ w1
+            
+            t1 = g &+ bigSigma1(d) &+ ch(x: d, y: e, z: f) &+ Secp256k1sSha256.k0[stepi] &+ w1
+            t2 = bigSigma0(h) &+ maj(x: h, y: a, z: b)
+            g = t1 &+ t2
+            c = c &+ t1
+            stepi += 1
+            
+            w2 = sigma1(w0) &+ w11 &+ sigma0(w3) &+ w2
+            
+            t1 = f &+ bigSigma1(c) &+ ch(x: c, y: d, z: e) &+ Secp256k1sSha256.k0[stepi] &+ w2
+            t2 = bigSigma0(g) &+ maj(x: g, y: h, z: a)
+            f = t1 &+ t2
+            b = b &+ t1
+            stepi += 1
+            
+            w3 = sigma1(w1) &+ w12 &+ sigma0(w4) &+ w3
+            
+            t1 = e &+ bigSigma1(b) &+ ch(x: b, y: c, z: d) &+ Secp256k1sSha256.k0[stepi] &+ w3
+            t2 = bigSigma0(f) &+ maj(x: f, y: g, z: h)
+            e = t1 &+ t2
+            a = a &+ t1
+            stepi += 1
+            
+            w4 = sigma1(w2) &+ w13 &+ sigma0(w5) &+ w4
+            
+            t1 = d &+ bigSigma1(a) &+ ch(x: a, y: b, z: c) &+ Secp256k1sSha256.k0[stepi] &+ w4
+            t2 = bigSigma0(e) &+ maj(x: e, y: f, z: g)
+            d = t1 &+ t2
+            h = h &+ t1
+            stepi += 1
+            
+            w5 = sigma1(w3) &+ w14 &+ sigma0(w6) &+ w5
+            
+            t1 = c &+ bigSigma1(h) &+ ch(x: h, y: a, z: b) &+ Secp256k1sSha256.k0[stepi] &+ w5
+            t2 = bigSigma0(d) &+ maj(x: d, y: e, z: f)
+            c = t1 &+ t2
+            g = g &+ t1
+            stepi += 1
+            
+            w6 = sigma1(w4) &+ w15 &+ sigma0(w7) &+ w6
+            
+            t1 = b &+ bigSigma1(g) &+ ch(x: g, y: h, z: a) &+ Secp256k1sSha256.k0[stepi] &+ w6
+            t2 = bigSigma0(c) &+ maj(x: c, y: d, z: e)
+            b = t1 &+ t2
+            f = f &+ t1
+            stepi += 1
+            
+            w7 = sigma1(w5) &+ w0 &+ sigma0(w8) &+ w7
+            
+            t1 = a &+ bigSigma1(f) &+ ch(x: f, y: g, z: h) &+ Secp256k1sSha256.k0[stepi] &+ w7
+            t2 = bigSigma0(b) &+ maj(x: b, y: c, z: d)
+            a = t1 &+ t2
+            e = e &+ t1
+            stepi += 1
+            
+            /**********/
+            w8 = sigma1(w6) &+ w1 &+ sigma0(w9) &+ w8
+            
+            t1 = h &+ bigSigma1(e) &+ ch(x: e, y: f, z: g) &+ Secp256k1sSha256.k0[stepi] &+ w8
+            t2 = bigSigma0(a) &+ maj(x: a, y: b, z: c)
+            h = t1 &+ t2
+            d = d &+ t1
+            stepi += 1
+            
+            w9 = sigma1(w7) &+ w2 &+ sigma0(w10) &+ w9
+            
+            t1 = g &+ bigSigma1(d) &+ ch(x: d, y: e, z: f) &+ Secp256k1sSha256.k0[stepi] &+ w9
+            t2 = bigSigma0(h) &+ maj(x: h, y: a, z: b)
+            g = t1 &+ t2
+            c = c &+ t1
+            stepi += 1
+            
+            w10 = sigma1(w8) &+ w3 &+ sigma0(w11) &+ w10
+            
+            t1 = f &+ bigSigma1(c) &+ ch(x: c, y: d, z: e) &+ Secp256k1sSha256.k0[stepi] &+ w10
+            t2 = bigSigma0(g) &+ maj(x: g, y: h, z: a)
+            f = t1 &+ t2
+            b = b &+ t1
+            stepi += 1
+            
+            w11 = sigma1(w9) &+ w4 &+ sigma0(w12) &+ w11
+            
+            t1 = e &+ bigSigma1(b) &+ ch(x: b, y: c, z: d) &+ Secp256k1sSha256.k0[stepi] &+ w11
+            t2 = bigSigma0(f) &+ maj(x: f, y: g, z: h)
+            e = t1 &+ t2
+            a = a &+ t1
+            stepi += 1
+            
+            w12 = sigma1(w10) &+ w5 &+ sigma0(w13) &+ w12
+            
+            t1 = d &+ bigSigma1(a) &+ ch(x: a, y: b, z: c) &+ Secp256k1sSha256.k0[stepi] &+ w12
+            t2 = bigSigma0(e) &+ maj(x: e, y: f, z: g)
+            d = t1 &+ t2
+            h = h &+ t1
+            stepi += 1
+            
+            w13 = sigma1(w11) &+ w6 &+ sigma0(w14) &+ w13
+            
+            t1 = c &+ bigSigma1(h) &+ ch(x: h, y: a, z: b) &+ Secp256k1sSha256.k0[stepi] &+ w13
+            t2 = bigSigma0(d) &+ maj(x: d, y: e, z: f)
+            c = t1 &+ t2
+            g = g &+ t1
+            stepi += 1
+            
+            w14 = sigma1(w12) &+ w7 &+ sigma0(w15) &+ w14
+            
+            t1 = b &+ bigSigma1(g) &+ ch(x: g, y: h, z: a) &+ Secp256k1sSha256.k0[stepi] &+ w14
+            t2 = bigSigma0(c) &+ maj(x: c, y: d, z: e)
+            b = t1 &+ t2
+            f = f &+ t1
+            stepi += 1
+            
+            w15 = sigma1(w13) &+ w8 &+ sigma0(w0) &+ w15
+            
+            t1 = a &+ bigSigma1(f) &+ ch(x: f, y: g, z: h) &+ Secp256k1sSha256.k0[stepi] &+ w15
+            t2 = bigSigma0(b) &+ maj(x: b, y: c, z: d)
+            a = t1 &+ t2
+            e = e &+ t1
+            stepi += 1
         }
         
-        for i in 16..<64 {
-            let wi = i & 0xF
-            ws[wi] = sigma1(ws[(wi + 14) & 0xF]) &+ ws[(wi + 9) & 0xF] &+ sigma0(ws[(wi + 1) & 0xF]) &+ ws[wi]
-            
-            let t1 = h &+ bigSigma1(e) &+ ch(x: e, y: f, z: g) &+ Secp256k1sSha256.k0[i] &+ ws[wi]
-            let t2 = bigSigma0(a) &+ maj(x: a, y: b, z: c)
-            
-            (a, b, c, d, e, f, g, h) = (t1 &+ t2, a, b, c, d &+ t1, e, f, g)
-        }
         
         s = (s.a &+ a, s.b &+ b, s.c &+ c, s.d &+ d, s.e &+ e, s.f &+ f, s.g &+ g, s.h &+ h)
         
@@ -99,6 +308,7 @@ public struct Secp256k1sSha256 {
         }
         totalBytesCount += Secp256k1sSha256.blockSizeBytes
         bytesCount = 0
+        stepi = 0
     }
     
     public mutating func write(bytes: [UInt8]) {
