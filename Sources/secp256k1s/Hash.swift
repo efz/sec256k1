@@ -224,6 +224,10 @@ public struct Secp256k1sHmacSha256 {
         innerHasher.write(bytes: rkey)
     }
     
+    public mutating func write(byte: UInt8) {
+        innerHasher.write(byte: byte)
+    }
+    
     public mutating func write(bytes: [UInt8]) {
         innerHasher.write(bytes: bytes)
     }
@@ -248,5 +252,71 @@ public struct Secp256k1sHmacSha256 {
         var hash = [UInt8](repeating: 0, count: 32)
         finalize(hash: &hash)
         return hash
+    }
+}
+
+public struct Secp256k1sRfc6979HmacSha256 {
+    let tempV = [UInt8](repeating: 1, count: 32)
+    let tempK = [UInt8](repeating: 0, count: 32)
+    
+    var v = [UInt8]()
+    var k = [UInt8]()
+    var retry = false
+    var hmac = Secp256k1sHmacSha256()
+    
+    public init(key: [UInt8]) {
+        resetKey(key: key)
+    }
+    
+    public mutating func resetKey(key: [UInt8]) {
+        v = tempV
+        k = tempK
+        
+        hmac.resetKey(key: k)
+        hmac.write(bytes: v)
+        hmac.write(byte: 0)
+        hmac.write(bytes: key)
+        hmac.finalize(hash: &k)
+        hmac.resetKey(key: k)
+        hmac.write(bytes: v)
+        hmac.finalize(hash: &v)
+        
+        hmac.resetKey(key: k)
+        hmac.write(bytes: v)
+        hmac.write(byte: 1)
+        hmac.write(bytes: key)
+        hmac.finalize(hash: &k)
+        hmac.resetKey(key: k)
+        hmac.write(bytes: v)
+        hmac.finalize(hash: &v)
+        retry = false
+    }
+    
+    public mutating func generate(rand: inout [UInt8]) {
+        generate(rand: &rand[0..<rand.count])
+    }
+    
+    public mutating func generate(rand: inout ArraySlice<UInt8>) {
+        var outlen = rand.count
+        if retry {
+            hmac.resetKey(key: k)
+            hmac.write(bytes: v)
+            hmac.write(byte: 0)
+            hmac.finalize(hash: &k)
+            hmac.resetKey(key: k)
+            hmac.write(bytes: v)
+            hmac.finalize(hash: &v)
+        }
+        
+        while outlen > 0 {
+            hmac.resetKey(key: k)
+            hmac.write(bytes: v)
+            hmac.finalize(hash: &v)
+            let cpyCount = Swift.min(outlen, v.count)
+            let cpyStart = rand.startIndex + rand.count - outlen
+            rand[cpyStart..<cpyStart+cpyCount] = v[0..<cpyCount]
+            outlen -= cpyCount
+        }
+        retry = true
     }
 }

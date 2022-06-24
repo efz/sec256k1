@@ -332,6 +332,18 @@ func bench_hmacSha256_hash() {
     }
 }
 
+func bench_rfc6979HmacSha256_hash() {
+    var hash = [UInt8](repeating: 0, count: 64)
+    hash[0..<32] = init_x[0..<32]
+    hash[32..<64] = init_y[0..<32]
+    var rng = Secp256k1sRfc6979HmacSha256(key: hash)
+
+    for _ in 0..<20000 {
+        rng.generate(rand: &hash[0..<32])
+        rng.resetKey(key: hash)
+    }
+}
+
 // warmup
 for _ in 0..<5 {
     bench_scalar_add()
@@ -364,3 +376,4 @@ runBenchmark(name: "Group Add Affine 2 J", benchFunc: bench_group_add_affine2j, 
 
 runBenchmark(name: "Bench Sha256 Hash", benchFunc: bench_sha256_hash, count: 20000)
 runBenchmark(name: "Bench HmacSha256 Hash", benchFunc: bench_hmacSha256_hash, count: 20000)
+runBenchmark(name: "Bench Rfc6979 HmacSha256 Hash", benchFunc: bench_rfc6979HmacSha256_hash, count: 20000)
