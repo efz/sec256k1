@@ -95,9 +95,9 @@ public struct Secp256k1sSha256 {
         abcdefgh = s
     }
     
-    public mutating func write(bytes: [UInt8]) {
-        let wordFillBytesCount = (4 - bytesCount & 0x3) & 0x3
-        var byteIdx = 0
+    public mutating func write(bytes: ArraySlice<UInt8>) {
+        let wordFillBytesCount = Swift.min((4 - bytesCount & 0x3) & 0x3, bytes.count)
+        var byteIdx = bytes.startIndex
         for _ in 0..<wordFillBytesCount {
             write(byte: bytes[byteIdx])
             byteIdx += 1
@@ -113,6 +113,10 @@ public struct Secp256k1sSha256 {
             write(byte: bytes[byteIdx])
             byteIdx += 1
         }
+    }
+    
+    public mutating func write(bytes: [UInt8]) {
+        write(bytes: bytes[0..<bytes.count])
     }
     
     @inline(__always)
@@ -137,7 +141,7 @@ public struct Secp256k1sSha256 {
             transform()
         }
     }
-
+    
     @inline(__always)
     func extractBytes(from word: UInt32, to bytes: inout [UInt8], at start: Int) {
         bytes[start] = UInt8(word >> 24 & 0xFF)
@@ -147,9 +151,17 @@ public struct Secp256k1sSha256 {
     }
     
     public mutating func finalize() -> [UInt8] {
+        var hash = [UInt8](repeating: 0, count: 32)
+        finalize(hash: &hash)
+        return hash
+    }
+    
+    public mutating func finalize(hash: inout [UInt8]) {
+        assert(hash.count >= 32)
+        
         let writtenSizeBits = (totalBytesCount + bytesCount) * 8
         write(byte: 0x80)
-
+        
         if (Secp256k1sSha256.blockSizeBytes - bytesCount < 8) {
             bytesCount = Secp256k1sSha256.blockSizeBytes
             transform()
@@ -157,7 +169,6 @@ public struct Secp256k1sSha256 {
         bytesCount = Secp256k1sSha256.blockSizeBytes - 4
         write(word: UInt32(writtenSizeBits))
         
-        var hash = [UInt8](repeating: 0, count: 32)
         extractBytes(from: s.a, to: &hash, at: 0 * 4)
         extractBytes(from: s.b, to: &hash, at: 1 * 4)
         extractBytes(from: s.c, to: &hash, at: 2 * 4)
@@ -172,8 +183,67 @@ public struct Secp256k1sSha256 {
         abcdefgh = Secp256k1sSha256.hs
         bytesCount = 0
         totalBytesCount = 0
-        
-        return hash
+    }
+}
+
+public struct Secp256k1sHmacSha256 {
+    var innerHasher = Secp256k1sSha256()
+    var outterHasher = Secp256k1sSha256()
+    var rkey = [UInt8](repeating: 0, count: 64)
+    
+    static let innerCode: UInt8 = 0x36
+    static let outterCode: UInt8 = 0x5c
+    
+    public init() {
     }
     
+    public init(key: [UInt8]) {
+        resetKey(key: key)
+    }
+    
+    public mutating func resetKey(key: [UInt8]) {
+        if key.count <= 64 {
+            rkey[0..<key.count] = key[0..<key.count]
+        } else {
+            var keyHasher = Secp256k1sSha256()
+            keyHasher.write(bytes: key)
+            keyHasher.finalize(hash: &rkey)
+        }
+        
+        for i in 0..<rkey.count {
+            rkey[i] = rkey[i] ^ Secp256k1sHmacSha256.outterCode
+        }
+        outterHasher.write(bytes: rkey)
+        
+        for i in 0..<rkey.count {
+            rkey[i] = rkey[i] ^ Secp256k1sHmacSha256.outterCode ^ Secp256k1sHmacSha256.innerCode
+        }
+        innerHasher.write(bytes: rkey)
+    }
+    
+    public mutating func write(bytes: [UInt8]) {
+        innerHasher.write(bytes: bytes)
+    }
+    
+    public mutating func write(bytes: ArraySlice<UInt8>) {
+        innerHasher.write(bytes: bytes)
+    }
+    
+    public mutating func finalize(hash: inout [UInt8]) {
+        assert(hash.count >= 32)
+        
+        innerHasher.finalize(hash: &hash)
+        outterHasher.write(bytes: hash)
+        outterHasher.finalize(hash: &hash)
+        
+        for i in 0..<rkey.count {
+            rkey[i] = 0
+        }
+    }
+    
+    public mutating func finalize() -> [UInt8] {
+        var hash = [UInt8](repeating: 0, count: 32)
+        finalize(hash: &hash)
+        return hash
+    }
 }
