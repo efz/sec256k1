@@ -63,31 +63,146 @@ public struct Secp256k1sSha256 {
     }
     
     @inline(__always)
-    mutating func transformStep(_ i: Int, _ wi: Int) {
-        let t1 = abcdefgh.h &+ bigSigma1(abcdefgh.e) &+ ch(x: abcdefgh.e, y: abcdefgh.f, z: abcdefgh.g) &+ k0[i] &+ ws[wi]
+    mutating func transformStep(_ k: UInt32, _ wi: UInt32) {
+        let t1 = abcdefgh.h &+ bigSigma1(abcdefgh.e) &+ ch(x: abcdefgh.e, y: abcdefgh.f, z: abcdefgh.g) &+ k &+ wi
         let t2 = bigSigma0(abcdefgh.a) &+ maj(x: abcdefgh.a, y: abcdefgh.b, z: abcdefgh.c)
         abcdefgh = (t1 &+ t2, abcdefgh.a, abcdefgh.b, abcdefgh.c, abcdefgh.d &+ t1, abcdefgh.e, abcdefgh.f, abcdefgh.g)
-    }
-    
-    @inline(__always)
-    mutating func transformStepW(_ i: Int) {
-        let wi = i & 0xF
-        ws[wi] = sigma1(ws[(wi + 14) & 0xF]) &+ ws[(wi + 9) & 0xF] &+ sigma0(ws[(wi + 1) & 0xF]) &+ ws[wi]
-        transformStep(i, wi)
     }
     
     private mutating func transform() {
         assert(bytesCount == Secp256k1sSha256.blockSizeBytes)
         
-        for i in 0..<16 {
-            let wi = i & 0xF
-            transformStep(i, wi)
-        }
+        var w0: UInt32 = ws[0]
+        var w1: UInt32 = ws[1]
+        var w2: UInt32 = ws[2]
+        var w3: UInt32 = ws[3]
+        var w4: UInt32 = ws[4]
+        var w5: UInt32 = ws[5]
+        var w6: UInt32 = ws[6]
+        var w7: UInt32 = ws[7]
+        var w8: UInt32 = ws[8]
+        var w9: UInt32 = ws[9]
+        var w10: UInt32 = ws[10]
+        var w11: UInt32 = ws[11]
+        var w12: UInt32 = ws[12]
+        var w13: UInt32 = ws[13]
+        var w14: UInt32 = ws[14]
+        var w15: UInt32 = ws[15]
         
-        for i in 16..<64 {
-            transformStepW(i)
-        }
-        
+        transformStep(1116352408, w0)
+        transformStep(1899447441, w1)
+        transformStep(3049323471, w2)
+        transformStep(3921009573, w3)
+        transformStep(961987163, w4)
+        transformStep(1508970993, w5)
+        transformStep(2453635748, w6)
+        transformStep(2870763221, w7)
+        transformStep(3624381080, w8)
+        transformStep(310598401, w9)
+        transformStep(607225278, w10)
+        transformStep(1426881987, w11)
+        transformStep(1925078388, w12)
+        transformStep(2162078206, w13)
+        transformStep(2614888103, w14)
+        transformStep(3248222580, w15)
+
+        w0 = sigma1(w14) &+ w9 &+ sigma0(w1) &+ w0
+        transformStep(3835390401, w0)
+        w1 = sigma1(w15) &+ w10 &+ sigma0(w2) &+ w1
+        transformStep(4022224774, w1)
+        w2 = sigma1(w0) &+ w11 &+ sigma0(w3) &+ w2
+        transformStep(264347078, w2)
+        w3 = sigma1(w1) &+ w12 &+ sigma0(w4) &+ w3
+        transformStep(604807628, w3)
+        w4 = sigma1(w2) &+ w13 &+ sigma0(w5) &+ w4
+        transformStep(770255983, w4)
+        w5 = sigma1(w3) &+ w14 &+ sigma0(w6) &+ w5
+        transformStep(1249150122, w5)
+        w6 = sigma1(w4) &+ w15 &+ sigma0(w7) &+ w6
+        transformStep(1555081692, w6)
+        w7 = sigma1(w5) &+ w0 &+ sigma0(w8) &+ w7
+        transformStep(1996064986, w7)
+        w8 = sigma1(w6) &+ w1 &+ sigma0(w9) &+ w8
+        transformStep(2554220882, w8)
+        w9 = sigma1(w7) &+ w2 &+ sigma0(w10) &+ w9
+        transformStep(2821834349, w9)
+        w10 = sigma1(w8) &+ w3 &+ sigma0(w11) &+ w10
+        transformStep(2952996808, w10)
+        w11 = sigma1(w9) &+ w4 &+ sigma0(w12) &+ w11
+        transformStep(3210313671, w11)
+        w12 = sigma1(w10) &+ w5 &+ sigma0(w13) &+ w12
+        transformStep(3336571891, w12)
+        w13 = sigma1(w11) &+ w6 &+ sigma0(w14) &+ w13
+        transformStep(3584528711, w13)
+        w14 = sigma1(w12) &+ w7 &+ sigma0(w15) &+ w14
+        transformStep(113926993, w14)
+        w15 = sigma1(w13) &+ w8 &+ sigma0(w0) &+ w15
+        transformStep(338241895, w15)
+        w0 = sigma1(w14) &+ w9 &+ sigma0(w1) &+ w0
+        transformStep(666307205, w0)
+        w1 = sigma1(w15) &+ w10 &+ sigma0(w2) &+ w1
+        transformStep(773529912, w1)
+        w2 = sigma1(w0) &+ w11 &+ sigma0(w3) &+ w2
+        transformStep(1294757372, w2)
+        w3 = sigma1(w1) &+ w12 &+ sigma0(w4) &+ w3
+        transformStep(1396182291, w3)
+        w4 = sigma1(w2) &+ w13 &+ sigma0(w5) &+ w4
+        transformStep(1695183700, w4)
+        w5 = sigma1(w3) &+ w14 &+ sigma0(w6) &+ w5
+        transformStep(1986661051, w5)
+        w6 = sigma1(w4) &+ w15 &+ sigma0(w7) &+ w6
+        transformStep(2177026350, w6)
+        w7 = sigma1(w5) &+ w0 &+ sigma0(w8) &+ w7
+        transformStep(2456956037, w7)
+        w8 = sigma1(w6) &+ w1 &+ sigma0(w9) &+ w8
+        transformStep(2730485921, w8)
+        w9 = sigma1(w7) &+ w2 &+ sigma0(w10) &+ w9
+        transformStep(2820302411, w9)
+        w10 = sigma1(w8) &+ w3 &+ sigma0(w11) &+ w10
+        transformStep(3259730800, w10)
+        w11 = sigma1(w9) &+ w4 &+ sigma0(w12) &+ w11
+        transformStep(3345764771, w11)
+        w12 = sigma1(w10) &+ w5 &+ sigma0(w13) &+ w12
+        transformStep(3516065817, w12)
+        w13 = sigma1(w11) &+ w6 &+ sigma0(w14) &+ w13
+        transformStep(3600352804, w13)
+        w14 = sigma1(w12) &+ w7 &+ sigma0(w15) &+ w14
+        transformStep(4094571909, w14)
+        w15 = sigma1(w13) &+ w8 &+ sigma0(w0) &+ w15
+        transformStep(275423344, w15)
+        w0 = sigma1(w14) &+ w9 &+ sigma0(w1) &+ w0
+        transformStep(430227734, w0)
+        w1 = sigma1(w15) &+ w10 &+ sigma0(w2) &+ w1
+        transformStep(506948616, w1)
+        w2 = sigma1(w0) &+ w11 &+ sigma0(w3) &+ w2
+        transformStep(659060556, w2)
+        w3 = sigma1(w1) &+ w12 &+ sigma0(w4) &+ w3
+        transformStep(883997877, w3)
+        w4 = sigma1(w2) &+ w13 &+ sigma0(w5) &+ w4
+        transformStep(958139571, w4)
+        w5 = sigma1(w3) &+ w14 &+ sigma0(w6) &+ w5
+        transformStep(1322822218, w5)
+        w6 = sigma1(w4) &+ w15 &+ sigma0(w7) &+ w6
+        transformStep(1537002063, w6)
+        w7 = sigma1(w5) &+ w0 &+ sigma0(w8) &+ w7
+        transformStep(1747873779, w7)
+        w8 = sigma1(w6) &+ w1 &+ sigma0(w9) &+ w8
+        transformStep(1955562222, w8)
+        w9 = sigma1(w7) &+ w2 &+ sigma0(w10) &+ w9
+        transformStep(2024104815, w9)
+        w10 = sigma1(w8) &+ w3 &+ sigma0(w11) &+ w10
+        transformStep(2227730452, w10)
+        w11 = sigma1(w9) &+ w4 &+ sigma0(w12) &+ w11
+        transformStep(2361852424, w11)
+        w12 = sigma1(w10) &+ w5 &+ sigma0(w13) &+ w12
+        transformStep(2428436474, w12)
+        w13 = sigma1(w11) &+ w6 &+ sigma0(w14) &+ w13
+        transformStep(2756734187, w13)
+        w14 = sigma1(w12) &+ w7 &+ sigma0(w15) &+ w14
+        transformStep(3204031479, w14)
+        w15 = sigma1(w13) &+ w8 &+ sigma0(w0) &+ w15
+        transformStep(3329325298, w15)
+
         s = (s.a &+ abcdefgh.a, s.b &+ abcdefgh.b, s.c &+ abcdefgh.c, s.d &+ abcdefgh.d, s.e &+ abcdefgh.e, s.f &+ abcdefgh.f, s.g &+ abcdefgh.g, s.h &+ abcdefgh.h)
         
         for i in 0..<ws.count {
