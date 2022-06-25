@@ -349,6 +349,7 @@ for _ in 0..<5 {
     bench_scalar_add()
 }
 
+
 runBenchmark(name: "Scalar Add", benchFunc: bench_scalar_add, count: count)
 runBenchmark(name: "Random Scalar Add", benchFunc: bench_random_scalar_add, count: count)
 runBenchmark(name: "Scalar Negate", benchFunc: bench_scalar_negate, count: count)
@@ -398,19 +399,19 @@ func genSha256TransformBlock() {
         
         var text = ""
         // define the string/text to be saved
-        for i in 0..<16 {
-            text += "var w\(i): UInt32 = ws[\(i)] \n"
-        }
+        //for i in 0..<16 {
+        //    text += "var w\(i): UInt32 = ws[\(i)] \n"
+        //}
         
         for i in 0..<16 {
-            text += "transformStep(\(k0[i]), w\(i)) \n"
+            text += "transformStep(\(k0[i]), w.\(i)) \n"
         }
         
         text += "\n\n"
         
         for i in 16..<64 {
-            text += "w\(i & 0xF) = sigma1(w\((i + 14) & 0xF)) &+ w\((i + 9) & 0xF) &+ sigma0(w\((i + 1) & 0xF)) &+ w\(i & 0xF) \n"
-            text += "transformStep(\(k0[i]), w\(i & 0xF)) \n"
+            text += "w.\(i & 0xF) = sigma1(w.\((i + 14) & 0xF)) &+ w.\((i + 9) & 0xF) &+ sigma0(w.\((i + 1) & 0xF)) &+ w.\(i & 0xF) \n"
+            text += "transformStep(\(k0[i]), w.\(i & 0xF)) \n"
         }
         
         try! text.write(to: fileURL, atomically: false, encoding: .utf8)
