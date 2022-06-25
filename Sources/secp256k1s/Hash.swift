@@ -7,10 +7,26 @@ public struct Secp256k1sSha256 {
     static let hs: ABCDEFGH = (0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19)
     
     var s = Secp256k1sSha256.hs
-    var ws = [UInt32](repeating: 0, count: Secp256k1sSha256.blockSizeWords)
     var bytesCount = 0
     var totalBytesCount = 0
     var abcdefgh = Secp256k1sSha256.hs
+    
+    var w0: UInt32 = 0
+    var w1: UInt32 = 0
+    var w2: UInt32 = 0
+    var w3: UInt32 = 0
+    var w4: UInt32 = 0
+    var w5: UInt32 = 0
+    var w6: UInt32 = 0
+    var w7: UInt32 = 0
+    var w8: UInt32 = 0
+    var w9: UInt32 = 0
+    var w10: UInt32 = 0
+    var w11: UInt32 = 0
+    var w12: UInt32 = 0
+    var w13: UInt32 = 0
+    var w14: UInt32 = 0
+    var w15: UInt32 = 0
     
     let k0: [UInt32] = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
                         0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -72,23 +88,6 @@ public struct Secp256k1sSha256 {
     private mutating func transform() {
         assert(bytesCount == Secp256k1sSha256.blockSizeBytes)
         
-        var w0: UInt32 = ws[0]
-        var w1: UInt32 = ws[1]
-        var w2: UInt32 = ws[2]
-        var w3: UInt32 = ws[3]
-        var w4: UInt32 = ws[4]
-        var w5: UInt32 = ws[5]
-        var w6: UInt32 = ws[6]
-        var w7: UInt32 = ws[7]
-        var w8: UInt32 = ws[8]
-        var w9: UInt32 = ws[9]
-        var w10: UInt32 = ws[10]
-        var w11: UInt32 = ws[11]
-        var w12: UInt32 = ws[12]
-        var w13: UInt32 = ws[13]
-        var w14: UInt32 = ws[14]
-        var w15: UInt32 = ws[15]
-        
         transformStep(1116352408, w0)
         transformStep(1899447441, w1)
         transformStep(3049323471, w2)
@@ -105,7 +104,7 @@ public struct Secp256k1sSha256 {
         transformStep(2162078206, w13)
         transformStep(2614888103, w14)
         transformStep(3248222580, w15)
-
+        
         w0 = sigma1(w14) &+ w9 &+ sigma0(w1) &+ w0
         transformStep(3835390401, w0)
         w1 = sigma1(w15) &+ w10 &+ sigma0(w2) &+ w1
@@ -202,12 +201,11 @@ public struct Secp256k1sSha256 {
         transformStep(3204031479, w14)
         w15 = sigma1(w13) &+ w8 &+ sigma0(w0) &+ w15
         transformStep(3329325298, w15)
-
+        
         s = (s.a &+ abcdefgh.a, s.b &+ abcdefgh.b, s.c &+ abcdefgh.c, s.d &+ abcdefgh.d, s.e &+ abcdefgh.e, s.f &+ abcdefgh.f, s.g &+ abcdefgh.g, s.h &+ abcdefgh.h)
         
-        for i in 0..<ws.count {
-            ws[i] = 0
-        }
+        (w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15) = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        
         totalBytesCount += Secp256k1sSha256.blockSizeBytes
         bytesCount = 0
         abcdefgh = s
@@ -241,8 +239,45 @@ public struct Secp256k1sSha256 {
     mutating func write(byte: UInt8) {
         let widx = bytesCount >> 2
         let bidx = 3 - bytesCount & 0x3 // big endian
-        ws[widx] = ws[widx] | UInt32(byte) << (bidx * 8)
         bytesCount += 1
+        
+        switch widx {
+        case 0:
+            w0 = w0 | UInt32(byte) << (bidx * 8)
+        case 1:
+            w1 = w1 | UInt32(byte) << (bidx * 8)
+        case 2:
+            w2 = w2 | UInt32(byte) << (bidx * 8)
+        case 3:
+            w3 = w3 | UInt32(byte) << (bidx * 8)
+        case 4:
+            w4 = w4 | UInt32(byte) << (bidx * 8)
+        case 5:
+            w5 = w5 | UInt32(byte) << (bidx * 8)
+        case 6:
+            w6 = w6 | UInt32(byte) << (bidx * 8)
+        case 7:
+            w7 = w7 | UInt32(byte) << (bidx * 8)
+        case 8:
+            w8 = w8 | UInt32(byte) << (bidx * 8)
+        case 9:
+            w9 = w9 | UInt32(byte) << (bidx * 8)
+        case 10:
+            w10 = w10 | UInt32(byte) << (bidx * 8)
+        case 11:
+            w11 = w11 | UInt32(byte) << (bidx * 8)
+        case 12:
+            w12 = w12 | UInt32(byte) << (bidx * 8)
+        case 13:
+            w13 = w13 | UInt32(byte) << (bidx * 8)
+        case 14:
+            w14 = w14 | UInt32(byte) << (bidx * 8)
+        case 15:
+            w15 = w15 | UInt32(byte) << (bidx * 8)
+        default:
+            fatalError()
+        }
+        
         if (bytesCount == Secp256k1sSha256.blockSizeBytes) {
             transform()
         }
@@ -253,8 +288,45 @@ public struct Secp256k1sSha256 {
         assert(bytesCount & 0x3 == 0)
         
         let widx = bytesCount >> 2
-        ws[widx] = word
         bytesCount += 4
+        
+        switch widx {
+        case 0:
+            w0 = word
+        case 1:
+            w1 = word
+        case 2:
+            w2 = word
+        case 3:
+            w3 = word
+        case 4:
+            w4 = word
+        case 5:
+            w5 = word
+        case 6:
+            w6 = word
+        case 7:
+            w7 = word
+        case 8:
+            w8 = word
+        case 9:
+            w9 = word
+        case 10:
+            w10 = word
+        case 11:
+            w11 = word
+        case 12:
+            w12 = word
+        case 13:
+            w13 = word
+        case 14:
+            w14 = word
+        case 15:
+            w15 = word
+        default:
+            fatalError()
+        }
+        
         if (bytesCount == Secp256k1sSha256.blockSizeBytes) {
             transform()
         }
