@@ -1,6 +1,6 @@
+typealias ABCDEFGH = (a: UInt32, b: UInt32, c: UInt32, d: UInt32, e: UInt32, f: UInt32, g: UInt32, h: UInt32)
+
 public struct Secp256k1sSha256 {
-    typealias ABCDEFGH = (a: UInt32, b: UInt32, c: UInt32, d: UInt32, e: UInt32, f: UInt32, g: UInt32, h: UInt32)
-    
     static let blockSizeBytes = 64
     static let blockSizeWords = 16
     static let sSize = 8
@@ -317,7 +317,6 @@ public struct Secp256k1sSha256 {
         }
     }
     
-
     fileprivate mutating func writeAbcdefgh(abcdefghInput: ABCDEFGH) {
         assert(bytesCount == 0)
         (w.0, w.1, w.2, w.3, w.4, w.5, w.6, w.7) = abcdefghInput
@@ -391,6 +390,8 @@ public struct Secp256k1sHmacSha256 {
     
     static let innerCode: UInt8 = 0x36
     static let outterCode: UInt8 = 0x5c
+    static let innerCodeWord: UInt32 = 0x36363636
+    static let outterCodeWord: UInt32 = 0x5c5c5c5c
     
     public init() {
     }
@@ -419,6 +420,26 @@ public struct Secp256k1sHmacSha256 {
         innerHasher.write(bytes: rkey)
     }
     
+    fileprivate mutating func resetKey(key: ABCDEFGH) {
+        assert(innerHasher.bytesCount == 0 && outterHasher.bytesCount == 0)
+        
+        outterHasher.writeAbcdefgh(abcdefghInput: (
+            key.a ^ Secp256k1sHmacSha256.outterCodeWord, key.b ^ Secp256k1sHmacSha256.outterCodeWord,
+            key.c ^ Secp256k1sHmacSha256.outterCodeWord, key.d ^ Secp256k1sHmacSha256.outterCodeWord,
+            key.e ^ Secp256k1sHmacSha256.outterCodeWord, key.f ^ Secp256k1sHmacSha256.outterCodeWord,
+            key.g ^ Secp256k1sHmacSha256.outterCodeWord, key.h ^ Secp256k1sHmacSha256.outterCodeWord))
+        innerHasher.writeAbcdefgh(abcdefghInput: (
+            key.a ^ Secp256k1sHmacSha256.innerCodeWord, key.b ^ Secp256k1sHmacSha256.innerCodeWord,
+            key.c ^ Secp256k1sHmacSha256.innerCodeWord, key.d ^ Secp256k1sHmacSha256.innerCodeWord,
+            key.e ^ Secp256k1sHmacSha256.innerCodeWord, key.f ^ Secp256k1sHmacSha256.innerCodeWord,
+            key.g ^ Secp256k1sHmacSha256.innerCodeWord, key.h ^ Secp256k1sHmacSha256.innerCodeWord))
+        
+        for _ in 0..<8 {
+            outterHasher.write(word: Secp256k1sHmacSha256.outterCodeWord)
+            innerHasher.write(word: Secp256k1sHmacSha256.innerCodeWord)
+        }
+    }
+    
     public mutating func write(byte: UInt8) {
         innerHasher.write(byte: byte)
     }
@@ -443,6 +464,17 @@ public struct Secp256k1sHmacSha256 {
         }
     }
     
+    fileprivate mutating func finalize2Abcdefgh() -> ABCDEFGH {
+        defer {
+            for i in 0..<rkey.count {
+                rkey[i] = 0
+            }
+        }
+        let rawHash = innerHasher.finalize2Abcdefgh()
+        outterHasher.writeAbcdefgh(abcdefghInput: rawHash)
+        return outterHasher.finalize2Abcdefgh()
+    }
+    
     public mutating func finalize() -> [UInt8] {
         var hash = [UInt8](repeating: 0, count: 32)
         finalize(hash: &hash)
@@ -451,11 +483,11 @@ public struct Secp256k1sHmacSha256 {
 }
 
 public struct Secp256k1sRfc6979HmacSha256 {
-    let tempV = [UInt8](repeating: 1, count: 32)
-    let tempK = [UInt8](repeating: 0, count: 32)
+    static let tempV = [UInt8](repeating: 1, count: 32)
+    static let tempK: ABCDEFGH = (0, 0, 0, 0, 0, 0, 0, 0)
     
-    var v = [UInt8]()
-    var k = [UInt8]()
+    var v = Secp256k1sRfc6979HmacSha256.tempV
+    var k = Secp256k1sRfc6979HmacSha256.tempK
     var retry = false
     var hmac = Secp256k1sHmacSha256()
     
@@ -464,14 +496,14 @@ public struct Secp256k1sRfc6979HmacSha256 {
     }
     
     public mutating func resetKey(key: [UInt8]) {
-        v = tempV
-        k = tempK
+        v = Secp256k1sRfc6979HmacSha256.tempV
+        k = Secp256k1sRfc6979HmacSha256.tempK
         
         hmac.resetKey(key: k)
         hmac.write(bytes: v)
         hmac.write(byte: 0)
         hmac.write(bytes: key)
-        hmac.finalize(hash: &k)
+        k = hmac.finalize2Abcdefgh()
         hmac.resetKey(key: k)
         hmac.write(bytes: v)
         hmac.finalize(hash: &v)
@@ -480,7 +512,7 @@ public struct Secp256k1sRfc6979HmacSha256 {
         hmac.write(bytes: v)
         hmac.write(byte: 1)
         hmac.write(bytes: key)
-        hmac.finalize(hash: &k)
+        k = hmac.finalize2Abcdefgh()
         hmac.resetKey(key: k)
         hmac.write(bytes: v)
         hmac.finalize(hash: &v)
@@ -497,7 +529,7 @@ public struct Secp256k1sRfc6979HmacSha256 {
             hmac.resetKey(key: k)
             hmac.write(bytes: v)
             hmac.write(byte: 0)
-            hmac.finalize(hash: &k)
+            k = hmac.finalize2Abcdefgh()
             hmac.resetKey(key: k)
             hmac.write(bytes: v)
             hmac.finalize(hash: &v)
