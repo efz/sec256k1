@@ -331,7 +331,7 @@ public struct Secp256k1sSha256 {
         bytes[start + 3] = UInt8(word & 0xFF)
     }
     
-    fileprivate mutating func finalize2Abcdefgh() -> ABCDEFGH {
+    fileprivate mutating func finalize2raw() -> ABCDEFGH {
         finalizeCore()
         defer {
             reset()
@@ -381,12 +381,31 @@ public struct Secp256k1sSha256 {
         
         reset()
     }
+    
+    fileprivate mutating func finalizeWithRaw(hash: inout [UInt8]) -> ABCDEFGH {
+        assert(hash.count >= 32)
+        
+        finalizeCore()
+        defer {
+            reset()
+        }
+        
+        extractBytes(from: s.a, to: &hash, at: 0 * 4)
+        extractBytes(from: s.b, to: &hash, at: 1 * 4)
+        extractBytes(from: s.c, to: &hash, at: 2 * 4)
+        extractBytes(from: s.d, to: &hash, at: 3 * 4)
+        extractBytes(from: s.e, to: &hash, at: 4 * 4)
+        extractBytes(from: s.f, to: &hash, at: 5 * 4)
+        extractBytes(from: s.g, to: &hash, at: 6 * 4)
+        extractBytes(from: s.h, to: &hash, at: 7 * 4)
+        
+        return s
+    }
 }
 
 public struct Secp256k1sHmacSha256 {
     var innerHasher = Secp256k1sSha256()
     var outterHasher = Secp256k1sSha256()
-    var rkey = [UInt8](repeating: 0, count: 64)
     
     static let innerCode: UInt8 = 0x36
     static let outterCode: UInt8 = 0x5c
@@ -401,6 +420,7 @@ public struct Secp256k1sHmacSha256 {
     }
     
     public mutating func resetKey(key: [UInt8]) {
+        var rkey = [UInt8](repeating: 0, count: 64)
         if key.count <= 64 {
             rkey[0..<key.count] = key[0..<key.count]
         } else {
@@ -448,6 +468,17 @@ public struct Secp256k1sHmacSha256 {
         innerHasher.write(bytes: bytes)
     }
     
+    fileprivate mutating func write(abcdefghInput: ABCDEFGH) {
+        innerHasher.write(word: abcdefghInput.a)
+        innerHasher.write(word: abcdefghInput.b)
+        innerHasher.write(word: abcdefghInput.c)
+        innerHasher.write(word: abcdefghInput.d)
+        innerHasher.write(word: abcdefghInput.e)
+        innerHasher.write(word: abcdefghInput.f)
+        innerHasher.write(word: abcdefghInput.g)
+        innerHasher.write(word: abcdefghInput.h)
+    }
+    
     public mutating func write(bytes: ArraySlice<UInt8>) {
         innerHasher.write(bytes: bytes)
     }
@@ -455,24 +486,23 @@ public struct Secp256k1sHmacSha256 {
     public mutating func finalize(hash: inout [UInt8]) {
         assert(hash.count >= 32)
         
-        let rawHash = innerHasher.finalize2Abcdefgh()
+        let rawHash = innerHasher.finalize2raw()
         outterHasher.writeAbcdefgh(abcdefghInput: rawHash)
         outterHasher.finalize(hash: &hash)
-        
-        for i in 0..<rkey.count {
-            rkey[i] = 0
-        }
     }
     
-    fileprivate mutating func finalize2Abcdefgh() -> ABCDEFGH {
-        defer {
-            for i in 0..<rkey.count {
-                rkey[i] = 0
-            }
-        }
-        let rawHash = innerHasher.finalize2Abcdefgh()
+    fileprivate mutating func finalizeWithRaw(hash: inout [UInt8]) -> ABCDEFGH {
+        assert(hash.count >= 32)
+        
+        let rawHash = innerHasher.finalize2raw()
         outterHasher.writeAbcdefgh(abcdefghInput: rawHash)
-        return outterHasher.finalize2Abcdefgh()
+        return outterHasher.finalizeWithRaw(hash: &hash)
+    }
+    
+    fileprivate mutating func finalize2raw() -> ABCDEFGH {
+        let rawHash = innerHasher.finalize2raw()
+        outterHasher.writeAbcdefgh(abcdefghInput: rawHash)
+        return outterHasher.finalize2raw()
     }
     
     public mutating func finalize() -> [UInt8] {
@@ -483,13 +513,14 @@ public struct Secp256k1sHmacSha256 {
 }
 
 public struct Secp256k1sRfc6979HmacSha256 {
-    static let tempV = [UInt8](repeating: 1, count: 32)
+    static let tempV: ABCDEFGH = (0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101)
     static let tempK: ABCDEFGH = (0, 0, 0, 0, 0, 0, 0, 0)
     
     var v = Secp256k1sRfc6979HmacSha256.tempV
     var k = Secp256k1sRfc6979HmacSha256.tempK
     var retry = false
     var hmac = Secp256k1sHmacSha256()
+    var outBuff = [UInt8](repeating: 0, count: 32)
     
     public init(key: [UInt8]) {
         resetKey(key: key)
@@ -500,22 +531,22 @@ public struct Secp256k1sRfc6979HmacSha256 {
         k = Secp256k1sRfc6979HmacSha256.tempK
         
         hmac.resetKey(key: k)
-        hmac.write(bytes: v)
+        hmac.write(abcdefghInput: v)
         hmac.write(byte: 0)
         hmac.write(bytes: key)
-        k = hmac.finalize2Abcdefgh()
+        k = hmac.finalize2raw()
         hmac.resetKey(key: k)
-        hmac.write(bytes: v)
-        hmac.finalize(hash: &v)
+        hmac.write(abcdefghInput: v)
+        v = hmac.finalize2raw()
         
         hmac.resetKey(key: k)
-        hmac.write(bytes: v)
+        hmac.write(abcdefghInput: v)
         hmac.write(byte: 1)
         hmac.write(bytes: key)
-        k = hmac.finalize2Abcdefgh()
+        k = hmac.finalize2raw()
         hmac.resetKey(key: k)
-        hmac.write(bytes: v)
-        hmac.finalize(hash: &v)
+        hmac.write(abcdefghInput: v)
+        v = hmac.finalize2raw()
         retry = false
     }
     
@@ -527,21 +558,22 @@ public struct Secp256k1sRfc6979HmacSha256 {
         var outlen = rand.count
         if retry {
             hmac.resetKey(key: k)
-            hmac.write(bytes: v)
+            hmac.write(abcdefghInput: v)
             hmac.write(byte: 0)
-            k = hmac.finalize2Abcdefgh()
+            k = hmac.finalize2raw()
             hmac.resetKey(key: k)
-            hmac.write(bytes: v)
-            hmac.finalize(hash: &v)
+            hmac.write(abcdefghInput: v)
+            v = hmac.finalize2raw()
         }
         
         while outlen > 0 {
             hmac.resetKey(key: k)
-            hmac.write(bytes: v)
-            hmac.finalize(hash: &v)
-            let cpyCount = Swift.min(outlen, v.count)
+            hmac.write(abcdefghInput: v)
+            v = hmac.finalizeWithRaw(hash: &outBuff)
+            
+            let cpyCount = Swift.min(outlen, 32)
             let cpyStart = rand.startIndex + rand.count - outlen
-            rand[cpyStart..<cpyStart+cpyCount] = v[0..<cpyCount]
+            rand[cpyStart..<cpyStart+cpyCount] = outBuff[0..<cpyCount]
             outlen -= cpyCount
         }
         retry = true
