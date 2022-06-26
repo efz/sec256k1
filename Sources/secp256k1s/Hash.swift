@@ -366,20 +366,7 @@ public struct Secp256k1sSha256 {
     }
     
     public mutating func finalize(hash: inout [UInt8]) {
-        assert(hash.count >= 32)
-        
-        finalizeCore()
-        
-        extractBytes(from: s.a, to: &hash, at: 0 * 4)
-        extractBytes(from: s.b, to: &hash, at: 1 * 4)
-        extractBytes(from: s.c, to: &hash, at: 2 * 4)
-        extractBytes(from: s.d, to: &hash, at: 3 * 4)
-        extractBytes(from: s.e, to: &hash, at: 4 * 4)
-        extractBytes(from: s.f, to: &hash, at: 5 * 4)
-        extractBytes(from: s.g, to: &hash, at: 6 * 4)
-        extractBytes(from: s.h, to: &hash, at: 7 * 4)
-        
-        reset()
+        let _ = finalizeWithRaw(hash: &hash)
     }
     
     fileprivate mutating func finalizeWithRaw(hash: inout [UInt8]) -> ABCDEFGH {
