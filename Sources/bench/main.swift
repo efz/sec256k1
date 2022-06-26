@@ -312,11 +312,35 @@ func bench_group_add_affine2j() {
 // Hash
 
 func bench_sha256_hash() {
-    var hash = init_x
+    var hash = [UInt8](repeating: 0, count: 32)
+    hash[0..<32] = init_x[0..<32]
     var hasher = Secp256k1sSha256()
     for _ in 0..<20000 {
         hasher.write(bytes: hash)
-        hash = hasher.finalize()
+        hasher.finalize(hash: &hash)
+    }
+}
+
+func bench_hmacSha256_hash() {
+    var hash = [UInt8](repeating: 0, count: 32)
+    hash[0..<32] = init_x[0..<32]
+    var hasher = Secp256k1sHmacSha256()
+    for _ in 0..<20000 {
+        hasher.resetKey(key: hash)
+        hasher.write(bytes: hash)
+        hasher.finalize(hash: &hash)
+    }
+}
+
+func bench_rfc6979HmacSha256_hash() {
+    var hash = [UInt8](repeating: 0, count: 64)
+    hash[0..<32] = init_x[0..<32]
+    hash[32..<64] = init_y[0..<32]
+    var rng = Secp256k1sRfc6979HmacSha256(key: hash)
+
+    for _ in 0..<20000 {
+        rng.generate(rand: &hash[0..<32])
+        rng.resetKey(key: hash)
     }
 }
 
@@ -324,6 +348,7 @@ func bench_sha256_hash() {
 for _ in 0..<5 {
     bench_scalar_add()
 }
+
 
 runBenchmark(name: "Scalar Add", benchFunc: bench_scalar_add, count: count)
 runBenchmark(name: "Random Scalar Add", benchFunc: bench_random_scalar_add, count: count)
@@ -351,3 +376,46 @@ runBenchmark(name: "Random Group Add", benchFunc: bench_random_group_add, count:
 runBenchmark(name: "Group Add Affine 2 J", benchFunc: bench_group_add_affine2j, count: count)
 
 runBenchmark(name: "Bench Sha256 Hash", benchFunc: bench_sha256_hash, count: 20000)
+runBenchmark(name: "Bench HmacSha256 Hash", benchFunc: bench_hmacSha256_hash, count: 20000)
+runBenchmark(name: "Bench Rfc6979 HmacSha256 Hash", benchFunc: bench_rfc6979HmacSha256_hash, count: 20000)
+
+//genSha256TransformBlock()
+func genSha256TransformBlock() {
+    let k0: [UInt32] = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+                        0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+                        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+                        0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+                        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+                        0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+                        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+                        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+                        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+                        0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+                        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2]
+    
+    if let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+        // create the destination url for the text file to be saved
+        let fileURL = documentDirectory.appendingPathComponent("file.txt")
+        
+        var text = ""
+        // define the string/text to be saved
+        //for i in 0..<16 {
+        //    text += "var w\(i): UInt32 = ws[\(i)] \n"
+        //}
+        
+        for i in 0..<16 {
+            text += "transformStep(\(k0[i]), w.\(i)) \n"
+        }
+        
+        text += "\n\n"
+        
+        for i in 16..<64 {
+            text += "w.\(i & 0xF) = sigma1(w.\((i + 14) & 0xF)) &+ w.\((i + 9) & 0xF) &+ sigma0(w.\((i + 1) & 0xF)) &+ w.\(i & 0xF) \n"
+            text += "transformStep(\(k0[i]), w.\(i & 0xF)) \n"
+        }
+        
+        try! text.write(to: fileURL, atomically: false, encoding: .utf8)
+        
+        print("saving was successful")
+    }
+}
