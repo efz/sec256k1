@@ -317,6 +317,12 @@ public struct Secp256k1sSha256 {
         }
     }
     
+    fileprivate mutating func writeAbcdefgh(abcdefghInput: ABCDEFGH) {
+        assert(bytesCount == 0)
+        (w.0, w.1, w.2, w.3, w.4, w.5, w.6, w.7) = abcdefghInput
+        bytesCount += 32
+    }
+    
     @inline(__always)
     func extractBytes(from word: UInt32, to bytes: inout [UInt8], at start: Int) {
         bytes[start] = UInt8(word >> 24 & 0xFF)
@@ -325,15 +331,21 @@ public struct Secp256k1sSha256 {
         bytes[start + 3] = UInt8(word & 0xFF)
     }
     
+    fileprivate mutating func finalize2Abcdefgh() -> ABCDEFGH {
+        finalizeCore()
+        defer {
+            reset()
+        }
+        return s
+    }
+    
     public mutating func finalize() -> [UInt8] {
         var hash = [UInt8](repeating: 0, count: 32)
         finalize(hash: &hash)
         return hash
     }
     
-    public mutating func finalize(hash: inout [UInt8]) {
-        assert(hash.count >= 32)
-        
+    private mutating func finalizeCore() {
         let writtenSizeBits = (totalBytesCount + bytesCount) * 8
         write(byte: 0x80)
         
@@ -343,6 +355,20 @@ public struct Secp256k1sSha256 {
         }
         bytesCount = Secp256k1sSha256.blockSizeBytes - 4
         write(word: UInt32(writtenSizeBits))
+    }
+    
+    private mutating func reset() {
+        // reset
+        s = Secp256k1sSha256.hs
+        abcdefgh = Secp256k1sSha256.hs
+        bytesCount = 0
+        totalBytesCount = 0
+    }
+    
+    public mutating func finalize(hash: inout [UInt8]) {
+        assert(hash.count >= 32)
+        
+        finalizeCore()
         
         extractBytes(from: s.a, to: &hash, at: 0 * 4)
         extractBytes(from: s.b, to: &hash, at: 1 * 4)
@@ -353,11 +379,7 @@ public struct Secp256k1sSha256 {
         extractBytes(from: s.g, to: &hash, at: 6 * 4)
         extractBytes(from: s.h, to: &hash, at: 7 * 4)
         
-        // reset
-        s = Secp256k1sSha256.hs
-        abcdefgh = Secp256k1sSha256.hs
-        bytesCount = 0
-        totalBytesCount = 0
+        reset()
     }
 }
 
@@ -411,8 +433,8 @@ public struct Secp256k1sHmacSha256 {
     public mutating func finalize(hash: inout [UInt8]) {
         assert(hash.count >= 32)
         
-        innerHasher.finalize(hash: &hash)
-        outterHasher.write(bytes: hash)
+        let rawHash = innerHasher.finalize2Abcdefgh()
+        outterHasher.writeAbcdefgh(abcdefghInput: rawHash)
         outterHasher.finalize(hash: &hash)
         
         for i in 0..<rkey.count {
