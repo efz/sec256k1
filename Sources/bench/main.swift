@@ -27,14 +27,14 @@ let inverse_count = 2000
 
 // Scalar
 
-func randScalar() -> Secpt256k1Scalar {
-    var s: Secpt256k1Scalar
+func randScalar() -> Secp256k1Scalar {
+    var s: Secp256k1Scalar
     var overflowed = false
     repeat {
         let words: [UInt32] = (0..<8).map { _ in
             UInt32.random(in: UInt32.min..<UInt32.max)
         }
-        s = Secpt256k1Scalar(words32: words, overflowed: &overflowed)
+        s = Secp256k1Scalar(words32: words, overflowed: &overflowed)
     } while overflowed || s.isZero()
     return s
 }
@@ -51,8 +51,8 @@ func bench_random_scalar_add() {
 
 func bench_scalar_add() {
     var overflow = false
-    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
-    let scalar_y = Secpt256k1Scalar(bytes: init_y, overflowed: &overflow)
+    var scalar_x = Secp256k1Scalar(bytes: init_x, overflowed: &overflow)
+    let scalar_y = Secp256k1Scalar(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<count {
         scalar_x.add(scalar_y)
@@ -61,7 +61,7 @@ func bench_scalar_add() {
 
 func bench_scalar_negate() {
     var overflow = false
-    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
+    var scalar_x = Secp256k1Scalar(bytes: init_x, overflowed: &overflow)
     for _ in 0..<count {
         scalar_x.negate()
     }
@@ -69,8 +69,8 @@ func bench_scalar_negate() {
 
 func bench_scalar_mul() {
     var overflow = false
-    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
-    let scalar_y = Secpt256k1Scalar(bytes: init_y, overflowed: &overflow)
+    var scalar_x = Secp256k1Scalar(bytes: init_x, overflowed: &overflow)
+    let scalar_y = Secp256k1Scalar(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<count {
         scalar_x.mul(scalar_y)
@@ -88,7 +88,7 @@ func bench_random_scalar_mul() {
 
 func bench_scalar_sqr() {
     var overflow = false
-    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
+    var scalar_x = Secp256k1Scalar(bytes: init_x, overflowed: &overflow)
     
     for _ in 0..<count {
         scalar_x.sqr()
@@ -105,8 +105,8 @@ func bench_random_scalar_sqr() {
 
 func bench_scalar_inverse() {
     var overflow = false
-    var scalar_x = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
-    let scalar_y = Secpt256k1Scalar(bytes: init_y, overflowed: &overflow)
+    var scalar_x = Secp256k1Scalar(bytes: init_x, overflowed: &overflow)
+    let scalar_y = Secp256k1Scalar(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<inverse_count {
         scalar_x.inverse()
@@ -126,22 +126,22 @@ func bench_random_scalar_inverse() {
 
 // Field
 
-func randField() -> Secpt256k1Field {
-    var f: Secpt256k1Field
+func randField() -> Secp256k1Field {
+    var f: Secp256k1Field
     var overflowed = false
     repeat {
         let words: [UInt32] = (0..<8).map { _ in
             UInt32.random(in: UInt32.min..<UInt32.max)
         }
-        f = Secpt256k1Field(words32: words, overflowed: &overflowed)
+        f = Secp256k1Field(words32: words, overflowed: &overflowed)
     } while overflowed || f.isZero()
     return f
 }
 
 func bench_field_mul() {
     var overflow = false
-    var field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
-    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
+    var field_x = Secp256k1Field(bytes: init_x, overflowed: &overflow)
+    let field_y = Secp256k1Field(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<count {
         field_x.mul(field_y)
@@ -159,8 +159,8 @@ func bench_random_field_mul() {
 
 func bench_field_inverse() {
     var overflow = false
-    var field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
-    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
+    var field_x = Secp256k1Field(bytes: init_x, overflowed: &overflow)
+    let field_y = Secp256k1Field(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<inverse_count {
         field_x.inverse()
@@ -180,7 +180,7 @@ func bench_random_field_inverse() {
 
 func bench_field_sqr() {
     var overflow = false
-    var field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    var field_x = Secp256k1Field(bytes: init_x, overflowed: &overflow)
     
     for _ in 0..<count {
         field_x.sqr()
@@ -197,8 +197,8 @@ func bench_random_field_sqr() {
 
 func bench_field_sqrt() {
     var overflow = false
-    var field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
-    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
+    var field_x = Secp256k1Field(bytes: init_x, overflowed: &overflow)
+    let field_y = Secp256k1Field(bytes: init_y, overflowed: &overflow)
     
     for _ in 0..<inverse_count {
         let _ = field_x.sqrt()
@@ -242,15 +242,15 @@ func randGroup() -> Secp256k1Group {
     while g == nil || !g!.isValidJ() || g!.isInfinity {
         let x = randField()
         let z = randField()
-        let z2 = Secpt256k1Field.sqr(z)
-        var x3 = Secpt256k1Field.sqr(x)
+        let z2 = Secp256k1Field.sqr(z)
+        var x3 = Secp256k1Field.sqr(x)
         x3.mul(x)
-        var z6 = Secpt256k1Field.sqr(z2)
+        var z6 = Secp256k1Field.sqr(z2)
         z6.mul(z2)
         var y2 = Secp256k1Group.curvB
         y2.mul(z6)
         y2.add(x3)
-        let y = Secpt256k1Field.sqrt(y2)
+        let y = Secp256k1Field.sqrt(y2)
         g = y == nil ? nil : Secp256k1Group(x: x, y: y!, z: z)!
     }
     return g!
@@ -258,7 +258,7 @@ func randGroup() -> Secp256k1Group {
 
 func bench_group_double() {
     var overflow = false
-    let field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    let field_x = Secp256k1Field(bytes: init_x, overflowed: &overflow)
     var group_x = Secp256k1Group(x: field_x, odd: false)!
     
     for _ in 0..<count {
@@ -276,10 +276,10 @@ func bench_random_group_double() {
 
 func bench_group_add() {
     var overflow = false
-    let field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    let field_x = Secp256k1Field(bytes: init_x, overflowed: &overflow)
     var group_x = Secp256k1Group(x: field_x, odd: false)!
     
-    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
+    let field_y = Secp256k1Field(bytes: init_y, overflowed: &overflow)
     let group_y = Secp256k1Group(x: field_y, odd: true)!
     
     for _ in 0..<count {
@@ -298,10 +298,10 @@ func bench_random_group_add() {
 
 func bench_group_add_affine2j() {
     var overflow = false
-    let field_x = Secpt256k1Field(bytes: init_x, overflowed: &overflow)
+    let field_x = Secp256k1Field(bytes: init_x, overflowed: &overflow)
     var group_x = Secp256k1Group(x: field_x, odd: false)!
     
-    let field_y = Secpt256k1Field(bytes: init_y, overflowed: &overflow)
+    let field_y = Secp256k1Field(bytes: init_y, overflowed: &overflow)
     let group_y = Secp256k1Group(x: field_y, odd: true)!
     
     for _ in 0..<count {

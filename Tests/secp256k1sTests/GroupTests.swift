@@ -231,17 +231,17 @@ class GroupTests: XCTestCase {
     
     func verifyTestVector(_ testVector: [[[UInt64]]]) {
         var isOverflow = false
-        let a_x = Secpt256k1Field(words64: testVector[0][0], overflowed: &isOverflow)
+        let a_x = Secp256k1Field(words64: testVector[0][0], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
-        let a_y = Secpt256k1Field(words64: testVector[0][1], overflowed: &isOverflow)
+        let a_y = Secp256k1Field(words64: testVector[0][1], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
-        let b_x = Secpt256k1Field(words64: testVector[1][0], overflowed: &isOverflow)
+        let b_x = Secp256k1Field(words64: testVector[1][0], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
-        let b_y = Secpt256k1Field(words64: testVector[1][1], overflowed: &isOverflow)
+        let b_y = Secp256k1Field(words64: testVector[1][1], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
-        let c_x = Secpt256k1Field(words64: testVector[2][0], overflowed: &isOverflow)
+        let c_x = Secp256k1Field(words64: testVector[2][0], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
-        let c_y = Secpt256k1Field(words64: testVector[2][1], overflowed: &isOverflow)
+        let c_y = Secp256k1Field(words64: testVector[2][1], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
         
         let a = Secp256k1Group(x: a_x, y: a_y)!
@@ -285,9 +285,9 @@ class GroupTests: XCTestCase {
     func testAddInfinity() {
         let aVector: [[UInt64]] = [[0x7e00fcffffff, 0xf0ff7f000000, 0xffffffffffffff0f, 0x4000000000e0ff], [0x5747e9ab1ea0d93d, 0xe5af95824b6feaff, 0x6e9fdaf96207ac84, 0xdf2a39ec9abce698]]
         var isOverflow = false
-        let a_x = Secpt256k1Field(words64: aVector[0], overflowed: &isOverflow)
+        let a_x = Secp256k1Field(words64: aVector[0], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
-        let a_y = Secpt256k1Field(words64: aVector[1], overflowed: &isOverflow)
+        let a_y = Secp256k1Field(words64: aVector[1], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
         let a = Secp256k1Group(x: a_x, y: a_y)!
         XCTAssertTrue(a.isValid())
@@ -326,11 +326,11 @@ class GroupTests: XCTestCase {
         while g == nil || !g!.isValidJ() || g!.isInfinity {
             let x = FieldTests.randField()
             let z = FieldTests.randField()
-            let z2 = Secpt256k1Field.sqr(z)
+            let z2 = Secp256k1Field.sqr(z)
             let x3 = x * x * x
             let z6 = z2 * z2 * z2
             let y2 = x3 + z6 * Secp256k1Group.curvB
-            let y = Secpt256k1Field.sqrt(y2)
+            let y = Secp256k1Field.sqrt(y2)
             g = y == nil ? nil : Secp256k1Group(x: x, y: y!, z: z)!
         }
         return g!
@@ -427,9 +427,9 @@ class GroupTests: XCTestCase {
         let aVector: [[UInt64]] = [[0x7e00fcffffff, 0xf0ff7f000000, 0xffffffffffffff0f, 0x4000000000e0ff], [0x5747e9ab1ea0d93d, 0xe5af95824b6feaff, 0x6e9fdaf96207ac84, 0xdf2a39ec9abce698]]
         
         var isOverflow = false
-        let a_x = Secpt256k1Field(words64: aVector[0], overflowed: &isOverflow)
+        let a_x = Secp256k1Field(words64: aVector[0], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
-        let a_y = Secpt256k1Field(words64: aVector[1], overflowed: &isOverflow)
+        let a_y = Secp256k1Field(words64: aVector[1], overflowed: &isOverflow)
         XCTAssertFalse(isOverflow)
         let a = Secp256k1Group(x: a_x, y: a_y)!
         XCTAssertTrue(a.isValid())

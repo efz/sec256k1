@@ -44,34 +44,34 @@ class EcKeyTests: XCTestCase {
         let pubKeyNeg1 = privKey!.pubKey!
         
         /* Tweak of zero leaves the value changed. */
-        try! privKey!.tweakAdd(tweak: Secpt256k1Scalar.zero)
+        try! privKey!.tweakAdd(tweak: Secp256k1Scalar.zero)
         XCTAssertEqual(privKey!, prevKeyNeg1)
         var pubKey = privKey!.pubKey!
-        try! pubKey.tweakAdd(tweak: Secpt256k1Scalar.zero)
+        try! pubKey.tweakAdd(tweak: Secp256k1Scalar.zero)
         XCTAssertEqual(pubKey,  pubKeyNeg1)
         
         /* Multiply tweak of zero zeroizes the output. */
-        XCTAssertThrowsError(try privKey!.tweakMul(tweak: Secpt256k1Scalar.zero))
-        XCTAssertThrowsError(try pubKey.tweakMul(tweak: Secpt256k1Scalar.zero))
+        XCTAssertThrowsError(try privKey!.tweakMul(tweak: Secp256k1Scalar.zero))
+        XCTAssertThrowsError(try pubKey.tweakMul(tweak: Secp256k1Scalar.zero))
         
         /* Private key tweaks results in a key of zero. */
         ctmp = orderc
         ctmp[31] = 0x40
         privKey = Secp256k1PrivateKey(bytes: ctmp)
-        XCTAssertThrowsError(try privKey!.tweakAdd(tweak: Secpt256k1Scalar.one))
+        XCTAssertThrowsError(try privKey!.tweakAdd(tweak: Secp256k1Scalar.one))
         pubKey = pubKeyNeg1
-        XCTAssertThrowsError(try pubKey.tweakAdd(tweak: Secpt256k1Scalar.one))
+        XCTAssertThrowsError(try pubKey.tweakAdd(tweak: Secp256k1Scalar.one))
         
         /* Tweak computation wraps and results in a key of 1. */
-        let two = Secpt256k1Scalar(int: 2)
+        let two = Secp256k1Scalar(int: 2)
         try! privKey!.tweakAdd(tweak: two)
-        XCTAssertEqual(privKey, Secp256k1PrivateKey(s: Secpt256k1Scalar.one))
+        XCTAssertEqual(privKey, Secp256k1PrivateKey(s: Secp256k1Scalar.one))
         try! pubKey.tweakAdd(tweak: two)
-        XCTAssertEqual(pubKey, Secp256k1PrivateKey(s: Secpt256k1Scalar.one)!.pubKey)
+        XCTAssertEqual(pubKey, Secp256k1PrivateKey(s: Secp256k1Scalar.one)!.pubKey)
         
         /* Tweak mul * 2 = 1+1. */
         var pubKey2 = pubKey
-        try! pubKey.tweakAdd(tweak: Secpt256k1Scalar.one)
+        try! pubKey.tweakAdd(tweak: Secp256k1Scalar.one)
         try! pubKey2.tweakMul(tweak: two)
         XCTAssertEqual(pubKey, pubKey2)
     }
@@ -324,25 +324,61 @@ class EcKeyTests: XCTestCase {
         }
     }
     
-    func testPrivateKeySerialization() {
-        let randSeed = (0..<16).map() { _ in
-            UInt8(UInt16.random(in: 0..<256))
-        }
-        var keyGen = Secp256k1sRfc6979HmacSha256(key: randSeed)
+    struct RandProvider {
+        static var keyGenerator: Secp256k1sRfc6979HmacSha256 = {
+            let randSeed = (0..<16).map() { _ in
+                UInt8(UInt16.random(in: 0..<256))
+            }
+            return Secp256k1sRfc6979HmacSha256(key: randSeed)
+        }();
         
-        for _ in 0..<10 {
-            var privKeyBytes = [UInt8](repeating: 0, count: 32)
-            keyGen.generate(rand: &privKeyBytes)
+        func genPrivateKeyWithBytes() -> (Secp256k1PrivateKey, [UInt8]) {
+            var priveKey: Secp256k1PrivateKey? = nil
+            var priveKeyBytes: [UInt8] = []
+            while priveKey == nil {
+                var bytes = [UInt8](repeating: 0, count: 32)
+                RandProvider.keyGenerator.generate(rand: &bytes)
+                (priveKeyBytes, priveKey) = (bytes, Secp256k1PrivateKey(bytes: bytes))
+            }
             
-            let privKey = Secp256k1PrivateKey(bytes: privKeyBytes)
+            return (priveKey!, priveKeyBytes)
+        }
+        
+        func genPrivateKey() -> Secp256k1PrivateKey {
+            return genPrivateKeyWithBytes().0
+        }
+    }
+    
+    func testPrivateKeySerialization() {
+        let randp = RandProvider()
+        
+        for _ in 0..<5 {
+            let (privKey, privKeyBytes) = randp.genPrivateKeyWithBytes()
             XCTAssertNotNil(privKey)
-            let pubKey = privKey?.pubKey
+            let pubKey = privKey.pubKey
             XCTAssertNotNil(pubKey)
-            XCTAssertEqual(pubKey, Secp256k1PublicKey.init(privKey: privKey!))
+            XCTAssertEqual(pubKey, Secp256k1PublicKey.init(privKey: privKey))
             
             var serializedPrivKeyBytes = [UInt8](repeating: 0, count: 32)
-            privKey?.serialize(bytes: &serializedPrivKeyBytes)
+            privKey.serialize(bytes: &serializedPrivKeyBytes)
             XCTAssertEqual(serializedPrivKeyBytes, privKeyBytes)
         }
+    }
+    
+    func testPublicKeyCombine() {
+        let count = 6
+        var pubKeys: [Secp256k1PublicKey] = []
+        let randp = RandProvider()
+        var sum = Secp256k1Scalar.zero
+        
+        for _ in 0..<count {
+            let privKey = randp.genPrivateKey()
+            sum.add(privKey.privKey)
+            pubKeys.append(privKey.pubKey!)
+        }
+        
+        let combinedPubKey = try! Secp256k1PublicKey.combine(pubKeys: pubKeys)
+        let summedPubKey = Secp256k1PrivateKey(s: sum)!.pubKey
+        XCTAssertEqual(summedPubKey, combinedPubKey)
     }
 }

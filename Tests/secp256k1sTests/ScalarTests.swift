@@ -550,14 +550,14 @@ final class ScalarTests: XCTestCase {
           0x5c, 0x02, 0x97, 0x1b, 0x62, 0x43, 0x86, 0xf5]]
     ]
     
-    static func randScalar() -> Secpt256k1Scalar {
-        var s: Secpt256k1Scalar
+    static func randScalar() -> Secp256k1Scalar {
+        var s: Secp256k1Scalar
         var overflowed = false
         repeat {
             let words: [UInt32] = (0..<8).map { _ in
                 UInt32(UInt64.random(in: UInt64(UInt32.min)..<UInt64(UInt32.max)+1))
             }
-            s = Secpt256k1Scalar(words32: words, overflowed: &overflowed)
+            s = Secp256k1Scalar(words32: words, overflowed: &overflowed)
         } while overflowed || s.isZero()
         return s
     }
@@ -569,10 +569,10 @@ final class ScalarTests: XCTestCase {
         
         /* Test that fetching groups of 4 bits from a scalar and recursing n(i)=16*n(i-1)+p(i) reconstructs it. */
         {
-            var n = Secpt256k1Scalar()
+            var n = Secp256k1Scalar()
             var i = 0
             while i < 256 {
-                let t = Secpt256k1Scalar(int: s.getBits(offset: 256 - 4 - i, count: 4))
+                let t = Secp256k1Scalar(int: s.getBits(offset: 256 - 4 - i, count: 4))
                 for _ in 0..<4 {
                     n.add(n)
                 }
@@ -584,14 +584,14 @@ final class ScalarTests: XCTestCase {
         
         /* Test that fetching groups of randomly-sized bits from a scalar and recursing n(i)=b*n(i-1)+p(i) reconstructs it. */
         {
-            var n = Secpt256k1Scalar(int32: 0);
+            var n = Secp256k1Scalar(int32: 0);
             var i = 0;
             while i < 256 {
                 var now = Int.random(in: 0..<15) + 1;
                 if now + i > 256 {
                     now = 256 - i;
                 }
-                let t = Secpt256k1Scalar(int: s.getBits(offset: 256 - now - i, count: now));
+                let t = Secp256k1Scalar(int: s.getBits(offset: 256 - now - i, count: now));
                 for _ in 0..<now {
                     n.add(n)
                 }
@@ -602,7 +602,7 @@ final class ScalarTests: XCTestCase {
         }();
         
         {
-            let b = Secpt256k1Scalar(int32: 1)
+            let b = Secp256k1Scalar(int32: 1)
             XCTAssertTrue(b.isOne())
         }();
         
@@ -624,7 +624,7 @@ final class ScalarTests: XCTestCase {
         
         /* Test additive identity. */
         {
-            let v0 = Secpt256k1Scalar()
+            let v0 = Secp256k1Scalar()
             let r3 = s + v0
             XCTAssertEqual(r3, s)
         }();
@@ -632,14 +632,14 @@ final class ScalarTests: XCTestCase {
         /* Test p. */
         {
             var overflow = false
-            let p = Secpt256k1Scalar(bits64x4: Secpt256k1Scalar.p, overflowed: &overflow)
+            let p = Secp256k1Scalar(bits64x4: Secp256k1Scalar.p, overflowed: &overflow)
             XCTAssertTrue(overflow)
-            let v0 = Secpt256k1Scalar(int32: 0)
+            let v0 = Secp256k1Scalar(int32: 0)
             XCTAssertEqual(p, v0)
             
             let pPlus1 : [UInt32] = [0xD0364142, 0xBFD25E8C, 0xAF48A03B, 0xBAAEDCE6, 0xFFFFFFFE, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF]
             var overflowed = false
-            let p1 = Secpt256k1Scalar(words32: pPlus1, overflowed: &overflowed)
+            let p1 = Secp256k1Scalar(words32: pPlus1, overflowed: &overflowed)
             XCTAssertTrue(p1.isOne())
         }();
         
@@ -655,7 +655,7 @@ final class ScalarTests: XCTestCase {
             let r3 = r2 - r1
             XCTAssertEqual(r3, s)
             
-            let z = Secpt256k1Scalar()
+            let z = Secp256k1Scalar()
             let r4 = z - s
             XCTAssertEqual(r4, r1)
         }();
@@ -663,17 +663,17 @@ final class ScalarTests: XCTestCase {
         /* Test mul. */
         {
             var r1 = s
-            let one = Secpt256k1Scalar(int32: 1)
+            let one = Secp256k1Scalar(int32: 1)
             r1.mul(one)
             XCTAssertEqual(r1, s)
             
-            let z = Secpt256k1Scalar()
+            let z = Secp256k1Scalar()
             r1.mul(z)
             XCTAssertTrue(r1.isZero())
             
             let v = s
             let v2 = v + v
-            let two = Secpt256k1Scalar(int32: 2)
+            let two = Secp256k1Scalar(int32: 2)
             var v2o = s
             v2o.mul(two)
             XCTAssertEqual(v2o, v2)
@@ -717,14 +717,14 @@ final class ScalarTests: XCTestCase {
         
         /* Test multiplicative identity. */
         {
-            let v0 = Secpt256k1Scalar(int32: 1)
+            let v0 = Secp256k1Scalar(int32: 1)
             let r1 = s1 * v0
             XCTAssertEqual(r1, s1)
         }();
         
         /* Test zero product property. */
         {
-            let v0 = Secpt256k1Scalar(int32: 0)
+            let v0 = Secp256k1Scalar(int32: 0)
             let r1 = s1 * v0
             XCTAssertEqual(r1, v0)
         }();
@@ -732,7 +732,7 @@ final class ScalarTests: XCTestCase {
         /* Test that scalar inverses are equal to the inverse of their number modulo the order. */
         {
             var overflow = false
-            let s = Secpt256k1Scalar(bytes: init_x, overflowed: &overflow)
+            let s = Secp256k1Scalar(bytes: init_x, overflowed: &overflow)
             assert(!s.isZero())
             var inv = s
             inv.inverse()
@@ -740,7 +740,7 @@ final class ScalarTests: XCTestCase {
             let r1 = inv * s
             XCTAssertTrue(r1.isOne())
             /* Inverting one must result in one. */
-            var one = Secpt256k1Scalar(int32: 1)
+            var one = Secp256k1Scalar(int32: 1)
             XCTAssertTrue(one.isOne())
             one.inverse()
             XCTAssertTrue(one.isOne())
@@ -758,13 +758,13 @@ final class ScalarTests: XCTestCase {
         
         for i in 0..<32 {
             var overflow = false
-            let x = Secpt256k1Scalar(bytes: chal[i][0], overflowed: &overflow)
+            let x = Secp256k1Scalar(bytes: chal[i][0], overflowed: &overflow)
             XCTAssertFalse(overflow)
-            let y = Secpt256k1Scalar(bytes: chal[i][1], overflowed: &overflow)
+            let y = Secp256k1Scalar(bytes: chal[i][1], overflowed: &overflow)
             XCTAssertFalse(overflow)
-            let r1 = Secpt256k1Scalar(bytes: res[i][0], overflowed: &overflow)
+            let r1 = Secp256k1Scalar(bytes: res[i][0], overflowed: &overflow)
             XCTAssertFalse(overflow)
-            let r2 = Secpt256k1Scalar(bytes: res[i][1], overflowed: &overflow)
+            let r2 = Secp256k1Scalar(bytes: res[i][1], overflowed: &overflow)
             XCTAssertFalse(overflow)
             
             var z = x * y
@@ -787,11 +787,11 @@ final class ScalarTests: XCTestCase {
     
     func testOverflow() throws {
         var overflowed = false
-        let x1 = Secpt256k1Scalar(words64: [Secpt256k1Scalar.p.0 - 1, Secpt256k1Scalar.p.1, Secpt256k1Scalar.p.2, Secpt256k1Scalar.p.3], overflowed: &overflowed)
+        let x1 = Secp256k1Scalar(words64: [Secp256k1Scalar.p.0 - 1, Secp256k1Scalar.p.1, Secp256k1Scalar.p.2, Secp256k1Scalar.p.3], overflowed: &overflowed)
         XCTAssertFalse(overflowed)
-        let x2 = Secpt256k1Scalar(words64: [0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, Secpt256k1Scalar.p.2, Secpt256k1Scalar.p.3 - 1], overflowed: &overflowed)
+        let x2 = Secp256k1Scalar(words64: [0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, Secp256k1Scalar.p.2, Secp256k1Scalar.p.3 - 1], overflowed: &overflowed)
         XCTAssertFalse(overflowed)
-        let x3 = Secpt256k1Scalar(words64: [0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, Secpt256k1Scalar.p.2 - 1, Secpt256k1Scalar.p.3], overflowed: &overflowed)
+        let x3 = Secp256k1Scalar(words64: [0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, Secp256k1Scalar.p.2 - 1, Secp256k1Scalar.p.3], overflowed: &overflowed)
         XCTAssertFalse(overflowed)
         let r1 = x1 * x1
         let r2 = x2 * x2

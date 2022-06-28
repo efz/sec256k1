@@ -1,33 +1,33 @@
 public struct Secp256k1Group {
-    public static let curvA = Secpt256k1Field.zero
-    public static let curvB = Secpt256k1Field(int64: 7)
+    public static let curvA = Secp256k1Field.zero
+    public static let curvB = Secp256k1Field(int64: 7)
     public static let infinity = Secp256k1Group()
-    static let three = Secpt256k1Field(int32: 3)
-    static let two = Secpt256k1Field(int32: 2)
+    static let three = Secp256k1Field(int32: 3)
+    static let two = Secp256k1Field(int32: 2)
     
-    public var x: Secpt256k1Field
-    public var y: Secpt256k1Field
-    public var z: Secpt256k1Field
+    public var x: Secp256k1Field
+    public var y: Secp256k1Field
+    public var z: Secp256k1Field
     public var isInfinity: Bool
     
     public init() {
-        x = Secpt256k1Field.zero
-        y = Secpt256k1Field.zero
-        z = Secpt256k1Field.one
+        x = Secp256k1Field.zero
+        y = Secp256k1Field.zero
+        z = Secp256k1Field.one
         isInfinity = true
     }
     
-    public init?(x: Secpt256k1Field, y: Secpt256k1Field) {
+    public init?(x: Secp256k1Field, y: Secp256k1Field) {
         self.x = x
         self.y = y
-        z = Secpt256k1Field.one
+        z = Secp256k1Field.one
         isInfinity = false
         if !isValid() {
             return nil
         }
     }
     
-    public init?(x: Secpt256k1Field, y: Secpt256k1Field, z: Secpt256k1Field) {
+    public init?(x: Secp256k1Field, y: Secp256k1Field, z: Secp256k1Field) {
         self.x = x
         self.y = y
         self.z = z
@@ -37,9 +37,9 @@ public struct Secp256k1Group {
         }
     }
     
-    public init?(x: Secpt256k1Field) {
+    public init?(x: Secp256k1Field) {
         self.x = x
-        z = Secpt256k1Field.one
+        z = Secp256k1Field.one
         isInfinity = false
         if let computedY = Secp256k1Group.calcY(x: x) {
             y = computedY
@@ -48,9 +48,9 @@ public struct Secp256k1Group {
         }
     }
     
-    public init?(x: Secpt256k1Field, odd: Bool) {
+    public init?(x: Secp256k1Field, odd: Bool) {
         self.x = x
-        z = Secpt256k1Field.one
+        z = Secp256k1Field.one
         isInfinity = false
         if let computedY = Secp256k1Group.calcY(x: x) {
             y = computedY
@@ -66,14 +66,14 @@ public struct Secp256k1Group {
         assert(bytes.count >= 32)
         
         var overflowed = false
-        let tmpX = Secpt256k1Field(bytes: bytes[bytes.startIndex..<bytes.startIndex+32], overflowed: &overflowed)
+        let tmpX = Secp256k1Field(bytes: bytes[bytes.startIndex..<bytes.startIndex+32], overflowed: &overflowed)
         if overflowed {
             return nil
         }
         if bytes.count < 64 {
             self.init(x: tmpX)
         } else {
-            let tempY = Secpt256k1Field(bytes: bytes[bytes.startIndex+32..<bytes.startIndex+64], overflowed: &overflowed)
+            let tempY = Secp256k1Field(bytes: bytes[bytes.startIndex+32..<bytes.startIndex+64], overflowed: &overflowed)
             if overflowed {
                 return nil
             }
@@ -104,7 +104,7 @@ public struct Secp256k1Group {
         }
     }
     
-    static func calcY(x: Secpt256k1Field) -> Secpt256k1Field? {
+    static func calcY(x: Secp256k1Field) -> Secp256k1Field? {
         var computedY = x * x * x + Secp256k1Group.curvB
         let yExists = computedY.sqrt()
         return yExists ? computedY : nil
@@ -161,7 +161,7 @@ public struct Secp256k1Group {
         
         let xDiff = (b.x - x)
         if xDiff.isZero() {
-            y = Secpt256k1Field.zero
+            y = Secp256k1Field.zero
             isInfinity = true
             return
         }
@@ -186,9 +186,9 @@ public struct Secp256k1Group {
     }
     
     public mutating func normalizeJ() {
-        let z2 = Secpt256k1Field.sqr(z)
+        let z2 = Secp256k1Field.sqr(z)
         let z3 = z2 * z
-        z = Secpt256k1Field.one
+        z = Secp256k1Field.one
         x = x / z2
         y = y / z3
     }
@@ -204,8 +204,8 @@ public struct Secp256k1Group {
             return
         }
         
-        let z2 = Secpt256k1Field.sqr(z)
-        let bz2 = Secpt256k1Field.sqr(b.z)
+        let z2 = Secp256k1Field.sqr(z)
+        let bz2 = Secp256k1Field.sqr(b.z)
         let bxz2 = b.x * z2
         let xbz2 = x * bz2
         let xDiffJ = bxz2 - xbz2
@@ -213,27 +213,27 @@ public struct Secp256k1Group {
         let z3 = z2 * z
         let bz3 = bz2 * b.z
         let byz3 = b.y * z3
-        let yDiffJ = Secpt256k1Field.mulSub(byz3, y, bz3) // yDiffJ = mj
+        let yDiffJ = Secp256k1Field.mulSub(byz3, y, bz3) // yDiffJ = mj
         
         if xDiffJ.isZero() {
             if yDiffJ.isZero() {
                 doubleJ()
                 return
             }
-            y = Secpt256k1Field.zero
+            y = Secp256k1Field.zero
             isInfinity = true
             return
         }
         
-        let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
+        let xDiffJ2 = Secp256k1Field.sqr(xDiffJ)
         let t1 = xbz2 + bxz2
-        x = Secpt256k1Field.mulSub(yDiffJ, yDiffJ, xDiffJ2, t1)
+        x = Secp256k1Field.mulSub(yDiffJ, yDiffJ, xDiffJ2, t1)
         
         let zbz = z * b.z
         z = xDiffJ * zbz
         
-        let tc = Secpt256k1Field.mulSub(byz3, xDiffJ, yDiffJ, bxz2)
-        y = Secpt256k1Field.mulAdd(yDiffJ, x, xDiffJ2, tc)
+        let tc = Secp256k1Field.mulSub(byz3, xDiffJ, yDiffJ, bxz2)
+        y = Secp256k1Field.mulAdd(yDiffJ, x, xDiffJ2, tc)
         y.negate()
     }
     
@@ -248,7 +248,7 @@ public struct Secp256k1Group {
             return
         }
         
-        let z2 = Secpt256k1Field.sqr(z)
+        let z2 = Secp256k1Field.sqr(z)
         let bxz2 = b.x * z2
         let xDiffJ = bxz2 - x
         
@@ -261,21 +261,21 @@ public struct Secp256k1Group {
                 doubleJ()
                 return
             }
-            y = Secpt256k1Field.zero
+            y = Secp256k1Field.zero
             isInfinity = true
             return
         }
         
         let mj = yDiffJ
         
-        let xDiffJ2 = Secpt256k1Field.sqr(xDiffJ)
+        let xDiffJ2 = Secp256k1Field.sqr(xDiffJ)
         let t1 = x + bxz2
-        x = Secpt256k1Field.mulSub(mj, mj, xDiffJ2, t1)
+        x = Secp256k1Field.mulSub(mj, mj, xDiffJ2, t1)
         
         z = xDiffJ * z
         
-        let tc = Secpt256k1Field.mulSub(byz3, xDiffJ, mj, bxz2)
-        y = Secpt256k1Field.mulAdd(mj, x, xDiffJ2, tc)
+        let tc = Secp256k1Field.mulSub(byz3, xDiffJ, mj, bxz2)
+        y = Secp256k1Field.mulAdd(mj, x, xDiffJ2, tc)
         y.negate()
     }
     
@@ -295,7 +295,7 @@ public struct Secp256k1Group {
         var x2 = x
         x2.sqr()
         
-        let m = (Secpt256k1Field.three * x2) / (Secpt256k1Field.two * y)
+        let m = (Secp256k1Field.three * x2) / (Secp256k1Field.two * y)
         var m2 = m
         m2.sqr()
         
@@ -320,15 +320,15 @@ public struct Secp256k1Group {
             return
         }
         
-        z = Secpt256k1Field.mulMulInt(y, z, 2)
+        z = Secp256k1Field.mulMulInt(y, z, 2)
         
-        let x2 = Secpt256k1Field.sqr(x)
-        let y2 = Secpt256k1Field.sqr(y)
+        let x2 = Secp256k1Field.sqr(x)
+        let y2 = Secp256k1Field.sqr(y)
         let x3 = x2 * x
         
-        x = Secpt256k1Field.mulMulIntSub(x2, x2, 9, x, y2, 8)
-        let t2 = Secpt256k1Field.mulIntSub(x3, 9, y2, 2)
-        y = Secpt256k1Field.mulMulIntSub(x3, x3, 27, y2, t2, 4)
+        x = Secp256k1Field.mulMulIntSub(x2, x2, 9, x, y2, 8)
+        let t2 = Secp256k1Field.mulIntSub(x3, 9, y2, 2)
+        y = Secp256k1Field.mulMulIntSub(x3, x3, 27, y2, t2, 4)
         
         y.negate()
     }

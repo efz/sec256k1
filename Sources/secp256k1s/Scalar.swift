@@ -1,4 +1,4 @@
-public struct Secpt256k1Scalar: UInt256p {
+public struct Secp256k1Scalar: UInt256p {
     var d: Bits64x4
     var acc: Accumulator
     
@@ -11,8 +11,8 @@ public struct Secpt256k1Scalar: UInt256p {
     static let pComp: Bits64x3 = (~p.0 + 1, ~p.1, ~p.2)
     static let pCompLeadingZeros = 127
     
-    public static let zero = Secpt256k1Scalar()
-    public static let one = Secpt256k1Scalar(int32: 1)
+    public static let zero = Secp256k1Scalar()
+    public static let one = Secp256k1Scalar(int32: 1)
     
     static let wordMask = UInt64.max
     
@@ -23,13 +23,13 @@ public struct Secpt256k1Scalar: UInt256p {
     
     func checkOverflow() -> Bool {
         var accC = Accumulator(d.0)
-        accC.sumAddFast(Secpt256k1Scalar.pComp.0)
+        accC.sumAddFast(Secp256k1Scalar.pComp.0)
         let _ = accC.extractFast()
         accC.sumAddFast(d.1)
-        accC.sumAddFast(Secpt256k1Scalar.pComp.1)
+        accC.sumAddFast(Secp256k1Scalar.pComp.1)
         let _ = accC.extractFast()
         accC.sumAddFast(d.2)
-        accC.sumAddFast(Secpt256k1Scalar.pComp.2)
+        accC.sumAddFast(Secp256k1Scalar.pComp.2)
         let _ = accC.extractFast()
         accC.sumAddFast(d.3)
         let _ = accC.extractFast()
@@ -46,13 +46,13 @@ public struct Secpt256k1Scalar: UInt256p {
         var reduced: Bits64x4 = (0, 0, 0, 0)
         
         acc.reset(d.0)
-        acc.sumAddFast(Secpt256k1Scalar.pComp.0)
+        acc.sumAddFast(Secp256k1Scalar.pComp.0)
         reduced.0 = acc.extractFast()
         acc.sumAddFast(d.1)
-        acc.sumAddFast(Secpt256k1Scalar.pComp.1)
+        acc.sumAddFast(Secp256k1Scalar.pComp.1)
         reduced.1 = acc.extractFast()
         acc.sumAddFast(d.2)
-        acc.sumAddFast(Secpt256k1Scalar.pComp.2)
+        acc.sumAddFast(Secp256k1Scalar.pComp.2)
         reduced.2 = acc.extractFast()
         acc.sumAddFast(d.3)
         reduced.3 = acc.extractFast()
@@ -71,29 +71,29 @@ public struct Secpt256k1Scalar: UInt256p {
         guard !isZero() else {
             return
         }
-        assert(Secpt256k1Scalar.p.0 != 0 && Secpt256k1Scalar.p.1 != 0 && Secpt256k1Scalar.p.2 != 0 && Secpt256k1Scalar.p.3 != 0)
+        assert(Secp256k1Scalar.p.0 != 0 && Secp256k1Scalar.p.1 != 0 && Secp256k1Scalar.p.2 != 0 && Secp256k1Scalar.p.3 != 0)
         var t : UInt64 = 0
         var overflow = false
         
-        (d.0, overflow) = Secpt256k1Scalar.p.0.subtractingReportingOverflow(d.0)
+        (d.0, overflow) = Secp256k1Scalar.p.0.subtractingReportingOverflow(d.0)
         t = overflow ? 1 : 0
         
-        t = Secpt256k1Scalar.p.1 - t
+        t = Secp256k1Scalar.p.1 - t
         (d.1, overflow) = t.subtractingReportingOverflow(d.1)
         t = overflow ? 1 : 0
         
-        t = Secpt256k1Scalar.p.2 - t
+        t = Secp256k1Scalar.p.2 - t
         (d.2, overflow) = t.subtractingReportingOverflow(d.2)
         t = overflow ? 1 : 0
         
-        t = Secpt256k1Scalar.p.3 - t
+        t = Secp256k1Scalar.p.3 - t
         (d.3, overflow) = t.subtractingReportingOverflow(d.3)
         
         assert(!overflow)
     }
     
     mutating func reduce512Bits(_ bits512: Bits64x8) {
-        assert(Secpt256k1Scalar.pComp.2 == 1)
+        assert(Secp256k1Scalar.pComp.2 == 1)
         
         var bits448: Bits64x7 = (0, 0, 0, 0, 0, 0, 0)
         // round 1
@@ -102,14 +102,14 @@ public struct Secpt256k1Scalar: UInt256p {
         
         acc.reset(bits512.2)
         
-        acc.mulAddFast(bits512.6, Secpt256k1Scalar.pComp.0)
+        acc.mulAddFast(bits512.6, Secp256k1Scalar.pComp.0)
         bits448.2 = acc.extractFast()
-        acc.mulAddFast(bits512.6, Secpt256k1Scalar.pComp.1)
-        acc.mulAdd(bits512.7, Secpt256k1Scalar.pComp.0)
+        acc.mulAddFast(bits512.6, Secp256k1Scalar.pComp.1)
+        acc.mulAdd(bits512.7, Secp256k1Scalar.pComp.0)
         acc.sumAdd(bits512.3)
         bits448.3 = acc.extract()
         acc.sumAdd(bits512.6) // acc.mulAdd(bits512[mStart], Secpt256k1Scalar.pComp[2])
-        acc.mulAdd(bits512.7, Secpt256k1Scalar.pComp.1)
+        acc.mulAdd(bits512.7, Secp256k1Scalar.pComp.1)
         acc.sumAdd(bits512.4)
         bits448.4 = acc.extract()
         acc.sumAdd(bits512.7) //acc.mulAdd(bits512[mStart+1], Secpt256k1Scalar.pComp[2])
@@ -123,14 +123,14 @@ public struct Secpt256k1Scalar: UInt256p {
         bits384.0 = bits448.0
         
         acc.reset(bits448.1)
-        acc.mulAddFast(bits448.5, Secpt256k1Scalar.pComp.0)
+        acc.mulAddFast(bits448.5, Secp256k1Scalar.pComp.0)
         bits384.1 = acc.extractFast()
-        acc.mulAddFast(bits448.5, Secpt256k1Scalar.pComp.1)
-        acc.mulAdd(bits448.6, Secpt256k1Scalar.pComp.0)
+        acc.mulAddFast(bits448.5, Secp256k1Scalar.pComp.1)
+        acc.mulAdd(bits448.6, Secp256k1Scalar.pComp.0)
         acc.sumAdd(bits448.2)
         bits384.2 = acc.extract()
         acc.sumAdd(bits448.5) //acc.mulAdd(d[mStart], Secpt256k1Scalar.pComp[2])
-        acc.mulAdd(bits448.6, Secpt256k1Scalar.pComp.1)
+        acc.mulAdd(bits448.6, Secp256k1Scalar.pComp.1)
         acc.sumAdd(bits448.3)
         bits384.3 = acc.extract()
         acc.sumAdd(bits448.6) //acc.mulAdd(d[mStart+1], Secpt256k1Scalar.pComp[2])
@@ -141,13 +141,13 @@ public struct Secpt256k1Scalar: UInt256p {
         
         // round 3
         acc.reset(bits384.0)
-        acc.mulAddFast(bits384.4, Secpt256k1Scalar.pComp.0)
+        acc.mulAddFast(bits384.4, Secp256k1Scalar.pComp.0)
         d.0 = acc.extractFast()
-        acc.mulAddFast(bits384.4, Secpt256k1Scalar.pComp.1)
-        acc.mulAdd(bits384.5, Secpt256k1Scalar.pComp.0)
+        acc.mulAddFast(bits384.4, Secp256k1Scalar.pComp.1)
+        acc.mulAdd(bits384.5, Secp256k1Scalar.pComp.0)
         acc.sumAdd(bits384.1)
         d.1 = acc.extract()
-        acc.mulAdd(bits384.5, Secpt256k1Scalar.pComp.1)
+        acc.mulAdd(bits384.5, Secp256k1Scalar.pComp.1)
         acc.sumAdd(bits384.4) // acc.mulAddFast(bits512[mStart], Secpt256k1Scalar.pComp[2])
         acc.sumAdd(bits384.2)
         d.2 = acc.extract()

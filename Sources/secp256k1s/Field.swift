@@ -1,4 +1,4 @@
-public struct Secpt256k1Field: UInt256p {
+public struct Secp256k1Field: UInt256p {
     var d: Bits64x4
     var acc: Accumulator
     
@@ -13,10 +13,10 @@ public struct Secpt256k1Field: UInt256p {
     static let pCompLeadingZeros = 223
     static let pCompWordWidth = 1
     
-    public static let zero = Secpt256k1Field()
-    public static let one = Secpt256k1Field(int32: 1)
-    static let three = Secpt256k1Field(int32: 3)
-    static let two = Secpt256k1Field(int32: 2)
+    public static let zero = Secp256k1Field()
+    public static let one = Secp256k1Field(int32: 1)
+    static let three = Secp256k1Field(int32: 3)
+    static let two = Secp256k1Field(int32: 2)
     
     static let wordMask = UInt64.max
     
@@ -28,7 +28,7 @@ public struct Secpt256k1Field: UInt256p {
     @inline(__always)
     public func checkOverflow() -> Bool {
         var accC = Accumulator(d.0)
-        accC.sumAddFast(Secpt256k1Field.pComp.0)
+        accC.sumAddFast(Secp256k1Field.pComp.0)
         let _ = accC.extractFast()
         accC.sumAddFast(d.1)
         let _ = accC.extractFast()
@@ -50,7 +50,7 @@ public struct Secpt256k1Field: UInt256p {
         let dCopy = d
         
         acc.reset(d.0)
-        acc.sumAddFast(Secpt256k1Field.pComp.0)
+        acc.sumAddFast(Secp256k1Field.pComp.0)
         d.0 = acc.extractFast()
         acc.sumAddFast(d.1)
         d.1 = acc.extractFast()
@@ -74,22 +74,22 @@ public struct Secpt256k1Field: UInt256p {
         guard !isZero() else {
             return
         }
-        assert(Secpt256k1Field.p.0 != 0 && Secpt256k1Field.p.1 != 0 && Secpt256k1Field.p.2 != 0 && Secpt256k1Field.p.3 != 0)
+        assert(Secp256k1Field.p.0 != 0 && Secp256k1Field.p.1 != 0 && Secp256k1Field.p.2 != 0 && Secp256k1Field.p.3 != 0)
         var t : UInt64 = 0
         var overflow = false
         
-        (d.0, overflow) = Secpt256k1Field.p.0.subtractingReportingOverflow(d.0)
+        (d.0, overflow) = Secp256k1Field.p.0.subtractingReportingOverflow(d.0)
         t = overflow ? 1 : 0
         
-        t = Secpt256k1Field.p.1 - t
+        t = Secp256k1Field.p.1 - t
         (d.1, overflow) = t.subtractingReportingOverflow(d.1)
         t = overflow ? 1 : 0
         
-        t = Secpt256k1Field.p.2 - t
+        t = Secp256k1Field.p.2 - t
         (d.2, overflow) = t.subtractingReportingOverflow(d.2)
         t = overflow ? 1 : 0
         
-        t = Secpt256k1Field.p.3 - t
+        t = Secp256k1Field.p.3 - t
         (d.3, overflow) = t.subtractingReportingOverflow(d.3)
         
         assert(!overflow)
@@ -101,15 +101,15 @@ public struct Secpt256k1Field: UInt256p {
         // round 1
         
         acc.reset(bits512.0)
-        acc.mulAddFast(bits512.4, Secpt256k1Field.pComp.0)
+        acc.mulAddFast(bits512.4, Secp256k1Field.pComp.0)
         bits320.0 = acc.extractFast()
-        acc.mulAddFast(bits512.5, Secpt256k1Field.pComp.0)
+        acc.mulAddFast(bits512.5, Secp256k1Field.pComp.0)
         acc.sumAddFast(bits512.1)
         bits320.1 = acc.extractFast()
-        acc.mulAddFast(bits512.6, Secpt256k1Field.pComp.0)
+        acc.mulAddFast(bits512.6, Secp256k1Field.pComp.0)
         acc.sumAddFast(bits512.2)
         bits320.2 = acc.extractFast()
-        acc.mulAddFast(bits512.7, Secpt256k1Field.pComp.0)
+        acc.mulAddFast(bits512.7, Secp256k1Field.pComp.0)
         acc.sumAddFast(bits512.3)
         bits320.3 = acc.extractFast()
         bits320.4 = acc.extractFast()
@@ -122,7 +122,7 @@ public struct Secpt256k1Field: UInt256p {
     @inline(__always)
     mutating func reduce320Bits(_ bits320: Bits64x5) {
         acc.reset(bits320.0)
-        acc.mulAddFast(bits320.4, Secpt256k1Field.pComp.0)
+        acc.mulAddFast(bits320.4, Secp256k1Field.pComp.0)
         d.0 = acc.extractFast()
         acc.sumAddFast(bits320.1)
         d.1 = acc.extractFast()
@@ -192,7 +192,7 @@ public struct Secpt256k1Field: UInt256p {
         }
     }
     
-    public static func sqrt(_ x: Secpt256k1Field) -> Secpt256k1Field? {
+    public static func sqrt(_ x: Secp256k1Field) -> Secp256k1Field? {
         var r = x
         let hasSqrt = r.sqrt()
         return hasSqrt ? r : nil
@@ -226,7 +226,7 @@ public struct Secpt256k1Field: UInt256p {
     }
     
     @inline(__always)
-    mutating func mulIntAdd( _ m: UInt64, _ x: Secpt256k1Field = Secpt256k1Field.zero, _ n: UInt64 = 1) {
+    mutating func mulIntAdd( _ m: UInt64, _ x: Secp256k1Field = Secp256k1Field.zero, _ n: UInt64 = 1) {
         assert(!checkOverflow())
         assert(!x.checkOverflow())
         assert(m < UInt64(UInt8.max))
@@ -258,29 +258,29 @@ public struct Secpt256k1Field: UInt256p {
     }
     
     @inline(__always)
-    public static func mulInt(_ x: Secpt256k1Field, _ y: UInt64) -> Secpt256k1Field {
+    public static func mulInt(_ x: Secp256k1Field, _ y: UInt64) -> Secp256k1Field {
         var r = x
         r.mulIntAdd(y)
         return r
     }
     
     @inline(__always)
-    public static func mulIntAdd(_ x: Secpt256k1Field,  _ m: UInt64,  _ y: Secpt256k1Field = Secpt256k1Field.zero, _ n: UInt64 = 1) -> Secpt256k1Field {
+    public static func mulIntAdd(_ x: Secp256k1Field,  _ m: UInt64,  _ y: Secp256k1Field = Secp256k1Field.zero, _ n: UInt64 = 1) -> Secp256k1Field {
         var r = x
         r.mulIntAdd(m, y, n)
         return r
     }
     
     @inline(__always)
-    public static func mulIntSub(_ x: Secpt256k1Field,  _ m: UInt64,  _ y: Secpt256k1Field = Secpt256k1Field.zero, _ n: UInt64 = 1) -> Secpt256k1Field {
+    public static func mulIntSub(_ x: Secp256k1Field,  _ m: UInt64,  _ y: Secp256k1Field = Secp256k1Field.zero, _ n: UInt64 = 1) -> Secp256k1Field {
         var r = x
-        r.mulIntAdd(m, Secpt256k1Field.neg(y), n)
+        r.mulIntAdd(m, Secp256k1Field.neg(y), n)
         return r
     }
     
     
     @inline(__always)
-    mutating func mulMulIntAdd(_ b: Secpt256k1Field,  _ m: UInt64, _ x: Secpt256k1Field, _ y: Secpt256k1Field,  _ n: UInt64) {
+    mutating func mulMulIntAdd(_ b: Secp256k1Field,  _ m: UInt64, _ x: Secp256k1Field, _ y: Secp256k1Field,  _ n: UInt64) {
         assert(!checkOverflow())
         assert(!b.checkOverflow())
         assert(!x.checkOverflow())
@@ -323,14 +323,14 @@ public struct Secpt256k1Field: UInt256p {
     }
     
     @inline(__always)
-    static func mulMulIntAdd(_ a: Secpt256k1Field, _ b: Secpt256k1Field,  _ m: UInt64, _ x: Secpt256k1Field, _ y: Secpt256k1Field,  _ n: UInt64) -> Secpt256k1Field {
+    static func mulMulIntAdd(_ a: Secp256k1Field, _ b: Secp256k1Field,  _ m: UInt64, _ x: Secp256k1Field, _ y: Secp256k1Field,  _ n: UInt64) -> Secp256k1Field {
         var r = a
         r.mulMulIntAdd(b, m, x, y, n)
         return r
     }
     
     @inline(__always)
-    static func mulMulIntSub(_ a: Secpt256k1Field, _ b: Secpt256k1Field,  _ m: UInt64, _ x: Secpt256k1Field, _ y: Secpt256k1Field,  _ n: UInt64) -> Secpt256k1Field {
+    static func mulMulIntSub(_ a: Secp256k1Field, _ b: Secp256k1Field,  _ m: UInt64, _ x: Secp256k1Field, _ y: Secp256k1Field,  _ n: UInt64) -> Secp256k1Field {
         var r = a
         let nx = neg(x)
         r.mulMulIntAdd(b, m, nx, y, n)
@@ -338,7 +338,7 @@ public struct Secpt256k1Field: UInt256p {
     }
     
     @inline(__always)
-    mutating func mulMulInt(_ b: Secpt256k1Field,  _ m: UInt64) {
+    mutating func mulMulInt(_ b: Secp256k1Field,  _ m: UInt64) {
         assert(!checkOverflow())
         assert(!b.checkOverflow())
         assert(m < UInt64(UInt8.max))
@@ -364,14 +364,14 @@ public struct Secpt256k1Field: UInt256p {
     }
     
     @inline(__always)
-    static func mulMulInt(_ a: Secpt256k1Field, _ b: Secpt256k1Field,  _ m: UInt64) -> Secpt256k1Field {
+    static func mulMulInt(_ a: Secp256k1Field, _ b: Secp256k1Field,  _ m: UInt64) -> Secp256k1Field {
         var r = a
         r.mulMulInt(b, m)
         return r
     }
     
     @inline(__always)
-    mutating func mulAdd(_ b: Secpt256k1Field, _ x: Secpt256k1Field, _ y: Secpt256k1Field) {
+    mutating func mulAdd(_ b: Secp256k1Field, _ x: Secp256k1Field, _ y: Secp256k1Field) {
         assert(!checkOverflow())
         assert(!b.checkOverflow())
         assert(!x.checkOverflow())
@@ -412,14 +412,14 @@ public struct Secpt256k1Field: UInt256p {
     }
     
     @inline(__always)
-    static func mulAdd(_ a: Secpt256k1Field, _ b: Secpt256k1Field, _ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
+    static func mulAdd(_ a: Secp256k1Field, _ b: Secp256k1Field, _ x: Secp256k1Field, _ y: Secp256k1Field) -> Secp256k1Field {
         var r = a
         r.mulAdd(b, x, y)
         return r
     }
     
     @inline(__always)
-    static func mulSub(_ a: Secpt256k1Field, _ b: Secpt256k1Field, _ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
+    static func mulSub(_ a: Secp256k1Field, _ b: Secp256k1Field, _ x: Secp256k1Field, _ y: Secp256k1Field) -> Secp256k1Field {
         var r = a
         var nx = x
         nx.negate()
@@ -428,7 +428,7 @@ public struct Secpt256k1Field: UInt256p {
     }
     
     @inline(__always)
-    mutating func mulAdd(_ x: Secpt256k1Field, _ y: Secpt256k1Field) {
+    mutating func mulAdd(_ x: Secp256k1Field, _ y: Secp256k1Field) {
         assert(!checkOverflow())
         assert(!x.checkOverflow())
         assert(!y.checkOverflow())
@@ -457,14 +457,14 @@ public struct Secpt256k1Field: UInt256p {
     }
     
     @inline(__always)
-    static func mulAdd(_ a: Secpt256k1Field, _ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
+    static func mulAdd(_ a: Secp256k1Field, _ x: Secp256k1Field, _ y: Secp256k1Field) -> Secp256k1Field {
         var r = a
         r.mulAdd(x, y)
         return r
     }
     
     @inline(__always)
-    static func mulSub(_ a: Secpt256k1Field, _ x: Secpt256k1Field, _ y: Secpt256k1Field) -> Secpt256k1Field {
+    static func mulSub(_ a: Secp256k1Field, _ x: Secp256k1Field, _ y: Secp256k1Field) -> Secp256k1Field {
         var r = a
         var nx = x
         nx.negate()

@@ -4,19 +4,19 @@ import XCTest
 class FieldTests: XCTestCase {
     let count = 64;
     
-    static func randField() -> Secpt256k1Field {
-        var f: Secpt256k1Field
+    static func randField() -> Secp256k1Field {
+        var f: Secp256k1Field
         var overflowed = false
         repeat {
             let words: [UInt32] = (0..<8).map { _ in
                 UInt32(UInt64.random(in: UInt64(UInt32.min)..<UInt64(UInt32.max)+1))
             }
-            f = Secpt256k1Field(words32: words, overflowed: &overflowed)
+            f = Secp256k1Field(words32: words, overflowed: &overflowed)
         } while overflowed || f.isZero()
         return f
     }
     
-    func verifyInverse(_ x: Secpt256k1Field, _ y: Secpt256k1Field) {
+    func verifyInverse(_ x: Secp256k1Field, _ y: Secp256k1Field) {
         let r = x * y
         XCTAssertTrue(r.isOne())
     }
@@ -35,11 +35,11 @@ class FieldTests: XCTestCase {
     
     func testOverflow() throws {
         var overflow = false
-        let x1 = Secpt256k1Field(words64: [Secpt256k1Field.p.0 - 1, Secpt256k1Field.p.1, Secpt256k1Field.p.2, Secpt256k1Field.p.3], overflowed: &overflow)
+        let x1 = Secp256k1Field(words64: [Secp256k1Field.p.0 - 1, Secp256k1Field.p.1, Secp256k1Field.p.2, Secp256k1Field.p.3], overflowed: &overflow)
         XCTAssertFalse(overflow)
-        let x2 = Secpt256k1Field(words64: [0xFFFF_FFFF_FFFF_FFFF, Secpt256k1Field.p.1, Secpt256k1Field.p.2, Secpt256k1Field.p.3 - 1], overflowed: &overflow)
+        let x2 = Secp256k1Field(words64: [0xFFFF_FFFF_FFFF_FFFF, Secp256k1Field.p.1, Secp256k1Field.p.2, Secp256k1Field.p.3 - 1], overflowed: &overflow)
         XCTAssertFalse(overflow)
-        let x3 = Secpt256k1Field(words64: [0xFFFF_FFFF_FFFF_FFFF, Secpt256k1Field.p.1, Secpt256k1Field.p.2 - 1, Secpt256k1Field.p.3], overflowed: &overflow)
+        let x3 = Secp256k1Field(words64: [0xFFFF_FFFF_FFFF_FFFF, Secp256k1Field.p.1, Secp256k1Field.p.2 - 1, Secp256k1Field.p.3], overflowed: &overflow)
         XCTAssertFalse(overflow)
         let r1 = x1 * x1
         let r2 = x2 * x2
@@ -59,16 +59,16 @@ class FieldTests: XCTestCase {
         let x = Self.randField()
         let x2 = x + x
         let x3 = x2 + x
-        let x3z = x * Secpt256k1Field(int32: 3)
+        let x3z = x * Secp256k1Field(int32: 3)
         XCTAssertEqual(x3, x3z)
         
-        let x5 = x * Secpt256k1Field(int32: 5)
+        let x5 = x * Secp256k1Field(int32: 5)
         let x3zz = x5 - x - x
         XCTAssertEqual(x3, x3zz)
         XCTAssertEqual(x3, x5 - x2)
     }
     
-    func verifySqrt(_ xx: Secpt256k1Field, _ optAwn: Secpt256k1Field?) {
+    func verifySqrt(_ xx: Secp256k1Field, _ optAwn: Secp256k1Field?) {
         var x = xx
         let hasSqrt = x.sqrt()
         XCTAssertTrue(!hasSqrt || optAwn != nil)
@@ -77,21 +77,21 @@ class FieldTests: XCTestCase {
             var neg_awn = awn
             neg_awn.negate()
             XCTAssertTrue(x == awn || x == neg_awn)
-            let x_neg = Secpt256k1Field.zero - x
+            let x_neg = Secp256k1Field.zero - x
             XCTAssertEqual(xx, x_neg * x_neg)
         }
     }
     
     func testSqrt() throws {
         /* Check sqrt(0) is 0 */
-        var z = Secpt256k1Field.zero
+        var z = Secp256k1Field.zero
         let hasSqrt = z.sqrt()
         XCTAssertTrue(hasSqrt)
         XCTAssertTrue(z.isZero())
         
         /* Check sqrt of small squares (and their negatives) */
         for i in 1..<101 {
-            let x = Secpt256k1Field(int32: UInt32(i))
+            let x = Secp256k1Field(int32: UInt32(i))
             let xx = x * x
             verifySqrt(xx, x)
             
@@ -123,17 +123,17 @@ class FieldTests: XCTestCase {
     
     func testMulInt() {
         var pHalfBits: Bits64x4 = (0, 0, 0, 0)
-        pHalfBits.0 = Secpt256k1Field.p.1  & 1 << 63 | Secpt256k1Field.p.0 >> 1
-        pHalfBits.1 = Secpt256k1Field.p.2  & 1 << 63 | Secpt256k1Field.p.1 >> 1
-        pHalfBits.2 = Secpt256k1Field.p.3 & 1 << 63 | Secpt256k1Field.p.2 >> 1
-        pHalfBits.3 = Secpt256k1Field.p.3 >> 1
+        pHalfBits.0 = Secp256k1Field.p.1  & 1 << 63 | Secp256k1Field.p.0 >> 1
+        pHalfBits.1 = Secp256k1Field.p.2  & 1 << 63 | Secp256k1Field.p.1 >> 1
+        pHalfBits.2 = Secp256k1Field.p.3 & 1 << 63 | Secp256k1Field.p.2 >> 1
+        pHalfBits.3 = Secp256k1Field.p.3 >> 1
         
         var overflowed = false
-        let pHalf = Secpt256k1Field(bits64x4: pHalfBits, overflowed: &overflowed)
+        let pHalf = Secp256k1Field(bits64x4: pHalfBits, overflowed: &overflowed)
         XCTAssertFalse(overflowed)
-        let pHalfPlus5 = pHalf + Secpt256k1Field(int32: 5)
+        let pHalfPlus5 = pHalf + Secp256k1Field(int32: 5)
         
-        let mulby2 = Secpt256k1Field.mulInt(pHalfPlus5, 2)
+        let mulby2 = Secp256k1Field.mulInt(pHalfPlus5, 2)
         XCTAssertFalse(mulby2.checkOverflow());
     }
 }

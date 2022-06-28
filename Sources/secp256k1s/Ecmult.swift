@@ -1,7 +1,7 @@
 struct Secp256k1Ecmult {
     static let g = Secp256k1Group(
-        x: Secpt256k1Field(words64: [0x59F2815B_16F81798, 0x029BFCDB_2DCE28D9, 0x55A06295_CE870B07, 0x79BE667E_F9DCBBAC]),
-        y: Secpt256k1Field(words64: [0x9C47D08F_FB10D4B8, 0xFD17B448_A6855419, 0x5DA4FBFC_0E1108A8, 0x483ADA77_26A3C465]))!
+        x: Secp256k1Field(words64: [0x59F2815B_16F81798, 0x029BFCDB_2DCE28D9, 0x55A06295_CE870B07, 0x79BE667E_F9DCBBAC]),
+        y: Secp256k1Field(words64: [0x9C47D08F_FB10D4B8, 0xFD17B448_A6855419, 0x5DA4FBFC_0E1108A8, 0x483ADA77_26A3C465]))!
     
     let gMultTable: [[Secp256k1Group]]
     
@@ -40,7 +40,7 @@ struct Secp256k1Ecmult {
         gMultTable = res
     }
     
-    func gen(gn: Secpt256k1Scalar) -> Secp256k1Group {
+    func gen(gn: Secp256k1Scalar) -> Secp256k1Group {
         var res = Secp256k1Group.infinity
         for i in 0..<64 {
             let idx = gn.getBits(offset: i * 4, count: 4)
@@ -53,12 +53,12 @@ struct Secp256k1Ecmult {
         return res
     }
     
-    func gen(point p: Secp256k1Group, pn: Secpt256k1Scalar) -> Secp256k1Group {
+    func gen(point p: Secp256k1Group, pn: Secp256k1Scalar) -> Secp256k1Group {
         var res = Secp256k1Group.infinity
         var dummy = Secp256k1Group.infinity
         var pPow = p
         var mask: UInt64 = 1
-        for _ in 0..<Secpt256k1Scalar.wordBitWidth {
+        for _ in 0..<Secp256k1Scalar.wordBitWidth {
             if pn.d.0 & mask != 0 {
                 res.addJ(pPow)
             } else {
@@ -69,7 +69,7 @@ struct Secp256k1Ecmult {
             mask = mask << 1
         }
         mask = 1
-        for _ in 0..<Secpt256k1Scalar.wordBitWidth {
+        for _ in 0..<Secp256k1Scalar.wordBitWidth {
             if pn.d.1 & mask != 0 {
                 res.addJ(pPow)
             } else {
@@ -80,7 +80,7 @@ struct Secp256k1Ecmult {
             mask = mask << 1
         }
         mask = 1
-        for _ in 0..<Secpt256k1Scalar.wordBitWidth {
+        for _ in 0..<Secp256k1Scalar.wordBitWidth {
             if pn.d.2 & mask != 0 {
                 res.addJ(pPow)
             } else {
@@ -91,7 +91,7 @@ struct Secp256k1Ecmult {
             mask = mask << 1
         }
         mask = 1
-        for _ in 0..<Secpt256k1Scalar.wordBitWidth {
+        for _ in 0..<Secp256k1Scalar.wordBitWidth {
             if pn.d.3 & mask != 0 {
                 res.addJ(pPow)
             } else {
@@ -107,7 +107,7 @@ struct Secp256k1Ecmult {
         return res
     }
     
-    func gen(point p: Secp256k1Group, gn: Secpt256k1Scalar) -> Secp256k1Group {
+    func gen(point p: Secp256k1Group, gn: Secp256k1Scalar) -> Secp256k1Group {
         let gpn = gen(gn: gn)
         
         var res = p
@@ -115,7 +115,7 @@ struct Secp256k1Ecmult {
         return res
     }
     
-    func gen(point p: Secp256k1Group, pn: Secpt256k1Scalar, gn: Secpt256k1Scalar) -> Secp256k1Group {
+    func gen(point p: Secp256k1Group, pn: Secp256k1Scalar, gn: Secp256k1Scalar) -> Secp256k1Group {
         let gpn = gen(gn: gn)
         let ppn = gen(point: p, pn: pn)
         
