@@ -317,26 +317,12 @@ public struct Secp256k1sSha256 {
         }
     }
     
-    fileprivate mutating func writeAbcdefgh(abcdefghInput: ABCDEFGH) {
-        assert(bytesCount == 0)
-        (w.0, w.1, w.2, w.3, w.4, w.5, w.6, w.7) = abcdefghInput
-        bytesCount += 32
-    }
-    
     @inline(__always)
     func extractBytes(from word: UInt32, to bytes: inout [UInt8], at start: Int) {
         bytes[start] = UInt8(word >> 24 & 0xFF)
         bytes[start + 1] = UInt8(word >> 16 & 0xFF)
         bytes[start + 2] = UInt8(word >> 8 & 0xFF)
         bytes[start + 3] = UInt8(word & 0xFF)
-    }
-    
-    fileprivate mutating func finalize2raw() -> ABCDEFGH {
-        finalizeCore()
-        defer {
-            reset()
-        }
-        return s
     }
     
     public mutating func finalize() -> [UInt8] {
@@ -367,6 +353,22 @@ public struct Secp256k1sSha256 {
     
     public mutating func finalize(hash: inout [UInt8]) {
         let _ = finalizeWithRaw(hash: &hash)
+    }
+}
+
+extension Secp256k1sSha256 {
+    fileprivate mutating func writeAbcdefgh(abcdefghInput: ABCDEFGH) {
+        assert(bytesCount == 0)
+        (w.0, w.1, w.2, w.3, w.4, w.5, w.6, w.7) = abcdefghInput
+        bytesCount += 32
+    }
+    
+    fileprivate mutating func finalize2raw() -> ABCDEFGH {
+        finalizeCore()
+        defer {
+            reset()
+        }
+        return s
     }
     
     fileprivate mutating func finalizeWithRaw(hash: inout [UInt8]) -> ABCDEFGH {
@@ -427,6 +429,34 @@ public struct Secp256k1sHmacSha256 {
         innerHasher.write(bytes: rkey)
     }
     
+    public mutating func write(byte: UInt8) {
+        innerHasher.write(byte: byte)
+    }
+    
+    public mutating func write(bytes: [UInt8]) {
+        innerHasher.write(bytes: bytes)
+    }
+    
+    public mutating func write(bytes: ArraySlice<UInt8>) {
+        innerHasher.write(bytes: bytes)
+    }
+    
+    public mutating func finalize(hash: inout [UInt8]) {
+        assert(hash.count >= 32)
+        
+        let rawHash = innerHasher.finalize2raw()
+        outterHasher.writeAbcdefgh(abcdefghInput: rawHash)
+        outterHasher.finalize(hash: &hash)
+    }
+    
+    public mutating func finalize() -> [UInt8] {
+        var hash = [UInt8](repeating: 0, count: 32)
+        finalize(hash: &hash)
+        return hash
+    }
+}
+
+extension Secp256k1sHmacSha256 {
     fileprivate mutating func resetKey(key: ABCDEFGH) {
         assert(innerHasher.bytesCount == 0 && outterHasher.bytesCount == 0)
         
@@ -447,14 +477,6 @@ public struct Secp256k1sHmacSha256 {
         }
     }
     
-    public mutating func write(byte: UInt8) {
-        innerHasher.write(byte: byte)
-    }
-    
-    public mutating func write(bytes: [UInt8]) {
-        innerHasher.write(bytes: bytes)
-    }
-    
     fileprivate mutating func write(abcdefghInput: ABCDEFGH) {
         innerHasher.write(word: abcdefghInput.a)
         innerHasher.write(word: abcdefghInput.b)
@@ -464,18 +486,6 @@ public struct Secp256k1sHmacSha256 {
         innerHasher.write(word: abcdefghInput.f)
         innerHasher.write(word: abcdefghInput.g)
         innerHasher.write(word: abcdefghInput.h)
-    }
-    
-    public mutating func write(bytes: ArraySlice<UInt8>) {
-        innerHasher.write(bytes: bytes)
-    }
-    
-    public mutating func finalize(hash: inout [UInt8]) {
-        assert(hash.count >= 32)
-        
-        let rawHash = innerHasher.finalize2raw()
-        outterHasher.writeAbcdefgh(abcdefghInput: rawHash)
-        outterHasher.finalize(hash: &hash)
     }
     
     fileprivate mutating func finalizeWithRaw(hash: inout [UInt8]) -> ABCDEFGH {
@@ -490,12 +500,6 @@ public struct Secp256k1sHmacSha256 {
         let rawHash = innerHasher.finalize2raw()
         outterHasher.writeAbcdefgh(abcdefghInput: rawHash)
         return outterHasher.finalize2raw()
-    }
-    
-    public mutating func finalize() -> [UInt8] {
-        var hash = [UInt8](repeating: 0, count: 32)
-        finalize(hash: &hash)
-        return hash
     }
 }
 

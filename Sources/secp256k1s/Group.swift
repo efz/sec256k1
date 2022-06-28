@@ -62,6 +62,45 @@ public struct Secp256k1Group {
         }
     }
     
+    public init?(bytes: ArraySlice<UInt8>) {
+        assert(bytes.count >= 32)
+        
+        var overflowed = false
+        let tmpX = Secpt256k1Field(bytes: bytes[0..<32], overflowed: &overflowed)
+        if overflowed {
+            return nil
+        }
+        if bytes.count < 64 {
+            self.init(x: tmpX)
+        } else {
+            let tempY = Secpt256k1Field(bytes: bytes[32..<64], overflowed: &overflowed)
+            if overflowed {
+                return nil
+            }
+            self.init(x: tmpX, y: tempY)
+        }
+        if isInfinity || !isValid() {
+            return nil
+        }
+    }
+    
+    public init?(bytes: ArraySlice<UInt8>, odd: Bool) {
+        self.init(bytes: bytes)
+        if !odd != y.isEven() {
+            reflect()
+        }
+    }
+    
+    public func serialize(bytes: inout ArraySlice<UInt8>) {
+        assert(bytes.count >= 32)
+        assert(isNormalized() && isValid() && !isInfinity)
+        
+        x.serialize(bytes: &bytes[bytes.startIndex..<bytes.startIndex+32])
+        if bytes.count >= 64 {
+            y.serialize(bytes: &bytes[bytes.startIndex+32..<bytes.startIndex+64])
+        }
+    }
+    
     static func calcY(x: Secpt256k1Field) -> Secpt256k1Field? {
         var computedY = x * x * x + Secp256k1Group.curvB
         let yExists = computedY.sqrt()
@@ -80,6 +119,14 @@ public struct Secp256k1Group {
             return false
         }
         return true
+    }
+    
+    public func isNormalized() -> Bool {
+        return z.isOne()
+    }
+    
+    public func isOdd() -> Bool {
+        return !y.isEven()
     }
     
     public func isValidJ() -> Bool {

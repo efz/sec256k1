@@ -12,9 +12,12 @@ public protocol UInt256pInterface {
     init(words32: [UInt32], overflowed: inout Bool)
     init(words64: [UInt64], overflowed: inout Bool)
     init(bytes: [UInt8], overflowed: inout Bool)
+    init(bytes: ArraySlice<UInt8>, overflowed: inout Bool)
     init(int32 v: UInt32)
     init(int64 v: UInt64)
     init(int v: Int)
+    
+    func serialize(bytes: inout ArraySlice<UInt8>)
     
     func getBits64(offset: Int, count: Int) -> UInt64
     func getBits(offset: Int, count: Int) -> Int
@@ -109,6 +112,12 @@ extension UInt256p {
     }
     
     public init(bytes: [UInt8], overflowed: inout Bool) {
+        self.init(bytes: bytes[0..<bytes.count], overflowed: &overflowed)
+    }
+    
+    public init(bytes: ArraySlice<UInt8>, overflowed: inout Bool) {
+        assert(bytes.count <=  32)
+        
         self.init()
         for i in 0..<bytes.count {
             let wordIdx = 3 - i / 8
@@ -154,6 +163,21 @@ extension UInt256p {
         d.1 = 0
         d.2 = 0
         d.3 = 0
+    }
+    
+    private func serializeWord(word: UInt64, bytes: inout ArraySlice<UInt8>) {
+        assert(bytes.count == 8)
+        for i in (0..<8).reversed() {
+            bytes[bytes.startIndex + i] = UInt8((word >> (i * 8)) & 0xFF)
+        }
+    }
+    
+    public func serialize(bytes: inout ArraySlice<UInt8>) {
+        assert(bytes.count >= 32)
+        serializeWord(word: d.3, bytes: &bytes[bytes.startIndex..<bytes.startIndex+8])
+        serializeWord(word: d.2, bytes: &bytes[bytes.startIndex+8..<bytes.startIndex+16])
+        serializeWord(word: d.1, bytes: &bytes[bytes.startIndex+16..<bytes.startIndex+24])
+        serializeWord(word: d.0, bytes: &bytes[bytes.startIndex+24..<bytes.startIndex+32])
     }
     
     @inline(__always)
