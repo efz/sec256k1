@@ -323,4 +323,26 @@ class EcKeyTests: XCTestCase {
             XCTAssertNotNil(pubKey2)
         }
     }
+    
+    func testPrivateKeySerialization() {
+        let randSeed = (0..<16).map() { _ in
+            UInt8(UInt16.random(in: 0..<256))
+        }
+        var keyGen = Secp256k1sRfc6979HmacSha256(key: randSeed)
+        
+        for _ in 0..<10 {
+            var privKeyBytes = [UInt8](repeating: 0, count: 32)
+            keyGen.generate(rand: &privKeyBytes)
+            
+            let privKey = Secp256k1PrivateKey(bytes: privKeyBytes)
+            XCTAssertNotNil(privKey)
+            let pubKey = privKey?.pubKey
+            XCTAssertNotNil(pubKey)
+            XCTAssertEqual(pubKey, Secp256k1PublicKey.init(privKey: privKey!))
+            
+            var serializedPrivKeyBytes = [UInt8](repeating: 0, count: 32)
+            privKey?.serialize(bytes: &serializedPrivKeyBytes)
+            XCTAssertEqual(serializedPrivKeyBytes, privKeyBytes)
+        }
+    }
 }
