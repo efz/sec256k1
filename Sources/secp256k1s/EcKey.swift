@@ -76,7 +76,7 @@ public struct Secp256k1PublicKey: Equatable {
     
     public init?(bytes: [UInt8]) {
         let bytesEnd: Int
-        let isOdd: Bool
+        var isOdd: Bool?
         
         if bytes.count == 33 && (bytes[0] == 0x02 || bytes[0] == 0x03) {
             bytesEnd = 33
@@ -86,6 +86,10 @@ public struct Secp256k1PublicKey: Equatable {
             isOdd =  bytes[0] == 0x07
         } else {
             return nil
+        }
+        
+        if bytes[0] == 0x04 {
+            isOdd = nil
         }
         
         let tmp = Secp256k1Group(bytes: bytes[1..<bytesEnd], odd: isOdd)
@@ -107,7 +111,7 @@ public struct Secp256k1PublicKey: Equatable {
         }
         
         var code: UInt8 = compress ? 0x02 : 0x04
-        code = code | (pubKey.isOdd() ? 0x03 : 0x00)
+        code = code | (compress && pubKey.isOdd() ? 0x03 : 0x00)
         bytes[0] = code
         pubKey.serialize(bytes: &bytes[1..<(compress ? 33 : 65)])
     }

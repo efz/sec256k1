@@ -66,14 +66,14 @@ public struct Secp256k1Group {
         assert(bytes.count >= 32)
         
         var overflowed = false
-        let tmpX = Secpt256k1Field(bytes: bytes[0..<32], overflowed: &overflowed)
+        let tmpX = Secpt256k1Field(bytes: bytes[bytes.startIndex..<bytes.startIndex+32], overflowed: &overflowed)
         if overflowed {
             return nil
         }
         if bytes.count < 64 {
             self.init(x: tmpX)
         } else {
-            let tempY = Secpt256k1Field(bytes: bytes[32..<64], overflowed: &overflowed)
+            let tempY = Secpt256k1Field(bytes: bytes[bytes.startIndex+32..<bytes.startIndex+64], overflowed: &overflowed)
             if overflowed {
                 return nil
             }
@@ -84,9 +84,12 @@ public struct Secp256k1Group {
         }
     }
     
-    public init?(bytes: ArraySlice<UInt8>, odd: Bool) {
+    public init?(bytes: ArraySlice<UInt8>, odd: Bool? = nil) {
         self.init(bytes: bytes)
-        if !odd != y.isEven() {
+        if odd != nil && !odd! != y.isEven() {
+            if bytes.count >= 64 {
+                return nil
+            }
             reflect()
         }
     }

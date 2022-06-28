@@ -122,7 +122,7 @@ extension UInt256p {
         for i in 0..<bytes.count {
             let wordIdx = 3 - i / 8
             let byteIdx = 7 - i % 8
-            let val = UInt64(bytes[i]) << (byteIdx * 8)
+            let val = UInt64(bytes[bytes.startIndex + i]) << (byteIdx * 8)
             switch wordIdx {
             case 0:
                 d.0 |= val
@@ -167,8 +167,8 @@ extension UInt256p {
     
     private func serializeWord(word: UInt64, bytes: inout ArraySlice<UInt8>) {
         assert(bytes.count == 8)
-        for i in (0..<8).reversed() {
-            bytes[bytes.startIndex + i] = UInt8((word >> (i * 8)) & 0xFF)
+        for i in 0..<8 {
+            bytes[bytes.startIndex + i] = UInt8((word >> ((7 - i) * 8)) & 0xFF)
         }
     }
     
