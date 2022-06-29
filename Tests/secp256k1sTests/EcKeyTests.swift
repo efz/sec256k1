@@ -333,10 +333,10 @@ class EcKeyTests: XCTestCase {
         }();
         
         func genPrivateKeyWithBytes() -> (Secp256k1PrivateKey, [UInt8]) {
+            var bytes = [UInt8](repeating: 0, count: 32)
             var priveKey: Secp256k1PrivateKey? = nil
             var priveKeyBytes: [UInt8] = []
             while priveKey == nil {
-                var bytes = [UInt8](repeating: 0, count: 32)
                 RandProvider.keyGenerator.generate(rand: &bytes)
                 (priveKeyBytes, priveKey) = (bytes, Secp256k1PrivateKey(bytes: bytes))
             }
@@ -346,6 +346,19 @@ class EcKeyTests: XCTestCase {
         
         func genPrivateKey() -> Secp256k1PrivateKey {
             return genPrivateKeyWithBytes().0
+        }
+        
+        func genScalar() -> Secp256k1Scalar {
+            var bytes = [UInt8](repeating: 0, count: 32)
+            RandProvider.keyGenerator.generate(rand: &bytes)
+            
+            var overflow = false
+            var scalar = Secp256k1Scalar.zero
+            while scalar.isZero() || overflow {
+                scalar = Secp256k1Scalar(bytes: bytes, overflowed: &overflow)
+            }
+            
+            return scalar
         }
     }
     
