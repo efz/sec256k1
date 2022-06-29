@@ -107,6 +107,48 @@ struct Secp256k1Ecmult {
         return res
     }
     
+    func genN(point p: Secp256k1Group, pn: Secp256k1Scalar) -> Secp256k1Group {
+        assert(p.isNormalized())
+        var res = Secp256k1Group.infinity
+        
+        var mask: UInt64 = 0x8000_0000_0000_0000
+        for _ in 0..<Secp256k1Scalar.wordBitWidth {
+            res.doubleJ()
+            if pn.d.3 & mask != 0 {
+                res.addAffine2J(p)
+            }
+            mask = mask >> 1
+        }
+        mask = 0x8000_0000_0000_0000
+        for _ in 0..<Secp256k1Scalar.wordBitWidth {
+            res.doubleJ()
+            if pn.d.2 & mask != 0 {
+                res.addAffine2J(p)
+            }
+            mask = mask >> 1
+        }
+        mask = 0x8000_0000_0000_0000
+        for _ in 0..<Secp256k1Scalar.wordBitWidth {
+            res.doubleJ()
+            if pn.d.1 & mask != 0 {
+                res.addAffine2J(p)
+            }
+            mask = mask >> 1
+        }
+        mask = 0x8000_0000_0000_0000
+        for _ in 0..<Secp256k1Scalar.wordBitWidth {
+            res.doubleJ()
+            if pn.d.0 & mask != 0 {
+                res.addAffine2J(p)
+            }
+            mask = mask >> 1
+        }
+        
+        assert(!res.isInfinity || pn.isZero())
+        assert(res.isValidJ())
+        return res
+    }
+    
     func gen(point p: Secp256k1Group, gn: Secp256k1Scalar) -> Secp256k1Group {
         let gpn = gen(gn: gn)
         
@@ -118,6 +160,16 @@ struct Secp256k1Ecmult {
     func gen(point p: Secp256k1Group, pn: Secp256k1Scalar, gn: Secp256k1Scalar) -> Secp256k1Group {
         let gpn = gen(gn: gn)
         let ppn = gen(point: p, pn: pn)
+        
+        var res = gpn
+        res.addJ(ppn)
+        return res
+    }
+    
+    func genN(point p: Secp256k1Group, pn: Secp256k1Scalar, gn: Secp256k1Scalar) -> Secp256k1Group {
+        assert(p.isNormalized())
+        let gpn = gen(gn: gn)
+        let ppn = genN(point: p, pn: pn)
         
         var res = gpn
         res.addJ(ppn)

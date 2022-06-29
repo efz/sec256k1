@@ -368,6 +368,7 @@ func bench_sign() {
 }
 
 func bench_verify() {
+    var pubKeyBytes = [UInt8](repeating: 0, count: 33)
     var sigBytes = [UInt8](repeating: 0, count: 64)
     var keyBytes = [UInt8](repeating: 0, count: 32)
     var messageBytes = [UInt8](repeating: 0, count: 32)
@@ -381,14 +382,16 @@ func bench_verify() {
     let signature = Secp256k1Edsa.sign(message: message, privateKey: privKey)
     signature.serialize(bytes: &sigBytes)
     let pubKey = privKey.pubKey!
+    pubKey.serialize(bytes: &pubKeyBytes, compress: true)
     
     for i in 0..<inverse_count {
         sigBytes[sigBytes.count - 1] = sigBytes[sigBytes.count - 1] ^ UInt8(i & 0xFF)
         sigBytes[sigBytes.count - 2] = sigBytes[sigBytes.count - 2] ^ UInt8(i >> 8 & 0xFF)
         sigBytes[sigBytes.count - 3] = sigBytes[sigBytes.count - 3] ^ UInt8(i >> 8 & 0xFF)
         
+        let pubKey2 = Secp256k1PublicKey(bytes: pubKeyBytes)!
         let signature2 = Secp256k1Edsa(bytes: sigBytes)
-        let isValid = signature2?.validate(message: message, publicKey: pubKey)
+        let isValid = signature2!.validate(message: message, publicKey: pubKey2)
         assert(isValid == (i == 0))
         
         sigBytes[sigBytes.count - 1] = sigBytes[sigBytes.count - 1] ^ UInt8(i & 0xFF)

@@ -68,7 +68,7 @@ public struct Secp256k1Edsa {
         let u1 = message * w
         let u2 = sigR * w
         
-        var xy =  Secp256k1Edsa.ecmult.gen(point: publicKey.pubKey, pn: u2, gn: u1)
+        var xy =  Secp256k1Edsa.ecmult.genN(point: publicKey.pubKey, pn: u2, gn: u1)
         if xy.isInfinity {
             return false
         }

@@ -53,11 +53,12 @@ public struct Secp256k1PrivateKey: Equatable {
 
 
 public struct Secp256k1PublicKey: Equatable {
+    static let ecmult = Secp256k1Ecmult()
+    
     var pubKey: Secp256k1Group
-    let ecmult = Secp256k1Ecmult()
     
     init?(privKey: Secp256k1PrivateKey) {
-        var tmp = ecmult.gen(gn: privKey.privKey)
+        var tmp = Secp256k1PublicKey.ecmult.gen(gn: privKey.privKey)
         guard !tmp.isInfinity else {
             return nil
         }
@@ -123,7 +124,7 @@ public struct Secp256k1PublicKey: Equatable {
     }
     
     public mutating func tweakAdd(tweak: Secp256k1Scalar) throws {
-        var r = ecmult.gen(point: pubKey, gn: tweak)
+        var r = Secp256k1PublicKey.ecmult.gen(point: pubKey, gn: tweak)
         if (!r.isValidJ() || r.isInfinity) {
             throw Secp256k1Error()
         }
@@ -137,7 +138,7 @@ public struct Secp256k1PublicKey: Equatable {
             throw Secp256k1Error("Mul by zero tweak")
         }
         
-        var r = ecmult.gen(point: pubKey, pn: tweak)
+        var r = Secp256k1PublicKey.ecmult.gen(point: pubKey, pn: tweak)
         if (!r.isValidJ() || r.isInfinity) {
             throw Secp256k1Error()
         }
