@@ -324,44 +324,6 @@ class EcKeyTests: XCTestCase {
         }
     }
     
-    struct RandProvider {
-        static var keyGenerator: Secp256k1sRfc6979HmacSha256 = {
-            let randSeed = (0..<16).map() { _ in
-                UInt8(UInt16.random(in: 0..<256))
-            }
-            return Secp256k1sRfc6979HmacSha256(key: randSeed)
-        }();
-        
-        func genPrivateKeyWithBytes() -> (Secp256k1PrivateKey, [UInt8]) {
-            var bytes = [UInt8](repeating: 0, count: 32)
-            var priveKey: Secp256k1PrivateKey? = nil
-            var priveKeyBytes: [UInt8] = []
-            while priveKey == nil {
-                RandProvider.keyGenerator.generate(rand: &bytes)
-                (priveKeyBytes, priveKey) = (bytes, Secp256k1PrivateKey(bytes: bytes))
-            }
-            
-            return (priveKey!, priveKeyBytes)
-        }
-        
-        func genPrivateKey() -> Secp256k1PrivateKey {
-            return genPrivateKeyWithBytes().0
-        }
-        
-        func genScalar() -> Secp256k1Scalar {
-            var bytes = [UInt8](repeating: 0, count: 32)
-            RandProvider.keyGenerator.generate(rand: &bytes)
-            
-            var overflow = false
-            var scalar = Secp256k1Scalar.zero
-            while scalar.isZero() || overflow {
-                scalar = Secp256k1Scalar(bytes: bytes, overflowed: &overflow)
-            }
-            
-            return scalar
-        }
-    }
-    
     func testPrivateKeySerialization() {
         let randp = RandProvider()
         

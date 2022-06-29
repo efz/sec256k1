@@ -1,7 +1,7 @@
 public struct Secp256k1PrivateKey: Equatable {
     var privKey: Secp256k1Scalar
     
-    var pubKey: Secp256k1PublicKey? {
+    public var pubKey: Secp256k1PublicKey? {
         get {
             return Secp256k1PublicKey(privKey: self)
         }
@@ -15,8 +15,10 @@ public struct Secp256k1PrivateKey: Equatable {
     }
     
     public init?(bytes: [UInt8]) {
+        assert(bytes.count >= 32)
+        
         var overflow = false
-        let tmp = Secp256k1Scalar(bytes: bytes, overflowed: &overflow)
+        let tmp = Secp256k1Scalar(bytes: bytes[0..<32], overflowed: &overflow)
         if overflow || tmp.isZero() {
             return nil
         }
@@ -75,24 +77,28 @@ public struct Secp256k1PublicKey: Equatable {
     }
     
     public init?(bytes: [UInt8]) {
+        self.init(bytes: bytes[0..<bytes.count])
+    }
+    
+    public init?(bytes: ArraySlice<UInt8>) {
         let bytesEnd: Int
         var isOdd: Bool?
         
-        if bytes.count == 33 && (bytes[0] == 0x02 || bytes[0] == 0x03) {
+        if bytes.count == 33 && (bytes[bytes.startIndex + 0] == 0x02 || bytes[bytes.startIndex + 0] == 0x03) {
             bytesEnd = 33
-            isOdd =  bytes[0] == 0x03
-        } else if bytes.count == 65 && (bytes[0] == 0x04 || bytes[0] == 0x06 || bytes[0] == 0x07) {
+            isOdd =  bytes[bytes.startIndex + 0] == 0x03
+        } else if bytes.count == 65 && (bytes[bytes.startIndex + 0] == 0x04 || bytes[bytes.startIndex + 0] == 0x06 || bytes[bytes.startIndex + 0] == 0x07) {
             bytesEnd = 65
-            isOdd =  bytes[0] == 0x07
+            isOdd =  bytes[bytes.startIndex + 0] == 0x07
         } else {
             return nil
         }
         
-        if bytes[0] == 0x04 {
+        if bytes[bytes.startIndex + 0] == 0x04 {
             isOdd = nil
         }
         
-        let tmp = Secp256k1Group(bytes: bytes[1..<bytesEnd], odd: isOdd)
+        let tmp = Secp256k1Group(bytes: bytes[bytes.startIndex+1..<bytesEnd], odd: isOdd)
         if tmp == nil {
             return nil
         }
@@ -163,10 +169,10 @@ public struct Secp256k1PublicKey: Equatable {
     }
 }
 
-struct Secp256k1Error: Error {
+public struct Secp256k1Error: Error {
     let msg: String
     
-    init(_ msg: String = "") {
+    public init(_ msg: String = "") {
         self.msg = msg
     }
 }

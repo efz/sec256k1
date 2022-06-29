@@ -344,6 +344,59 @@ func bench_rfc6979HmacSha256_hash() {
     }
 }
 
+func bench_sign() {
+    var sigBytes = [UInt8](repeating: 0, count: 64)
+    var keyBytes = [UInt8](repeating: 0, count: 32)
+    var messageBytes = [UInt8](repeating: 0, count: 32)
+    for i in 0..<32 {
+        messageBytes[i] = UInt8(i + 1)
+        keyBytes[i] = UInt8(i + 65)
+    }
+    var overflow = false
+    
+    for _ in 0..<inverse_count {
+        let privKey = Secp256k1PrivateKey(bytes: keyBytes)!
+        let message = Secp256k1Scalar(bytes: messageBytes, overflowed: &overflow)
+        
+        let signature = Secp256k1Edsa.sign(message: message, privateKey: privKey)
+        signature.serialize(bytes: &sigBytes)
+        for i in 0..<32 {
+            messageBytes[i] = sigBytes[i]
+            keyBytes[i] = sigBytes[i + 32]
+        }
+    }
+}
+
+func bench_verify() {
+    var sigBytes = [UInt8](repeating: 0, count: 64)
+    var keyBytes = [UInt8](repeating: 0, count: 32)
+    var messageBytes = [UInt8](repeating: 0, count: 32)
+    for i in 0..<32 {
+        messageBytes[i] = UInt8(i + 1)
+        keyBytes[i] = UInt8(i + 33)
+    }
+    var overflow = false
+    let privKey = Secp256k1PrivateKey(bytes: keyBytes)!
+    let message = Secp256k1Scalar(bytes: messageBytes, overflowed: &overflow)
+    let signature = Secp256k1Edsa.sign(message: message, privateKey: privKey)
+    signature.serialize(bytes: &sigBytes)
+    let pubKey = privKey.pubKey!
+    
+    for i in 0..<inverse_count {
+        sigBytes[sigBytes.count - 1] = sigBytes[sigBytes.count - 1] ^ UInt8(i & 0xFF)
+        sigBytes[sigBytes.count - 2] = sigBytes[sigBytes.count - 2] ^ UInt8(i >> 8 & 0xFF)
+        sigBytes[sigBytes.count - 3] = sigBytes[sigBytes.count - 3] ^ UInt8(i >> 8 & 0xFF)
+        
+        let signature2 = Secp256k1Edsa(bytes: sigBytes)
+        let isValid = signature2?.validate(message: message, publicKey: pubKey)
+        assert(isValid == (i == 0))
+        
+        sigBytes[sigBytes.count - 1] = sigBytes[sigBytes.count - 1] ^ UInt8(i & 0xFF)
+        sigBytes[sigBytes.count - 2] = sigBytes[sigBytes.count - 2] ^ UInt8(i >> 8 & 0xFF)
+        sigBytes[sigBytes.count - 3] = sigBytes[sigBytes.count - 3] ^ UInt8(i >> 8 & 0xFF)
+    }
+}
+
 // warmup
 for _ in 0..<5 {
     bench_scalar_add()
@@ -378,6 +431,9 @@ runBenchmark(name: "Group Add Affine 2 J", benchFunc: bench_group_add_affine2j, 
 runBenchmark(name: "Bench Sha256 Hash", benchFunc: bench_sha256_hash, count: 20000)
 runBenchmark(name: "Bench HmacSha256 Hash", benchFunc: bench_hmacSha256_hash, count: 20000)
 runBenchmark(name: "Bench Rfc6979 HmacSha256 Hash", benchFunc: bench_rfc6979HmacSha256_hash, count: 20000)
+
+runBenchmark(name: "Bench Sign", benchFunc: bench_sign, count: inverse_count)
+runBenchmark(name: "Bench Verify", benchFunc: bench_verify, count: inverse_count)
 
 //genSha256TransformBlock()
 func genSha256TransformBlock() {
