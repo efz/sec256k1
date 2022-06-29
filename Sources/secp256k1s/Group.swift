@@ -186,11 +186,12 @@ public struct Secp256k1Group {
     }
     
     public mutating func normalizeJ() {
-        let z2 = Secp256k1Field.sqr(z)
-        let z3 = z2 * z
+        let zInv = Secp256k1Field.inv(z)
+        let zInv2 = Secp256k1Field.sqr(zInv)
+        let zInv3 = zInv2 * zInv
         z = Secp256k1Field.one
-        x = x / z2
-        y = y / z3
+        x = x  * zInv2
+        y = y  * zInv3
     }
     
     public mutating func addJ(_ b: Secp256k1Group) {
