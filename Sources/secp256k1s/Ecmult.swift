@@ -55,93 +55,55 @@ struct Secp256k1Ecmult {
     
     func gen(point p: Secp256k1Group, pn: Secp256k1Scalar) -> Secp256k1Group {
         var res = Secp256k1Group.infinity
-        var dummy = Secp256k1Group.infinity
-        var pPow = p
-        var mask: UInt64 = 1
-        for _ in 0..<Secp256k1Scalar.wordBitWidth {
-            if pn.d.0 & mask != 0 {
-                res.addJ(pPow)
-            } else {
-                dummy.addJ(pPow)
+        var prec = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 16)
+        
+        if p.isNormalized() {
+            for i in 1..<16 {
+                prec[i] = prec[i - 1]
+                prec[i].addAffine2J(p)
             }
-            
-            pPow.doubleJ()
-            mask = mask << 1
-        }
-        mask = 1
-        for _ in 0..<Secp256k1Scalar.wordBitWidth {
-            if pn.d.1 & mask != 0 {
-                res.addJ(pPow)
-            } else {
-                dummy.addJ(pPow)
+        } else {
+            for i in 1..<16 {
+                prec[i] = prec[i - 1]
+                prec[i].addJ(p)
             }
-            
-            pPow.doubleJ()
-            mask = mask << 1
-        }
-        mask = 1
-        for _ in 0..<Secp256k1Scalar.wordBitWidth {
-            if pn.d.2 & mask != 0 {
-                res.addJ(pPow)
-            } else {
-                dummy.addJ(pPow)
-            }
-            
-            pPow.doubleJ()
-            mask = mask << 1
-        }
-        mask = 1
-        for _ in 0..<Secp256k1Scalar.wordBitWidth {
-            if pn.d.3 & mask != 0 {
-                res.addJ(pPow)
-            } else {
-                dummy.addJ(pPow)
-            }
-            
-            pPow.doubleJ()
-            mask = mask << 1
         }
         
-        assert(!res.isInfinity || pn.isZero())
-        assert(res.isValidJ())
-        return res
-    }
-    
-    func genN(point p: Secp256k1Group, pn: Secp256k1Scalar) -> Secp256k1Group {
-        assert(p.isNormalized())
-        var res = Secp256k1Group.infinity
+        for shift in stride(from: 60, through: 0, by: -4) {
+            res.doubleJ()
+            res.doubleJ()
+            res.doubleJ()
+            res.doubleJ()
+            let precIdx = Int(pn.d.3 >> shift & 0xF)
+            res.addJ(prec[precIdx])
+        }
         
-        var mask: UInt64 = 0x8000_0000_0000_0000
-        for _ in 0..<Secp256k1Scalar.wordBitWidth {
+        for shift in stride(from: 60, through: 0, by: -4) {
             res.doubleJ()
-            if pn.d.3 & mask != 0 {
-                res.addAffine2J(p)
-            }
-            mask = mask >> 1
+            res.doubleJ()
+            res.doubleJ()
+            res.doubleJ()
+            let precIdx = Int(pn.d.2 >> shift & 0xF)
+            res.addJ(prec[precIdx])
         }
-        mask = 0x8000_0000_0000_0000
-        for _ in 0..<Secp256k1Scalar.wordBitWidth {
+        
+        for shift in stride(from: 60, through: 0, by: -4) {
             res.doubleJ()
-            if pn.d.2 & mask != 0 {
-                res.addAffine2J(p)
-            }
-            mask = mask >> 1
+            res.doubleJ()
+            res.doubleJ()
+            res.doubleJ()
+            let precIdx = Int(pn.d.1 >> shift & 0xF)
+            res.addJ(prec[precIdx])
+            
         }
-        mask = 0x8000_0000_0000_0000
-        for _ in 0..<Secp256k1Scalar.wordBitWidth {
+        
+        for shift in stride(from: 60, through: 0, by: -4) {
             res.doubleJ()
-            if pn.d.1 & mask != 0 {
-                res.addAffine2J(p)
-            }
-            mask = mask >> 1
-        }
-        mask = 0x8000_0000_0000_0000
-        for _ in 0..<Secp256k1Scalar.wordBitWidth {
             res.doubleJ()
-            if pn.d.0 & mask != 0 {
-                res.addAffine2J(p)
-            }
-            mask = mask >> 1
+            res.doubleJ()
+            res.doubleJ()
+            let precIdx = Int(pn.d.0 >> shift & 0xF)
+            res.addJ(prec[precIdx])
         }
         
         assert(!res.isInfinity || pn.isZero())
@@ -160,16 +122,6 @@ struct Secp256k1Ecmult {
     func gen(point p: Secp256k1Group, pn: Secp256k1Scalar, gn: Secp256k1Scalar) -> Secp256k1Group {
         let gpn = gen(gn: gn)
         let ppn = gen(point: p, pn: pn)
-        
-        var res = gpn
-        res.addJ(ppn)
-        return res
-    }
-    
-    func genN(point p: Secp256k1Group, pn: Secp256k1Scalar, gn: Secp256k1Scalar) -> Secp256k1Group {
-        assert(p.isNormalized())
-        let gpn = gen(gn: gn)
-        let ppn = genN(point: p, pn: pn)
         
         var res = gpn
         res.addJ(ppn)

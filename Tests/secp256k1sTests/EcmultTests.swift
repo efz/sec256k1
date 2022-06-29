@@ -196,25 +196,6 @@ class EcmultTests: XCTestCase {
         XCTAssertEqual(point, expectedPoint)
     }
     
-    func testChainNormalizedMult() {
-        let ecmult = Secp256k1Ecmult()
-        let scalar = Secp256k1Scalar(words64: [0x4968d524_2abf9b7a, 0x466abbcf_34b11b6d,
-                                                0xcd83d307_827bed62, 0x05fad0ce_18fae63b].reversed())
-        let expectedPoint = Secp256k1Group(
-            x: Secp256k1Field(words64:[0x5494c15d_32099706, 0xc2395f94_348745fd,
-                                        0x757ce30e_4e8c90fb, 0xa2bad184_f883c69f].reversed()),
-            y: Secp256k1Field(words64:[0x5d195d20_e191bf7f, 0x1be3e55f_56a80196,
-                                        0x6071ad01_f1462f66, 0xc997fa94_db858435].reversed()))!
-        
-        var point = Secp256k1Ecmult.g
-        for _ in 0..<100 {
-            point.normalizeJ()
-            point = ecmult.genN(point: point, pn: scalar)
-        }
-        point.normalizeJ()
-        XCTAssertEqual(point, expectedPoint)
-    }
-    
     func testPointTimesOrder() {
         let ecmult = Secp256k1Ecmult()
         var x = Secp256k1Field(int: 2)
