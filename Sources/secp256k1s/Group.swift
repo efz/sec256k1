@@ -341,6 +341,21 @@ public struct Secp256k1Group {
         }
         y.negate()
     }
+    
+    public func isSame(scalarX: Secp256k1Scalar) -> Bool {
+        var overflow = false
+        let scalarX_f = Secp256k1Field(bits64x4: scalarX.d, overflowed: &overflow)
+        assert(!overflow)
+        
+        let z2 = Secp256k1Field.sqr(z)
+        if x == z2 * scalarX_f {
+            return true
+        }
+        let scalarP_f = Secp256k1Field(bits64x4: Secp256k1Scalar.p, overflowed: &overflow)
+        assert(!overflow)
+        
+        return x == (scalarX_f + scalarP_f) * z2
+    }
 }
 
 

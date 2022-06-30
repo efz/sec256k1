@@ -68,17 +68,11 @@ public struct Secp256k1Edsa {
         let u1 = message * w
         let u2 = sigR * w
         
-        var xy =  Secp256k1Edsa.ecmult.gen(point: publicKey.pubKey, pn: u2, gn: u1)
+        let xy =  Secp256k1Edsa.ecmult.gen(point: publicKey.pubKey, pn: u2, gn: u1)
         if xy.isInfinity {
             return false
         }
-        xy.normalizeJ()
-        if xy.isInfinity {
-            return false
-        }
-        var overflow = false
-        let xScalar = Secp256k1Scalar(bits64x4: xy.x.d, overflowed: &overflow)
-        return sigR == xScalar
+        return xy.isSame(scalarX: sigR)
     }
     
     public static func sign(message: Secp256k1Scalar,  privateKey: Secp256k1PrivateKey) -> Secp256k1Edsa {
