@@ -55,13 +55,36 @@ struct Secp256k1Ecmult {
     
     @inline(__always)
     private func gen(_ res: inout Secp256k1Group, _ word: UInt64, _ prec: [Secp256k1Group]) {
-        for shift in stride(from: 60, through: 0, by: -4) {
+        var shift = 60
+        while shift >= 0 {
+            let precIdx = word >> shift & 0xF
+            if precIdx >= 8 {
+                res.doubleJ()
+                res.doubleJ()
+                res.doubleJ()
+                res.doubleJ()
+                res.addJ(prec[Int(precIdx)])
+                shift -= 4
+            } else {
+                res.doubleJ()
+                shift -= 1
+            }
+        }
+        switch shift + 4 {
+        case 3:
             res.doubleJ()
             res.doubleJ()
             res.doubleJ()
+            res.addJ(prec[Int(word & 0x7)])
+        case 2:
             res.doubleJ()
-            let precIdx = Int(word >> shift & 0xF)
-            res.addJ(prec[precIdx])
+            res.doubleJ()
+            res.addJ(prec[Int(word & 0x3)])
+        case 1:
+            res.doubleJ()
+            res.addJ(prec[Int(word & 0x1)])
+        default:
+            res.addAffine2J(Secp256k1Group.infinity)
         }
     }
     
