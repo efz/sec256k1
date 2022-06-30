@@ -53,6 +53,18 @@ struct Secp256k1Ecmult {
         return res
     }
     
+    @inline(__always)
+    private func gen(_ res: inout Secp256k1Group, _ word: UInt64, _ prec: [Secp256k1Group]) {
+        for shift in stride(from: 60, through: 0, by: -4) {
+            res.doubleJ()
+            res.doubleJ()
+            res.doubleJ()
+            res.doubleJ()
+            let precIdx = Int(word >> shift & 0xF)
+            res.addJ(prec[precIdx])
+        }
+    }
+    
     func gen(point p: Secp256k1Group, pn: Secp256k1Scalar) -> Secp256k1Group {
         var res = Secp256k1Group.infinity
         var prec = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 16)
@@ -69,42 +81,10 @@ struct Secp256k1Ecmult {
             }
         }
         
-        for shift in stride(from: 60, through: 0, by: -4) {
-            res.doubleJ()
-            res.doubleJ()
-            res.doubleJ()
-            res.doubleJ()
-            let precIdx = Int(pn.d.3 >> shift & 0xF)
-            res.addJ(prec[precIdx])
-        }
-        
-        for shift in stride(from: 60, through: 0, by: -4) {
-            res.doubleJ()
-            res.doubleJ()
-            res.doubleJ()
-            res.doubleJ()
-            let precIdx = Int(pn.d.2 >> shift & 0xF)
-            res.addJ(prec[precIdx])
-        }
-        
-        for shift in stride(from: 60, through: 0, by: -4) {
-            res.doubleJ()
-            res.doubleJ()
-            res.doubleJ()
-            res.doubleJ()
-            let precIdx = Int(pn.d.1 >> shift & 0xF)
-            res.addJ(prec[precIdx])
-            
-        }
-        
-        for shift in stride(from: 60, through: 0, by: -4) {
-            res.doubleJ()
-            res.doubleJ()
-            res.doubleJ()
-            res.doubleJ()
-            let precIdx = Int(pn.d.0 >> shift & 0xF)
-            res.addJ(prec[precIdx])
-        }
+        gen(&res, pn.d.3, prec)
+        gen(&res, pn.d.2, prec)
+        gen(&res, pn.d.1, prec)
+        gen(&res, pn.d.0, prec)
         
         assert(!res.isInfinity || pn.isZero())
         assert(res.isValidJ())
