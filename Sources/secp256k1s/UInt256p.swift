@@ -185,6 +185,7 @@ extension UInt256p {
         reduce(overflow: 0)
     }
     
+    @inline(__always)
     func getWord(_ idx: Int) -> UInt64 {
         switch idx {
         case 0:
@@ -200,6 +201,7 @@ extension UInt256p {
         }
     }
     
+    @inline(__always)
     public func getBits64(offset: Int, count: Int) -> UInt64 {
         assert(offset + count <= Self.wordBitWidth * Self.wordWidth)
         assert(count < Self.wordBitWidth)
@@ -213,6 +215,7 @@ extension UInt256p {
         }
     }
     
+    @inline(__always)
     public func getBits(offset: Int, count: Int) -> Int {
         assert(count < UInt32.bitWidth)
         return Int(getBits64(offset: offset, count: count))

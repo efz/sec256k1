@@ -54,10 +54,10 @@ struct Secp256k1Ecmult {
     }
     
     @inline(__always)
-    private func gen(_ res: inout Secp256k1Group, _ word: UInt64, _ prec: [Secp256k1Group]) {
-        var shift = 60
+    private func gen(_ res: inout Secp256k1Group, _ pn: Secp256k1Scalar, _ prec: [Secp256k1Group]) {
+        var shift = 252
         while shift >= 0 {
-            let precIdx = word >> shift & 0xF
+            let precIdx = pn.getBits(offset: shift, count: 4)
             if precIdx >= 8 {
                 res.doubleJ()
                 res.doubleJ()
@@ -70,19 +70,20 @@ struct Secp256k1Ecmult {
                 shift -= 1
             }
         }
+        assert(shift < 0 && shift >= -4)
         switch shift + 4 {
         case 3:
             res.doubleJ()
             res.doubleJ()
             res.doubleJ()
-            res.addJ(prec[Int(word & 0x7)])
+            res.addJ(prec[pn.getBits(offset: 0, count: 3)])
         case 2:
             res.doubleJ()
             res.doubleJ()
-            res.addJ(prec[Int(word & 0x3)])
+            res.addJ(prec[pn.getBits(offset: 0, count: 2)])
         case 1:
             res.doubleJ()
-            res.addJ(prec[Int(word & 0x1)])
+            res.addJ(prec[pn.getBits(offset: 0, count: 1)])
         default:
             res.addAffine2J(Secp256k1Group.infinity)
         }
@@ -104,10 +105,7 @@ struct Secp256k1Ecmult {
             }
         }
         
-        gen(&res, pn.d.3, prec)
-        gen(&res, pn.d.2, prec)
-        gen(&res, pn.d.1, prec)
-        gen(&res, pn.d.0, prec)
+        gen(&res, pn, prec)
         
         assert(!res.isInfinity || pn.isZero())
         assert(res.isValidJ())

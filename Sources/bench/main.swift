@@ -387,7 +387,7 @@ func bench_verify() {
     for i in 0..<inverse_count {
         sigBytes[sigBytes.count - 1] = sigBytes[sigBytes.count - 1] ^ UInt8(i & 0xFF)
         sigBytes[sigBytes.count - 2] = sigBytes[sigBytes.count - 2] ^ UInt8(i >> 8 & 0xFF)
-        sigBytes[sigBytes.count - 3] = sigBytes[sigBytes.count - 3] ^ UInt8(i >> 8 & 0xFF)
+        sigBytes[sigBytes.count - 3] = sigBytes[sigBytes.count - 3] ^ UInt8(i >> 16 & 0xFF)
         
         let pubKey2 = Secp256k1PublicKey(bytes: pubKeyBytes)!
         let signature2 = Secp256k1Edsa(bytes: sigBytes)
@@ -396,7 +396,7 @@ func bench_verify() {
         
         sigBytes[sigBytes.count - 1] = sigBytes[sigBytes.count - 1] ^ UInt8(i & 0xFF)
         sigBytes[sigBytes.count - 2] = sigBytes[sigBytes.count - 2] ^ UInt8(i >> 8 & 0xFF)
-        sigBytes[sigBytes.count - 3] = sigBytes[sigBytes.count - 3] ^ UInt8(i >> 8 & 0xFF)
+        sigBytes[sigBytes.count - 3] = sigBytes[sigBytes.count - 3] ^ UInt8(i >> 16 & 0xFF)
     }
 }
 
