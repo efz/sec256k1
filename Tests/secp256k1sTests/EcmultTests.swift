@@ -4,46 +4,50 @@ import XCTest
 class EcmultTests: XCTestCase {
     
     func testPositiveConstsRandomPoint() {
-        let ecmult = Secp256k1Ecmult()
-        var p = GroupTests.randGroup()
-        p.normalizeJ()
-        var nP = p
-        nP.reflect()
-        
-        for i in 0..<36 {
-            let x = Secp256k1Scalar(int: i)
-            var pi = ecmult.gen(point: p, pn: x)
+        for _ in 0..<64 {
+            let ecmult = Secp256k1Ecmult()
+            var p = GroupTests.randGroup()
+            p.normalizeJ()
+            var nP = p
+            nP.reflect()
             
-            for j in 0..<i {
-                if j == i - 1 {
-                    pi.normalizeJ()
-                    XCTAssertEqual(pi, p)
+            for i in 0..<36 {
+                let x = Secp256k1Scalar(int: i)
+                var pi = ecmult.gen(point: p, pn: x)
+                
+                for j in 0..<i {
+                    if j == i - 1 {
+                        pi.normalizeJ()
+                        XCTAssertEqual(pi, p)
+                    }
+                    pi.addJ(nP)
                 }
-                pi.addJ(nP)
+                XCTAssertTrue(pi.isInfinity)
             }
-            XCTAssertTrue(pi.isInfinity)
         }
     }
     
     func testNegativeConstsWithRandomPoint() {
-        let ecmult = Secp256k1Ecmult()
-        var p = GroupTests.randGroup()
-        p.normalizeJ()
-        var nP = p
-        nP.reflect()
-        
-        for i in 1..<37 {
-            let x = Secp256k1Scalar.neg(Secp256k1Scalar(int: i))
-            var pi = ecmult.gen(point: p, pn: x)
+        for _ in 0..<64 {
+            let ecmult = Secp256k1Ecmult()
+            var p = GroupTests.randGroup()
+            p.normalizeJ()
+            var nP = p
+            nP.reflect()
             
-            for j in 0..<i {
-                if j == i - 1 {
-                    pi.normalizeJ()
-                    XCTAssertEqual(pi, nP)
+            for i in 1..<37 {
+                let x = Secp256k1Scalar.neg(Secp256k1Scalar(int: i))
+                var pi = ecmult.gen(point: p, pn: x)
+                
+                for j in 0..<i {
+                    if j == i - 1 {
+                        pi.normalizeJ()
+                        XCTAssertEqual(pi, nP)
+                    }
+                    pi.addJ(p)
                 }
-                pi.addJ(p)
+                XCTAssertTrue(pi.isInfinity)
             }
-            XCTAssertTrue(pi.isInfinity)
         }
     }
     

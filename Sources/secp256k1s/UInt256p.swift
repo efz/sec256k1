@@ -210,7 +210,7 @@ extension UInt256p {
         } else {
             assert((offset >> 6) + 1 < 4)
             let firstHalf = UInt64(getWord(offset >> 6) >> (offset & 0x3F))
-            let secondHalf = UInt64((getWord((offset >> 6) + 1) << (64 - (offset & 0x3F)) & Self.wordMask))
+            let secondHalf = UInt64((getWord((offset >> 6) + 1) << (64 - (offset & 0x3F))))
             return (firstHalf | secondHalf) & ((1 << count) - 1)
         }
     }
