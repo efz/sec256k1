@@ -54,7 +54,8 @@ struct Secp256k1Ecmult {
     }
     
     @inline(__always)
-    private func gen(_ res: inout Secp256k1Group, _ pn: Secp256k1Scalar, _ prec: [Secp256k1Group]) {
+    private func gen(point p: Secp256k1Group, _ pn: Secp256k1Scalar, _ prec: [Secp256k1Group]) -> Secp256k1Group {
+        var res = Secp256k1Group.infinity
         var shift = 252
         while shift >= 0 {
             let precIdx = pn.getBits(offset: shift, count: 4)
@@ -63,7 +64,7 @@ struct Secp256k1Ecmult {
                 res.doubleJ()
                 res.doubleJ()
                 res.doubleJ()
-                res.addJ(prec[Int(precIdx)])
+                res.addJ(prec[Int(precIdx & 0x7)])
                 shift -= 4
             } else {
                 res.doubleJ()
@@ -71,41 +72,38 @@ struct Secp256k1Ecmult {
             }
         }
         assert(shift < 0 && shift >= -4)
-        switch shift + 4 {
-        case 3:
+        let addFunc = p.isNormalized() ? { res.addAffine2J(p) } : { res.addJ(p) }
+        for i in (0..<shift+4).reversed() {
             res.doubleJ()
-            res.doubleJ()
-            res.doubleJ()
-            res.addJ(prec[pn.getBits(offset: 0, count: 3)])
-        case 2:
-            res.doubleJ()
-            res.doubleJ()
-            res.addJ(prec[pn.getBits(offset: 0, count: 2)])
-        case 1:
-            res.doubleJ()
-            res.addJ(prec[pn.getBits(offset: 0, count: 1)])
-        default:
-            res.addAffine2J(Secp256k1Group.infinity)
+            if pn.getBits(offset: i, count: 1) == 1 {
+                addFunc()
+            }
         }
+        return res
     }
     
     func gen(point p: Secp256k1Group, pn: Secp256k1Scalar) -> Secp256k1Group {
-        var res = Secp256k1Group.infinity
         var prec = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 16)
         
+        var p8 = p
+        p8.doubleJ()
+        p8.doubleJ()
+        p8.doubleJ()
+        
+        prec[0] = p8
         if p.isNormalized() {
-            for i in 1..<16 {
+            for i in 1..<8 {
                 prec[i] = prec[i - 1]
                 prec[i].addAffine2J(p)
             }
         } else {
-            for i in 1..<16 {
+            for i in 1..<8 {
                 prec[i] = prec[i - 1]
                 prec[i].addJ(p)
             }
         }
         
-        gen(&res, pn, prec)
+        let res = gen(point: p, pn, prec)
         
         assert(!res.isInfinity || pn.isZero())
         assert(res.isValidJ())
