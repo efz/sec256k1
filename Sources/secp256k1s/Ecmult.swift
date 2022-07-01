@@ -4,22 +4,24 @@ struct Secp256k1Ecmult {
         y: Secp256k1Field(words64: [0x9C47D08F_FB10D4B8, 0xFD17B448_A6855419, 0x5DA4FBFC_0E1108A8, 0x483ADA77_26A3C465]))!
     
     let gMultTable4BitFull: [[Secp256k1Group]]
+    let gMultTable5BitPartial: [Secp256k1Group]
     
     init() {
-        var res = [[Secp256k1Group]](repeating: [], count: 64)
+        // Gen full 4 bit table
+        var fullTbl = [[Secp256k1Group]](repeating: [], count: 64)
         var gBase = Secp256k1Ecmult.g
         
         for i in 0..<64 {
             let precj_i0 = Secp256k1Group.infinity
-            res[i].append(precj_i0)
+            fullTbl[i].append(precj_i0)
             
             for k in 1..<16 {
-                var precj_ij = res[i][k-1]
+                var precj_ij = fullTbl[i][k-1]
                 precj_ij.addAffine2J(gBase)
                 precj_ij.normalizeJ()
-                res[i].append(precj_ij)
+                fullTbl[i].append(precj_ij)
             }
-            assert(res[i].count == 16)
+            assert(fullTbl[i].count == 16)
             
             for _ in 0..<4 {
                 gBase.doubleJ()
@@ -31,13 +33,34 @@ struct Secp256k1Ecmult {
             var valid = true
             for i in 0..<64 {
                 for k in 0..<16 {
-                    valid = valid && (!res[i][k].isInfinity || k == 0) && res[i][k].z.isOne()
+                    valid = valid && (!fullTbl[i][k].isInfinity || k == 0) && fullTbl[i][k].z.isOne()
                 }
             }
             return valid
         }())
         
-        gMultTable4BitFull = res
+        gMultTable4BitFull = fullTbl
+        
+        // Gen partial 8 bit table
+        gBase = Secp256k1Ecmult.g
+        var partialTbl = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 32)
+        for k in 1..<32 {
+            var precj_k = partialTbl[k-1]
+            precj_k.addAffine2J(gBase)
+            precj_k.normalizeJ()
+            partialTbl[k] = precj_k
+        }
+        
+        gMultTable5BitPartial = partialTbl
+        
+        assert({
+            var valid = true
+            for i in 0..<16 {
+                valid = valid && gMultTable4BitFull[0][i&0xF] == gMultTable5BitPartial[i]
+            }
+            return valid
+        }())
+        
     }
     
     func gen(gn: Secp256k1Scalar) -> Secp256k1Group {
@@ -121,11 +144,62 @@ struct Secp256k1Ecmult {
     }
     
     func gen(point p: Secp256k1Group, pn: Secp256k1Scalar, gn: Secp256k1Scalar) -> Secp256k1Group {
-        let gpn = gen(gn: gn)
-        let ppn = gen(point: p, pn: pn)
+        var prec = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 16)
+        if p.isNormalized() {
+            for i in 1..<16 {
+                prec[i] = prec[i - 1]
+                prec[i].addAffine2J(p)
+            }
+        } else {
+            for i in 1..<16 {
+                prec[i] = prec[i - 1]
+                prec[i].addJ(p)
+            }
+        }
         
-        var res = gpn
-        res.addJ(ppn)
+        var res = Secp256k1Group.infinity
+        
+        var i = 255
+        var pAt = 256
+        var gAt = 256
+        while i >= 0 {
+            res.doubleJ()
+            
+            if pAt - i >= 4 {
+                let precIdx = pn.getBits(offset: i, count: 4)
+                if precIdx >= 8 {
+                    res.addJ(prec[precIdx])
+                    pAt = i
+                }
+            }
+            
+            if gAt - i >= 5 {
+                let precIdx = gn.getBits(offset: i, count: 5)
+                if precIdx >= 16 {
+                    res.addAffine2J(gMultTable5BitPartial[precIdx])
+                    gAt = i
+                }
+            }
+            
+            i -= 1
+        }
+        if pAt >= 4 {
+            pAt = 3
+        }
+        if gAt >= 5 {
+            gAt = 4
+        }
+        if pAt < 4 {
+            let precIdx = pn.getBits(offset: 0, count: pAt)
+            res.addJ(prec[precIdx])
+        }
+        if gAt < 5 {
+            let precIdx = gn.getBits(offset: 0, count: gAt)
+            res.addAffine2J(gMultTable5BitPartial[precIdx])
+        }
+        
+        assert(!res.isInfinity || pn.isZero())
+        assert(res.isValidJ())
         return res
     }
 }
