@@ -72,7 +72,9 @@ struct Secp256k1Ecmult {
             }
         }
         assert(shift < 0 && shift >= -4)
+        
         let addFunc = p.isNormalized() ? { res.addAffine2J(p) } : { res.addJ(p) }
+        
         for i in (0..<shift+4).reversed() {
             res.doubleJ()
             if pn.getBits(offset: i, count: 1) == 1 {
@@ -83,7 +85,7 @@ struct Secp256k1Ecmult {
     }
     
     func gen(point p: Secp256k1Group, pn: Secp256k1Scalar) -> Secp256k1Group {
-        var prec = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 16)
+        var prec = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 8)
         
         var p8 = p
         p8.doubleJ()
