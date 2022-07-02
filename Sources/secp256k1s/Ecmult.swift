@@ -10,8 +10,12 @@ struct Secp256k1Ecmult {
         // Gen full 4 bit table
         var fullTbl = [[Secp256k1Group]](repeating: [], count: 64)
         var gBase = Secp256k1Ecmult.g
+        for _ in 0..<8 {
+            gBase.doubleJ()
+        }
+        gBase.normalizeJ()
         
-        for i in 0..<64 {
+        for i in 2..<64 { // first 8bit result from 8 bit table
             let precj_i0 = Secp256k1Group.infinity
             fullTbl[i].append(precj_i0)
             
@@ -31,7 +35,7 @@ struct Secp256k1Ecmult {
         
         assert({() -> Bool in
             var valid = true
-            for i in 0..<64 {
+            for i in 2..<64 {
                 for k in 0..<16 {
                     valid = valid && (!fullTbl[i][k].isInfinity || k == 0) && fullTbl[i][k].z.isOne()
                 }
@@ -52,26 +56,12 @@ struct Secp256k1Ecmult {
         }
         
         gMultTable8BitPartial = partialTbl
-        
-        assert({
-            var valid = true
-            for i in 0..<16 {
-                valid = valid && gMultTable4BitFull[0][i&0xF] == gMultTable8BitPartial[i]
-            }
-            for i in 16..<32 {
-                var tmp = gMultTable4BitFull[1][1]
-                tmp.addAffine2J(gMultTable4BitFull[0][i&0xF])
-                tmp.normalizeJ()
-                valid = valid && tmp == gMultTable8BitPartial[i]
-            }
-            return valid
-        }())
-        
     }
     
     func gen(gn: Secp256k1Scalar) -> Secp256k1Group {
-        var res = Secp256k1Group.infinity
-        for i in 0..<64 {
+        var res = gMultTable8BitPartial[gn.getBits(offset: 0, count: 8)]
+        
+        for i in 2..<64 {
             let idx = gn.getBits(offset: i * 4, count: 4)
             let prec = gMultTable4BitFull[i][idx]
             res.addAffine2J(prec)
@@ -189,20 +179,12 @@ struct Secp256k1Ecmult {
             
             i -= 1
         }
-        if pAt >= 4 {
-            pAt = 3
-        }
-        if gAt >= 8 {
-            gAt = 7
-        }
-        if pAt < 4 {
-            let precIdx = pn.getBits(offset: 0, count: pAt)
-            res.addJ(prec[precIdx])
-        }
-        if gAt < 8 {
-            let precIdx = gn.getBits(offset: 0, count: gAt)
-            res.addAffine2J(gMultTable8BitPartial[precIdx])
-        }
+       
+        let precIdx4 = pn.getBits(offset: 0, count: Swift.min(pAt, 3))
+        res.addJ(prec[precIdx4])
+    
+        let precIdx8 = gn.getBits(offset: 0, count: Swift.min(gAt, 7))
+        res.addAffine2J(gMultTable8BitPartial[precIdx8])
         
         assert(!res.isInfinity || pn.isZero())
         assert(res.isValidJ())
