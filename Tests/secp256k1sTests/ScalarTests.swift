@@ -806,4 +806,38 @@ final class ScalarTests: XCTestCase {
         XCTAssertFalse(r5.isZero())
         XCTAssertFalse(r6.isZero())
     }
+    
+    func testBitsGet() {
+        for _ in 0..<64 {
+            let s = Self.randScalar()
+            var bitx = s.getBits(offset: 0, count: 7)
+            var bity = Int(s.d.0 & 0x7F)
+            XCTAssertEqual(bitx, bity)
+            bitx = s.getBits(offset: 7, count: 7)
+            bity = Int(s.d.0 >> 7 & 0x7F)
+            XCTAssertEqual(bitx, bity)
+            bitx = s.getBits(offset: 14, count: 7)
+            bity = Int(s.d.0 >> 14 & 0x7F)
+            XCTAssertEqual(bitx, bity)
+            bitx = s.getBits(offset: 1, count: 7)
+            bity = Int(s.d.0 >> 1 & 0x7F)
+            XCTAssertEqual(bitx, bity)
+            
+            bitx = s.getBits(offset: 57, count: 7)
+            bity = Int(s.d.0 >> 57 & 0x7F)
+            XCTAssertEqual(bitx, bity)
+            
+            bitx = s.getBits(offset: 58, count: 7)
+            bity = Int((s.d.0 >> 58 & 0x3F) | (s.d.1 & 0x1) << 6)
+            XCTAssertEqual(bitx, bity)
+            
+            bitx = s.getBits(offset: 59, count: 7)
+            bity = Int((s.d.0 >> 59 & 0x1F) | (s.d.1 & 0x3) << 5)
+            XCTAssertEqual(bitx, bity)
+            
+            bitx = s.getBits(offset: 62, count: 7)
+            bity = Int((s.d.0 >> 62 & 0x3) | (s.d.1 & 0x1F) << 2)
+            XCTAssertEqual(bitx, bity)
+        }
+    }
 }

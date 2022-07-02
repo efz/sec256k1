@@ -4,7 +4,7 @@ struct Secp256k1Ecmult {
         y: Secp256k1Field(words64: [0x9C47D08F_FB10D4B8, 0xFD17B448_A6855419, 0x5DA4FBFC_0E1108A8, 0x483ADA77_26A3C465]))!
     
     let gMultTable4BitFull: [[Secp256k1Group]]
-    let gMultTable5BitPartial: [Secp256k1Group]
+    let gMultTable8BitPartial: [Secp256k1Group]
     
     init() {
         // Gen full 4 bit table
@@ -43,20 +43,26 @@ struct Secp256k1Ecmult {
         
         // Gen partial 8 bit table
         gBase = Secp256k1Ecmult.g
-        var partialTbl = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 32)
-        for k in 1..<32 {
+        var partialTbl = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 256)
+        for k in 1..<256 {
             var precj_k = partialTbl[k-1]
             precj_k.addAffine2J(gBase)
             precj_k.normalizeJ()
             partialTbl[k] = precj_k
         }
         
-        gMultTable5BitPartial = partialTbl
+        gMultTable8BitPartial = partialTbl
         
         assert({
             var valid = true
             for i in 0..<16 {
-                valid = valid && gMultTable4BitFull[0][i&0xF] == gMultTable5BitPartial[i]
+                valid = valid && gMultTable4BitFull[0][i&0xF] == gMultTable8BitPartial[i]
+            }
+            for i in 16..<32 {
+                var tmp = gMultTable4BitFull[1][1]
+                tmp.addAffine2J(gMultTable4BitFull[0][i&0xF])
+                tmp.normalizeJ()
+                valid = valid && tmp == gMultTable8BitPartial[i]
             }
             return valid
         }())
@@ -173,10 +179,10 @@ struct Secp256k1Ecmult {
                 }
             }
             
-            if gAt - i >= 5 {
-                let precIdx = gn.getBits(offset: i, count: 5)
-                if precIdx >= 16 {
-                    res.addAffine2J(gMultTable5BitPartial[precIdx])
+            if gAt - i >= 8 {
+                let precIdx = gn.getBits(offset: i, count: 8)
+                if precIdx >= 128 {
+                    res.addAffine2J(gMultTable8BitPartial[precIdx])
                     gAt = i
                 }
             }
@@ -186,16 +192,16 @@ struct Secp256k1Ecmult {
         if pAt >= 4 {
             pAt = 3
         }
-        if gAt >= 5 {
-            gAt = 4
+        if gAt >= 8 {
+            gAt = 7
         }
         if pAt < 4 {
             let precIdx = pn.getBits(offset: 0, count: pAt)
             res.addJ(prec[precIdx])
         }
-        if gAt < 5 {
+        if gAt < 8 {
             let precIdx = gn.getBits(offset: 0, count: gAt)
-            res.addAffine2J(gMultTable5BitPartial[precIdx])
+            res.addAffine2J(gMultTable8BitPartial[precIdx])
         }
         
         assert(!res.isInfinity || pn.isZero())

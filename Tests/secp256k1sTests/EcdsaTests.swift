@@ -5,7 +5,7 @@ class EcdsaKeyTests: XCTestCase {
     let randp = RandProvider()
     
     func testSignVerify() {
-        for _ in 0..<10 {
+        for _ in 0..<100 {
             let message = randp.genScalar()
             let privKey = randp.genPrivateKey()
             let pubKey = privKey.pubKey!
@@ -27,7 +27,7 @@ class EcdsaKeyTests: XCTestCase {
     func testEcdsaEnd2End() {
         var bytes = [UInt8](repeating: 0, count: 65)
         
-        for _ in 0..<10 {
+        for _ in 0..<100 {
             let message = randp.genScalar()
             var privKey = randp.genPrivateKey()
             
