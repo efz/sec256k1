@@ -103,9 +103,9 @@ struct Secp256k1Ecmult {
         return res
     }
     
-    func gen(point p: Secp256k1Group, pn: Secp256k1Scalar) -> Secp256k1Group {
+    @inline(__always)
+    fileprivate func build8BitPrecTbl(_ p: Secp256k1Group) -> [Secp256k1Group] {
         var prec = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 8)
-        
         var p8 = p
         p8.doubleJ()
         p8.doubleJ()
@@ -123,7 +123,11 @@ struct Secp256k1Ecmult {
                 prec[i].addJ(p)
             }
         }
-        
+        return prec
+    }
+    
+    func gen(point p: Secp256k1Group, pn: Secp256k1Scalar) -> Secp256k1Group {
+        let prec = build8BitPrecTbl(p)
         let res = gen(point: p, pn, prec)
         
         assert(!res.isInfinity || pn.isZero())
@@ -140,19 +144,7 @@ struct Secp256k1Ecmult {
     }
     
     func gen(point p: Secp256k1Group, pn: Secp256k1Scalar, gn: Secp256k1Scalar) -> Secp256k1Group {
-        var prec = [Secp256k1Group](repeating: Secp256k1Group.infinity, count: 16)
-        if p.isNormalized() {
-            for i in 1..<16 {
-                prec[i] = prec[i - 1]
-                prec[i].addAffine2J(p)
-            }
-        } else {
-            for i in 1..<16 {
-                prec[i] = prec[i - 1]
-                prec[i].addJ(p)
-            }
-        }
-        
+        let prec = build8BitPrecTbl(p)
         var res = Secp256k1Group.infinity
         
         var i = 255
@@ -164,7 +156,7 @@ struct Secp256k1Ecmult {
             if pAt - i >= 4 {
                 let precIdx = pn.getBits(offset: i, count: 4)
                 if precIdx >= 8 {
-                    res.addJ(prec[precIdx])
+                    res.addJ(prec[precIdx & 0x7])
                     pAt = i
                 }
             }
@@ -179,10 +171,42 @@ struct Secp256k1Ecmult {
             
             i -= 1
         }
-       
-        let precIdx4 = pn.getBits(offset: 0, count: Swift.min(pAt, 3))
-        res.addJ(prec[precIdx4])
-    
+        
+        var lastPRes = Secp256k1Group.infinity
+        let lastPResAddFunc = p.isNormalized() ? { lastPRes.addAffine2J(p) } : { lastPRes.addJ(p) }
+        
+        switch Swift.min(pAt, 3) {
+        case 3:
+            if pn.getBits(offset: 2, count: 1) == 1 {
+                lastPResAddFunc()
+            }
+            lastPRes.doubleJ()
+            if pn.getBits(offset: 1, count: 1) == 1 {
+                lastPResAddFunc()
+            }
+            lastPRes.doubleJ()
+            if pn.getBits(offset: 0, count: 1) == 1 {
+                lastPResAddFunc()
+            }
+        case 2:
+            if pn.getBits(offset: 1, count: 1) == 1 {
+                lastPResAddFunc()
+            }
+            lastPRes.doubleJ()
+            if pn.getBits(offset: 0, count: 1) == 1 {
+                lastPResAddFunc()
+            }
+        case 1:
+            if pn.getBits(offset: 0, count: 1) == 1 {
+                lastPResAddFunc()
+            }
+        case 0:
+            lastPRes.addAffine2J(Secp256k1Group.infinity)
+        default:
+            fatalError()
+        }
+        res.addJ(lastPRes)
+        
         let precIdx8 = gn.getBits(offset: 0, count: Swift.min(gAt, 7))
         res.addAffine2J(gMultTable8BitPartial[precIdx8])
         
