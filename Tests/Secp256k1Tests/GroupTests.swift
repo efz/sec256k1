@@ -1,5 +1,5 @@
 import XCTest
-@testable import secp256k1s
+@testable import Secp256k1
 
 class GroupTests: XCTestCase {
     let testVectors: [[[[UInt64]]]]  = [
