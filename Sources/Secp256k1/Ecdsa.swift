@@ -88,11 +88,11 @@ public struct Secp256k1Edsa {
 
 
 struct RandProvider {
-    static var keyGenerator: Secp256k1sRfc6979HmacSha256 = {
+    static var keyGenerator: Secp256k1Rfc6979HmacSha256 = {
         let randSeed = (0..<16).map() { _ in
             UInt8(UInt16.random(in: 0..<256))
         }
-        return Secp256k1sRfc6979HmacSha256(key: randSeed)
+        return Secp256k1Rfc6979HmacSha256(key: randSeed)
     }();
     
     func genPrivateKeyWithBytes() -> (Secp256k1PrivateKey, [UInt8]) {

@@ -294,7 +294,7 @@ func bench_group_add_affine2j() {
 func bench_sha256_hash() {
     var hash = [UInt8](repeating: 0, count: 32)
     hash[0..<32] = init_x[0..<32]
-    var hasher = Secp256k1sSha256()
+    var hasher = Secp256k1Sha256()
     for _ in 0..<20000 {
         hasher.write(bytes: hash)
         hasher.finalize(hash: &hash)
@@ -304,7 +304,7 @@ func bench_sha256_hash() {
 func bench_hmacSha256_hash() {
     var hash = [UInt8](repeating: 0, count: 32)
     hash[0..<32] = init_x[0..<32]
-    var hasher = Secp256k1sHmacSha256()
+    var hasher = Secp256k1HmacSha256()
     for _ in 0..<20000 {
         hasher.resetKey(key: hash)
         hasher.write(bytes: hash)
@@ -316,7 +316,7 @@ func bench_rfc6979HmacSha256_hash() {
     var hash = [UInt8](repeating: 0, count: 64)
     hash[0..<32] = init_x[0..<32]
     hash[32..<64] = init_y[0..<32]
-    var rng = Secp256k1sRfc6979HmacSha256(key: hash)
+    var rng = Secp256k1Rfc6979HmacSha256(key: hash)
 
     for _ in 0..<20000 {
         rng.generate(rand: &hash[0..<32])

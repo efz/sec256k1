@@ -20,7 +20,7 @@ class HashTests: XCTestCase {
             [0xab, 0x64, 0xef, 0xf7, 0xe8, 0x8e, 0x2e, 0x46, 0x16, 0x5e, 0x29, 0xf2, 0xbc, 0xe4, 0x18, 0x26, 0xbd, 0x4c, 0x7b, 0x35, 0x52, 0xf6, 0xb3, 0x82, 0xa9, 0xe7, 0xd3, 0xaf, 0x47, 0xc2, 0x45, 0xf8]
         ]
         
-        var hasher = Secp256k1sSha256()
+        var hasher = Secp256k1Sha256()
         
         for i in 0..<inputs.count {
             let inputBytes = [UInt8](inputs[i].utf8)
@@ -66,7 +66,7 @@ class HashTests: XCTestCase {
         ]
         
         for i in 0..<6 {
-            var hasher = Secp256k1sHmacSha256(key: keys[i])
+            var hasher = Secp256k1HmacSha256(key: keys[i])
             hasher.write(bytes: inputs[i])
             let hash = hasher.finalize()
             XCTAssertEqual(hash, outputs[i], "test \(i)")
@@ -99,7 +99,7 @@ class HashTests: XCTestCase {
         
         var rand = [UInt8](repeating: 0, count: 32)
         
-        var rng = Secp256k1sRfc6979HmacSha256(key: key1)
+        var rng = Secp256k1Rfc6979HmacSha256(key: key1)
         for i in 0..<3 {
             rng.generate(rand: &rand)
             XCTAssertEqual(rand, out1[i])

@@ -1,15 +1,15 @@
 typealias ABCDEFGH = (a: UInt32, b: UInt32, c: UInt32, d: UInt32, e: UInt32, f: UInt32, g: UInt32, h: UInt32)
 
-public struct Secp256k1sSha256 {
+public struct Secp256k1Sha256 {
     static let blockSizeBytes = 64
     static let blockSizeWords = 16
     static let sSize = 8
     static let hs: ABCDEFGH = (0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19)
     
-    var s = Secp256k1sSha256.hs
+    var s = Secp256k1Sha256.hs
     var bytesCount = 0
     var totalBytesCount = 0
-    var abcdefgh = Secp256k1sSha256.hs
+    var abcdefgh = Secp256k1Sha256.hs
     
     var w: (UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32) = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     
@@ -71,7 +71,7 @@ public struct Secp256k1sSha256 {
     }
     
     private mutating func transform() {
-        assert(bytesCount == Secp256k1sSha256.blockSizeBytes)
+        assert(bytesCount == Secp256k1Sha256.blockSizeBytes)
         
         transformStep(1116352408, w.0)
         transformStep(1899447441, w.1)
@@ -191,7 +191,7 @@ public struct Secp256k1sSha256 {
         
         w = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         
-        totalBytesCount += Secp256k1sSha256.blockSizeBytes
+        totalBytesCount += Secp256k1Sha256.blockSizeBytes
         bytesCount = 0
         abcdefgh = s
     }
@@ -263,7 +263,7 @@ public struct Secp256k1sSha256 {
             fatalError()
         }
         
-        if (bytesCount == Secp256k1sSha256.blockSizeBytes) {
+        if (bytesCount == Secp256k1Sha256.blockSizeBytes) {
             transform()
         }
     }
@@ -312,7 +312,7 @@ public struct Secp256k1sSha256 {
             fatalError()
         }
         
-        if (bytesCount == Secp256k1sSha256.blockSizeBytes) {
+        if (bytesCount == Secp256k1Sha256.blockSizeBytes) {
             transform()
         }
     }
@@ -335,18 +335,18 @@ public struct Secp256k1sSha256 {
         let writtenSizeBits = (totalBytesCount + bytesCount) * 8
         write(byte: 0x80)
         
-        if (Secp256k1sSha256.blockSizeBytes - bytesCount < 8) {
-            bytesCount = Secp256k1sSha256.blockSizeBytes
+        if (Secp256k1Sha256.blockSizeBytes - bytesCount < 8) {
+            bytesCount = Secp256k1Sha256.blockSizeBytes
             transform()
         }
-        bytesCount = Secp256k1sSha256.blockSizeBytes - 4
+        bytesCount = Secp256k1Sha256.blockSizeBytes - 4
         write(word: UInt32(writtenSizeBits))
     }
     
     private mutating func reset() {
         // reset
-        s = Secp256k1sSha256.hs
-        abcdefgh = Secp256k1sSha256.hs
+        s = Secp256k1Sha256.hs
+        abcdefgh = Secp256k1Sha256.hs
         bytesCount = 0
         totalBytesCount = 0
     }
@@ -356,7 +356,7 @@ public struct Secp256k1sSha256 {
     }
 }
 
-extension Secp256k1sSha256 {
+extension Secp256k1Sha256 {
     fileprivate mutating func writeAbcdefgh(abcdefghInput: ABCDEFGH) {
         assert(bytesCount == 0)
         (w.0, w.1, w.2, w.3, w.4, w.5, w.6, w.7) = abcdefghInput
@@ -392,9 +392,9 @@ extension Secp256k1sSha256 {
     }
 }
 
-public struct Secp256k1sHmacSha256 {
-    var innerHasher = Secp256k1sSha256()
-    var outterHasher = Secp256k1sSha256()
+public struct Secp256k1HmacSha256 {
+    var innerHasher = Secp256k1Sha256()
+    var outterHasher = Secp256k1Sha256()
     
     static let innerCode: UInt8 = 0x36
     static let outterCode: UInt8 = 0x5c
@@ -413,18 +413,18 @@ public struct Secp256k1sHmacSha256 {
         if key.count <= 64 {
             rkey[0..<key.count] = key[0..<key.count]
         } else {
-            var keyHasher = Secp256k1sSha256()
+            var keyHasher = Secp256k1Sha256()
             keyHasher.write(bytes: key)
             keyHasher.finalize(hash: &rkey)
         }
         
         for i in 0..<rkey.count {
-            rkey[i] = rkey[i] ^ Secp256k1sHmacSha256.outterCode
+            rkey[i] = rkey[i] ^ Secp256k1HmacSha256.outterCode
         }
         outterHasher.write(bytes: rkey)
         
         for i in 0..<rkey.count {
-            rkey[i] = rkey[i] ^ Secp256k1sHmacSha256.outterCode ^ Secp256k1sHmacSha256.innerCode
+            rkey[i] = rkey[i] ^ Secp256k1HmacSha256.outterCode ^ Secp256k1HmacSha256.innerCode
         }
         innerHasher.write(bytes: rkey)
     }
@@ -456,24 +456,24 @@ public struct Secp256k1sHmacSha256 {
     }
 }
 
-extension Secp256k1sHmacSha256 {
+extension Secp256k1HmacSha256 {
     fileprivate mutating func resetKey(key: ABCDEFGH) {
         assert(innerHasher.bytesCount == 0 && outterHasher.bytesCount == 0)
         
         outterHasher.writeAbcdefgh(abcdefghInput: (
-            key.a ^ Secp256k1sHmacSha256.outterCodeWord, key.b ^ Secp256k1sHmacSha256.outterCodeWord,
-            key.c ^ Secp256k1sHmacSha256.outterCodeWord, key.d ^ Secp256k1sHmacSha256.outterCodeWord,
-            key.e ^ Secp256k1sHmacSha256.outterCodeWord, key.f ^ Secp256k1sHmacSha256.outterCodeWord,
-            key.g ^ Secp256k1sHmacSha256.outterCodeWord, key.h ^ Secp256k1sHmacSha256.outterCodeWord))
+            key.a ^ Secp256k1HmacSha256.outterCodeWord, key.b ^ Secp256k1HmacSha256.outterCodeWord,
+            key.c ^ Secp256k1HmacSha256.outterCodeWord, key.d ^ Secp256k1HmacSha256.outterCodeWord,
+            key.e ^ Secp256k1HmacSha256.outterCodeWord, key.f ^ Secp256k1HmacSha256.outterCodeWord,
+            key.g ^ Secp256k1HmacSha256.outterCodeWord, key.h ^ Secp256k1HmacSha256.outterCodeWord))
         innerHasher.writeAbcdefgh(abcdefghInput: (
-            key.a ^ Secp256k1sHmacSha256.innerCodeWord, key.b ^ Secp256k1sHmacSha256.innerCodeWord,
-            key.c ^ Secp256k1sHmacSha256.innerCodeWord, key.d ^ Secp256k1sHmacSha256.innerCodeWord,
-            key.e ^ Secp256k1sHmacSha256.innerCodeWord, key.f ^ Secp256k1sHmacSha256.innerCodeWord,
-            key.g ^ Secp256k1sHmacSha256.innerCodeWord, key.h ^ Secp256k1sHmacSha256.innerCodeWord))
+            key.a ^ Secp256k1HmacSha256.innerCodeWord, key.b ^ Secp256k1HmacSha256.innerCodeWord,
+            key.c ^ Secp256k1HmacSha256.innerCodeWord, key.d ^ Secp256k1HmacSha256.innerCodeWord,
+            key.e ^ Secp256k1HmacSha256.innerCodeWord, key.f ^ Secp256k1HmacSha256.innerCodeWord,
+            key.g ^ Secp256k1HmacSha256.innerCodeWord, key.h ^ Secp256k1HmacSha256.innerCodeWord))
         
         for _ in 0..<8 {
-            outterHasher.write(word: Secp256k1sHmacSha256.outterCodeWord)
-            innerHasher.write(word: Secp256k1sHmacSha256.innerCodeWord)
+            outterHasher.write(word: Secp256k1HmacSha256.outterCodeWord)
+            innerHasher.write(word: Secp256k1HmacSha256.innerCodeWord)
         }
     }
     
@@ -503,14 +503,14 @@ extension Secp256k1sHmacSha256 {
     }
 }
 
-public struct Secp256k1sRfc6979HmacSha256 {
+public struct Secp256k1Rfc6979HmacSha256 {
     static let tempV: ABCDEFGH = (0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101)
     static let tempK: ABCDEFGH = (0, 0, 0, 0, 0, 0, 0, 0)
     
-    var v = Secp256k1sRfc6979HmacSha256.tempV
-    var k = Secp256k1sRfc6979HmacSha256.tempK
+    var v = Secp256k1Rfc6979HmacSha256.tempV
+    var k = Secp256k1Rfc6979HmacSha256.tempK
     var retry = false
-    var hmac = Secp256k1sHmacSha256()
+    var hmac = Secp256k1HmacSha256()
     var outBuff = [UInt8](repeating: 0, count: 32)
     
     public init(key: [UInt8]) {
@@ -518,8 +518,8 @@ public struct Secp256k1sRfc6979HmacSha256 {
     }
     
     public mutating func resetKey(key: [UInt8]) {
-        v = Secp256k1sRfc6979HmacSha256.tempV
-        k = Secp256k1sRfc6979HmacSha256.tempK
+        v = Secp256k1Rfc6979HmacSha256.tempV
+        k = Secp256k1Rfc6979HmacSha256.tempK
         
         hmac.resetKey(key: k)
         hmac.write(abcdefghInput: v)
