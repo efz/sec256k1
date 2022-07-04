@@ -196,7 +196,6 @@ struct Secp256k1Group {
     
     mutating func addJ(_ b: Secp256k1Group) {
         assert(isValidJ() && b.isValidJ())
-        //assert(Secp256k1Group.normalizeJ(self) != Secp256k1Group.normalizeJ(b)) // double?
         
         if b.isInfinity {
             return
@@ -240,7 +239,6 @@ struct Secp256k1Group {
     
     mutating func addAffine2J(_ b: Secp256k1Group) {
         assert(isValidJ() && b.isValid())
-        //assert(Secp256k1Group.normalizeJ(self) != b) // double?
         
         if b.isInfinity {
             return

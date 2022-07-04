@@ -50,24 +50,26 @@ class EcdsaKeyTests: XCTestCase {
             
             /* Optionally tweak the keys using addition. */
             if Int.random(in: 0..<3) <= 10 {
-                let tweak = randp.genScalar()
+                let tweakScalar = randp.genScalar()
                 var tweakBytes = [UInt8](repeating: 0, count: 32)
-                tweak.serialize(bytes: &tweakBytes[0..<32])
+                tweakScalar.serialize(bytes: &tweakBytes[0..<32])
+                let tweak = Secp256k1Tweak(bytes32: tweakBytes)!
                 
-                try! privKey.tweakAdd(bytes32: tweakBytes)
-                try! pubKey.tweakAdd(bytes32: tweakBytes)
+                try! privKey.tweakAdd(tweak: tweak)
+                try! pubKey.tweakAdd(tweak: tweak)
                 
                 XCTAssertEqual(pubKey, privKey.pubKey)
             }
             
             /* Optionally tweak the keys using multiplication. */
             if Int.random(in: 0..<3) <= 10 {
-                let tweak = randp.genScalar()
+                let tweakScalar = randp.genScalar()
                 var tweakBytes = [UInt8](repeating: 0, count: 32)
-                tweak.serialize(bytes: &tweakBytes[0..<32])
+                tweakScalar.serialize(bytes: &tweakBytes[0..<32])
+                let tweak = Secp256k1Tweak(bytes32: tweakBytes)!
                 
-                try! privKey.tweakMul(bytes32: tweakBytes)
-                try! pubKey.tweakMul(bytes32: tweakBytes)
+                try! privKey.tweakMul(tweak: tweak)
+                try! pubKey.tweakMul(tweak: tweak)
                 
                 XCTAssertEqual(pubKey, privKey.pubKey)
             }

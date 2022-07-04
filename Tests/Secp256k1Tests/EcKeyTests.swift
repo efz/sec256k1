@@ -44,35 +44,38 @@ class EcKeyTests: XCTestCase {
         let pubKeyNeg1 = privKey!.pubKey!
         
         /* Tweak of zero leaves the value changed. */
-        try! privKey!.tweakAdd(tweak: Secp256k1Scalar.zero)
+        let tweakZero = Secp256k1Tweak(s: Secp256k1Scalar.zero)
+        try! privKey!.tweakAdd(tweak: tweakZero)
         XCTAssertEqual(privKey!, prevKeyNeg1)
         var pubKey = privKey!.pubKey!
-        try! pubKey.tweakAdd(tweak: Secp256k1Scalar.zero)
+        try! pubKey.tweakAdd(tweak: tweakZero)
         XCTAssertEqual(pubKey,  pubKeyNeg1)
         
         /* Multiply tweak of zero zeroizes the output. */
-        XCTAssertThrowsError(try privKey!.tweakMul(tweak: Secp256k1Scalar.zero))
-        XCTAssertThrowsError(try pubKey.tweakMul(tweak: Secp256k1Scalar.zero))
+        XCTAssertThrowsError(try privKey!.tweakMul(tweak: tweakZero))
+        XCTAssertThrowsError(try pubKey.tweakMul(tweak: tweakZero))
         
         /* Private key tweaks results in a key of zero. */
         ctmp = orderc
         ctmp[31] = 0x40
         privKey = Secp256k1PrivateKey(bytes32: ctmp)
-        XCTAssertThrowsError(try privKey!.tweakAdd(tweak: Secp256k1Scalar.one))
+        let tweakOne = Secp256k1Tweak(s: Secp256k1Scalar.one)
+        XCTAssertThrowsError(try privKey!.tweakAdd(tweak: tweakOne))
         pubKey = pubKeyNeg1
-        XCTAssertThrowsError(try pubKey.tweakAdd(tweak: Secp256k1Scalar.one))
+        XCTAssertThrowsError(try pubKey.tweakAdd(tweak: tweakOne))
         
         /* Tweak computation wraps and results in a key of 1. */
         let two = Secp256k1Scalar(int: 2)
-        try! privKey!.tweakAdd(tweak: two)
+        let tweakTwo = Secp256k1Tweak(s: two)
+        try! privKey!.tweakAdd(tweak: tweakTwo)
         XCTAssertEqual(privKey, Secp256k1PrivateKey(s: Secp256k1Scalar.one))
-        try! pubKey.tweakAdd(tweak: two)
+        try! pubKey.tweakAdd(tweak: tweakTwo)
         XCTAssertEqual(pubKey, Secp256k1PrivateKey(s: Secp256k1Scalar.one)!.pubKey)
         
         /* Tweak mul * 2 = 1+1. */
         var pubKey2 = pubKey
-        try! pubKey.tweakAdd(tweak: Secp256k1Scalar.one)
-        try! pubKey2.tweakMul(tweak: two)
+        try! pubKey.tweakAdd(tweak: Secp256k1Tweak(s: Secp256k1Scalar.one))
+        try! pubKey2.tweakMul(tweak: Secp256k1Tweak(s: two))
         XCTAssertEqual(pubKey, pubKey2)
     }
     

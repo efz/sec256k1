@@ -41,42 +41,20 @@ public struct Secp256k1PrivateKey: Equatable {
         privKey.serialize(bytes: &bytes32[0..<32])
     }
     
-    public mutating func tweakAdd(bytes32: [UInt8]) throws {
-        let tweak = try Secp256k1PrivateKey.bytes2Tweak(bytes32: bytes32)
-        try tweakAdd(tweak: tweak)
-    }
-    
-    mutating func tweakAdd(tweak: Secp256k1Scalar) throws {
-        let r = privKey + tweak
+    public mutating func tweakAdd(tweak: Secp256k1Tweak) throws {
+        let r = privKey + tweak.s
         if r.isZero() {
             throw Secp256k1Error("Zero after tweak")
         }
         privKey = r
     }
     
-    public mutating func tweakMul(bytes32: [UInt8]) throws {
-        let tweak = try Secp256k1PrivateKey.bytes2Tweak(bytes32: bytes32)
-        try tweakMul(tweak: tweak)
-    }
-    
-    mutating func tweakMul(tweak: Secp256k1Scalar) throws {
-        let r = privKey * tweak
+    public mutating func tweakMul(tweak: Secp256k1Tweak) throws {
+        let r = privKey * tweak.s
         if r.isZero() {
             throw Secp256k1Error("Zero after tweak")
         }
         privKey = r
-    }
-    
-    static func bytes2Tweak(bytes32: [UInt8]) throws -> Secp256k1Scalar {
-        guard bytes32.count == 32 else {
-            throw Secp256k1Error("Tweak not 32 bytes")
-        }
-        var overflow = false
-        let tweak = Secp256k1Scalar(bytes: bytes32, overflowed: &overflow)
-        if tweak.isZero() || overflow {
-            throw Secp256k1Error("Tweak overflow or zero")
-        }
-        return tweak
     }
 }
 
@@ -154,13 +132,8 @@ public struct Secp256k1PublicKey: Equatable {
         pubKey.serialize(bytes: &bytes33or65[1..<(compress ? 33 : 65)])
     }
     
-    public mutating func tweakAdd(bytes32: [UInt8]) throws {
-        let tweak = try Secp256k1PrivateKey.bytes2Tweak(bytes32: bytes32)
-        try tweakAdd(tweak: tweak)
-    }
-    
-    mutating func tweakAdd(tweak: Secp256k1Scalar) throws {
-        var r = Secp256k1PublicKey.ecmult.gen(point: pubKey, gn: tweak)
+    public mutating func tweakAdd(tweak: Secp256k1Tweak) throws {
+        var r = Secp256k1PublicKey.ecmult.gen(point: pubKey, gn: tweak.s)
         if (!r.isValidJ() || r.isInfinity) {
             throw Secp256k1Error("Invalid key after tweak")
         }
@@ -169,13 +142,8 @@ public struct Secp256k1PublicKey: Equatable {
         pubKey = r
     }
     
-    public mutating func tweakMul(bytes32: [UInt8]) throws {
-        let tweak = try Secp256k1PrivateKey.bytes2Tweak(bytes32: bytes32)
-        try tweakMul(tweak: tweak)
-    }
-    
-    mutating func tweakMul(tweak: Secp256k1Scalar) throws {
-        var r = Secp256k1PublicKey.ecmult.gen(point: pubKey, pn: tweak)
+    public mutating func tweakMul(tweak: Secp256k1Tweak) throws {
+        var r = Secp256k1PublicKey.ecmult.gen(point: pubKey, pn: tweak.s)
         if (!r.isValidJ() || r.isInfinity) {
             throw Secp256k1Error("Invalid key after tweak")
         }
@@ -206,6 +174,26 @@ public struct Secp256k1PublicKey: Equatable {
     
     public static func ==(lhs: Secp256k1PublicKey, rhs: Secp256k1PublicKey) -> Bool {
         return lhs.pubKey == rhs.pubKey
+    }
+}
+
+public struct Secp256k1Tweak {
+    let s: Secp256k1Scalar
+    
+    init(s: Secp256k1Scalar) {
+        self.s = s
+    }
+    
+    public init?(bytes32: [UInt8]) {
+        guard bytes32.count == 32 else {
+            return nil
+        }
+        var overflow = false
+        let tweak = Secp256k1Scalar(bytes: bytes32, overflowed: &overflow)
+        if tweak.isZero() || overflow {
+            return nil
+        }
+        s = tweak
     }
 }
 
