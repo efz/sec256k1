@@ -176,7 +176,7 @@ class EcKeyTests: XCTestCase {
             XCTAssertNotNil(pubKey, "pubkey deserialize \(i)")
             
             bytes65[0..<65] = zeros65[0..<65]
-            pubKey?.serialize(bytes: &bytes65, compress: false)
+            try! pubKey?.serialize(bytes33or65: &bytes65, compress: false)
             XCTAssertEqual(validPublicKeyBytes[i][0..<64], bytes65[1..<65])
             XCTAssertEqual(bytes65[0], 0x04)
             
@@ -199,7 +199,7 @@ class EcKeyTests: XCTestCase {
             XCTAssertEqual(pubKey, pubKey2)
             
             bytes33[0..<33] = zeros65[0..<33]
-            pubKey?.serialize(bytes: &bytes33, compress: true)
+            try! pubKey?.serialize(bytes33or65: &bytes33, compress: true)
             XCTAssertEqual(validPublicKeyBytes[i][0..<32], bytes33[1..<33])
             XCTAssertEqual(bytes33[0], isOdd ? 0x03 : 0x02)
         }

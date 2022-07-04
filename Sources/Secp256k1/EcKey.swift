@@ -36,7 +36,7 @@ public struct Secp256k1PrivateKey: Equatable {
     
     public func serialize(bytes32: inout [UInt8]) throws {
         guard bytes32.count >= 32 else {
-            throw Secp256k1Error()
+            throw Secp256k1Error("Output less than 32 byets")
         }
         privKey.serialize(bytes: &bytes32[0..<32])
     }
@@ -44,18 +44,18 @@ public struct Secp256k1PrivateKey: Equatable {
     public mutating func tweakAdd(tweak: Secp256k1Scalar) throws {
         let r = privKey + tweak
         if r.isZero() {
-            throw Secp256k1Error()
+            throw Secp256k1Error("Zero after tweak")
         }
         privKey = r
     }
     
     public mutating func tweakMul(tweak: Secp256k1Scalar) throws {
         if tweak.isZero() {
-            throw Secp256k1Error()
+            throw Secp256k1Error("Zero tweak")
         }
         let r = privKey * tweak
         if r.isZero() {
-            throw Secp256k1Error()
+            throw Secp256k1Error("Zero after tweak")
         }
         privKey = r
     }
@@ -120,17 +120,19 @@ public struct Secp256k1PublicKey: Equatable {
         }
     }
     
-    public func serialize(bytes: inout [UInt8], compress: Bool) {
-        assert(compress ? bytes.count >= 33 : bytes.count >= 65)
+    public func serialize(bytes33or65: inout [UInt8], compress: Bool) throws {
+        guard compress ? bytes33or65.count >= 33 : bytes33or65.count >= 65 else {
+            throw Secp256k1Error("Output less than 33 or 65 bytes")
+        }
         
         guard !pubKey.isInfinity && pubKey.isNormalized() && pubKey.isValid() else {
-            fatalError("Invalid pk group element")
+            throw Secp256k1Error("Invalid public key")
         }
         
         var code: UInt8 = compress ? 0x02 : 0x04
         code = code | (compress && pubKey.isOdd() ? 0x03 : 0x00)
-        bytes[0] = code
-        pubKey.serialize(bytes: &bytes[1..<(compress ? 33 : 65)])
+        bytes33or65[0] = code
+        pubKey.serialize(bytes: &bytes33or65[1..<(compress ? 33 : 65)])
     }
     
     public mutating func tweakAdd(tweak: Secp256k1Scalar) throws {
@@ -168,7 +170,9 @@ public struct Secp256k1PublicKey: Equatable {
     }
     
     public static func combine(pubKeys: [Secp256k1PublicKey]) throws -> Secp256k1PublicKey {
-        assert(pubKeys.count >= 2)
+        guard pubKeys.count >= 2 else {
+            throw Secp256k1Error("Less than 2 keys")
+        }
         
         var r = pubKeys[0]
         try r.combine(pubKeys: pubKeys[1..<pubKeys.count])

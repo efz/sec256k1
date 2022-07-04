@@ -36,7 +36,7 @@ class EcdsaKeyTests: XCTestCase {
             
             /* Verify exporting and importing public key. */
             let exportPubKeyCompressed = Bool.random()
-            pubKey.serialize(bytes: &bytes, compress: exportPubKeyCompressed)
+            try! pubKey.serialize(bytes33or65: &bytes, compress: exportPubKeyCompressed)
             
             let pubKey2 = Secp256k1PublicKey(bytes: bytes[0..<(exportPubKeyCompressed ? 33 : 65)])
             XCTAssertEqual(pubKey, pubKey2)
@@ -73,7 +73,7 @@ class EcdsaKeyTests: XCTestCase {
             
             /* serialize and verify */
             bytes[64] = 0
-            signature.serialize(bytes: &bytes)
+            try! signature.serialize(bytes64: &bytes)
             XCTAssertEqual(bytes[64], 0)
             let signature2 = Secp256k1Ecdsa(bytes64: bytes)
             let isValidAfterSerialized = signature2!.verify(message: message, publicKey: pubKey)

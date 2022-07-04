@@ -37,10 +37,12 @@ public struct Secp256k1Ecdsa {
         }
     }
     
-    public func serialize(bytes: inout [UInt8]) {
-        assert(bytes.count >= 64)
-        sigR.serialize(bytes: &bytes[0..<32])
-        sigS.serialize(bytes: &bytes[32..<64])
+    public func serialize(bytes64: inout [UInt8]) throws {
+        guard bytes64.count >= 64 else {
+            throw Secp256k1Error("Output less than 64 bytes")
+        }
+        sigR.serialize(bytes: &bytes64[0..<32])
+        sigS.serialize(bytes: &bytes64[32..<64])
     }
     
     init?(message: Secp256k1Message, nonce: Secp256k1Scalar, privateKey: Secp256k1PrivateKey) {
