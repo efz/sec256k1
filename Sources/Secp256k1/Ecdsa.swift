@@ -76,11 +76,11 @@ public struct Secp256k1Ecdsa {
     }
 }
 
-public protocol NonceGenerator {
+public protocol Secp256k1NonceGenerator {
     mutating func genNonce(bytes32: inout [UInt8])
 }
 
-public class DefaultNonceGenerator: NonceGenerator {
+public class Secp256k1DefaultNonceGenerator: Secp256k1NonceGenerator {
     var rfc6979HmacSha256: Secp256k1Rfc6979HmacSha256
     
     public init(seed: [UInt8]) {
@@ -100,14 +100,14 @@ public class DefaultNonceGenerator: NonceGenerator {
     }
 }
 
-struct KeyGenerator {
-    var nonceGenerator: NonceGenerator
+struct Secp256k1KeyGenerator {
+    var nonceGenerator: Secp256k1NonceGenerator
     
     init() {
-        nonceGenerator = DefaultNonceGenerator()
+        nonceGenerator = Secp256k1DefaultNonceGenerator()
     }
     
-    init(_ generator: NonceGenerator) {
+    init(_ generator: Secp256k1NonceGenerator) {
         nonceGenerator = generator
     }
     
@@ -117,7 +117,7 @@ struct KeyGenerator {
         var priveKeyBytes: [UInt8] = []
         while priveKey == nil {
             nonceGenerator.genNonce(bytes32: &bytes)
-            (priveKeyBytes, priveKey) = (bytes, Secp256k1PrivateKey(bytes: bytes))
+            (priveKeyBytes, priveKey) = (bytes, Secp256k1PrivateKey(bytes32: bytes))
         }
         
         return (priveKey!, priveKeyBytes)
@@ -161,9 +161,9 @@ public struct Secp256k1Message {
         s = Secp256k1Scalar(bytes: bytes32, overflowed: &overflow)
     }
     
-    public func sign(privateKey: Secp256k1PrivateKey, nonceGenerator: NonceGenerator, maxAttemts: Int = Secp256k1Ecdsa.defaultMaxSignAttempts) -> Secp256k1Ecdsa? {
+    public func sign(privateKey: Secp256k1PrivateKey, nonceGenerator: Secp256k1NonceGenerator, maxAttemts: Int = Secp256k1Ecdsa.defaultMaxSignAttempts) -> Secp256k1Ecdsa? {
         var signature: Secp256k1Ecdsa? = nil
-        var keyGenerator = KeyGenerator(nonceGenerator)
+        var keyGenerator = Secp256k1KeyGenerator(nonceGenerator)
         var attemptsLeft = maxAttemts
         while signature == nil && attemptsLeft != 0 {
             let nonce = keyGenerator.genScalar()

@@ -2,7 +2,7 @@ import XCTest
 @testable import Secp256k1
 
 class EcdsaKeyTests: XCTestCase {
-    var randp = KeyGenerator()
+    var randp = Secp256k1KeyGenerator()
     
     func testSignVerify() {
         for _ in 0..<100 {
@@ -26,7 +26,7 @@ class EcdsaKeyTests: XCTestCase {
     
     func testEcdsaEnd2End() {
         var bytes = [UInt8](repeating: 0, count: 65)
-        let noneGenerator = DefaultNonceGenerator()
+        let noneGenerator = Secp256k1DefaultNonceGenerator()
         for _ in 0..<100 {
             let message = randp.genMessage()
             var privKey = randp.genPrivateKey()
@@ -43,9 +43,9 @@ class EcdsaKeyTests: XCTestCase {
             
             /* Verify private key import and export. */
             bytes[64] = 0
-            privKey.serialize(bytes: &bytes)
+            try! privKey.serialize(bytes32: &bytes)
             XCTAssertEqual(bytes[64], 0)
-            let privKey2 = Secp256k1PrivateKey(bytes: bytes)
+            let privKey2 = Secp256k1PrivateKey(bytes32: bytes)
             XCTAssertEqual(privKey, privKey2)
             
             /* Optionally tweak the keys using addition. */
@@ -82,7 +82,7 @@ class EcdsaKeyTests: XCTestCase {
     }
     
     func testSZeroSig() {
-        struct CodedNonceGenerator: NonceGenerator {
+        struct CodedNonceGenerator: Secp256k1NonceGenerator {
             let nonce: [UInt8]
             init(nonce: [UInt8]) {
                 self.nonce = nonce
@@ -113,7 +113,7 @@ class EcdsaKeyTests: XCTestCase {
                             0x65, 0xdf, 0xdd, 0x31, 0xb9, 0x3e, 0x29, 0xa9]
         
         var message = Secp256k1Message(bytes32: msg)!
-        let privKey = Secp256k1PrivateKey(bytes: key)!
+        let privKey = Secp256k1PrivateKey(bytes32: key)!
         let pubKey = privKey.pubKey!
         
         let sig1 = message.sign(privateKey: privKey, nonceGenerator: CodedNonceGenerator(nonce: nonce), maxAttemts: 1)

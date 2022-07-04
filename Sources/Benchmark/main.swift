@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by irantha on 5/19/22.
-//
-
 import Foundation
 import Secp256k1
 
@@ -333,9 +326,9 @@ func bench_sign() {
         keyBytes[i] = UInt8(i + 65)
     }
 
-    let nonceGenerator = DefaultNonceGenerator()
+    let nonceGenerator = Secp256k1DefaultNonceGenerator()
     for _ in 0..<inverse_count {
-        let privKey = Secp256k1PrivateKey(bytes: keyBytes)!
+        let privKey = Secp256k1PrivateKey(bytes32: keyBytes)!
         let message = Secp256k1Message(bytes32: messageBytes)!
         
         let signature = message.sign(privateKey: privKey, nonceGenerator: nonceGenerator)!
@@ -357,9 +350,9 @@ func bench_verify() {
         keyBytes[i] = UInt8(i + 33)
     }
 
-    let privKey = Secp256k1PrivateKey(bytes: keyBytes)!
+    let privKey = Secp256k1PrivateKey(bytes32: keyBytes)!
     let message = Secp256k1Message(bytes32: messageBytes)!
-    let nonceGenerator = DefaultNonceGenerator()
+    let nonceGenerator = Secp256k1DefaultNonceGenerator()
     let signature = message.sign(privateKey: privKey, nonceGenerator: nonceGenerator)!
     signature.serialize(bytes: &sigBytes)
     let pubKey = privKey.pubKey!

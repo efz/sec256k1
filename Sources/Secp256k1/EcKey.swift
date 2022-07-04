@@ -7,6 +7,12 @@ public struct Secp256k1PrivateKey: Equatable {
         }
     }
     
+    init() {
+        let nonceGenerator = Secp256k1DefaultNonceGenerator()
+        var keyGen = Secp256k1KeyGenerator(nonceGenerator)
+        privKey = keyGen.genScalar()
+    }
+    
     init?(s: Secp256k1Scalar) {
         if s.isZero() {
             return nil
@@ -14,11 +20,13 @@ public struct Secp256k1PrivateKey: Equatable {
         privKey = s
     }
     
-    public init?(bytes: [UInt8]) {
-        assert(bytes.count >= 32)
+    public init?(bytes32: [UInt8]) {
+        guard bytes32.count >= 32 else{
+            return nil
+        }
         
         var overflow = false
-        let tmp = Secp256k1Scalar(bytes: bytes[0..<32], overflowed: &overflow)
+        let tmp = Secp256k1Scalar(bytes: bytes32[0..<32], overflowed: &overflow)
         if overflow || tmp.isZero() {
             return nil
         }
@@ -26,9 +34,11 @@ public struct Secp256k1PrivateKey: Equatable {
         privKey = tmp
     }
     
-    public func serialize(bytes: inout [UInt8]) {
-        assert(bytes.count >= 32)
-        privKey.serialize(bytes: &bytes[0..<32])
+    public func serialize(bytes32: inout [UInt8]) throws {
+        guard bytes32.count >= 32 else {
+            throw Secp256k1Error()
+        }
+        privKey.serialize(bytes: &bytes32[0..<32])
     }
     
     public mutating func tweakAdd(tweak: Secp256k1Scalar) throws {
