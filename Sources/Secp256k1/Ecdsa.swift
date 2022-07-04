@@ -6,7 +6,7 @@ public struct Secp256k1Ecdsa {
     var sigS: Secp256k1Scalar
     
     init?(r: Secp256k1Scalar, s: Secp256k1Scalar) {
-        if r.isZero() || s.isZero() || s.isHigherThanHalfP() {
+        if r.isZero() || s.isZero() {
             return nil
         }
         
@@ -22,8 +22,18 @@ public struct Secp256k1Ecdsa {
             return nil
         }
         sigS = Secp256k1Scalar(bytes: bytes64[32..<64], overflowed: &overflow)
-        if overflow || sigS.isZero() || sigS.isHigherThanHalfP() {
+        if overflow || sigS.isZero() {
             return nil
+        }
+    }
+    
+    public func isNormalized() -> Bool {
+        return !sigS.isHigherThanHalfP()
+    }
+    
+    public mutating func normalize() {
+        if sigS.isHigherThanHalfP() {
+            sigS.negate()
         }
     }
     
@@ -58,9 +68,7 @@ public struct Secp256k1Ecdsa {
             return nil
         }
         
-        if sigS.isHigherThanHalfP() {
-            sigS.negate()
-        }
+        normalize()
     }
     
     public func validate(message: Secp256k1Message, publicKey: Secp256k1PublicKey) -> Bool {

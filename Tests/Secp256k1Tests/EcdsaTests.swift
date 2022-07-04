@@ -138,4 +138,152 @@ class EcdsaKeyTests: XCTestCase {
         let signature = Secp256k1Ecdsa(bytes64: sigBytes)
         XCTAssertNil(signature)
     }
+    
+    func testNegativeOneMessage() {
+        let pubKeyBytes: [UInt8] = [0x03, 0xaf, 0x97, 0xff, 0x7d, 0x3a, 0xf6, 0xa0,
+                                    0x02, 0x94, 0xbd, 0x9f, 0x4b, 0x2e, 0xd7, 0x52,
+                                    0x28, 0xdb, 0x49, 0x2a, 0x65, 0xcb, 0x1e, 0x27,
+                                    0x57, 0x9c, 0xba, 0x74, 0x20, 0xd5, 0x1d, 0x20,
+                                    0xf1]
+        
+        let srBytes: [UInt8] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                                0x45, 0x51, 0x23, 0x19, 0x50, 0xb7, 0x5f, 0xc4,
+                                0x40, 0x2d, 0xa1, 0x72, 0x2f, 0xc9, 0xba, 0xee]
+        var overflow = false
+        let sr = Secp256k1Scalar(bytes: srBytes, overflowed: &overflow)
+        XCTAssertFalse(overflow)
+        let msgScalar = Secp256k1Scalar.neg(Secp256k1Scalar.one)
+        let message = Secp256k1Message(s: msgScalar)
+        
+        let ss = Secp256k1Scalar.one
+        
+        let pubKey = Secp256k1PublicKey(bytes: pubKeyBytes)!
+        let signature1 = Secp256k1Ecdsa(r: sr, s: ss)
+        XCTAssertTrue(signature1!.isNormalized())
+        let valid = signature1!.validate(message: message, publicKey: pubKey)
+        XCTAssertTrue(valid)
+        
+        let ss2 = Secp256k1Scalar.neg(ss)
+        let signature2 = Secp256k1Ecdsa(r: sr, s: ss2)
+        XCTAssertFalse(signature2!.isNormalized())
+        let valid2 = signature2!.validate(message: message, publicKey: pubKey)
+        XCTAssertTrue(valid2)
+        
+        let ss3 = Secp256k1Scalar.neg(Secp256k1Scalar(int: 3))
+        let signature3 = Secp256k1Ecdsa(r: sr, s: ss3)
+        XCTAssertFalse(signature2!.isNormalized())
+        let valid3 = signature3!.validate(message: message, publicKey: pubKey)
+        XCTAssertFalse(valid3)
+    }
+    
+    func testPositiveOneMessage() {
+        let pubKeyBytes: [UInt8] = [0x02, 0x14, 0x4e, 0x5a, 0x58, 0xef, 0x5b, 0x22,
+                                    0x6f, 0xd2, 0xe2, 0x07, 0x6a, 0x77, 0xcf, 0x05,
+                                    0xb4, 0x1d, 0xe7, 0x4a, 0x30, 0x98, 0x27, 0x8c,
+                                    0x93, 0xe6, 0xe6, 0x3c, 0x0b, 0xc4, 0x73, 0x76,
+                                    0x25]
+        
+        let pubKey2Bytes: [UInt8] = [0x02, 0x8a, 0xd5, 0x37, 0xed, 0x73, 0xd9, 0x40,
+                                     0x1d, 0xa0, 0x33, 0xd2, 0xdc, 0xf0, 0xaf, 0xae,
+                                     0x34, 0xcf, 0x5f, 0x96, 0x4c, 0x73, 0x28, 0x0f,
+                                     0x92, 0xc0, 0xf6, 0x9d, 0xd9, 0xb2, 0x09, 0x10,
+                                     0x62]
+        
+        let srBytes: [UInt8] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                                0x45, 0x51, 0x23, 0x19, 0x50, 0xb7, 0x5f, 0xc4,
+                                0x40, 0x2d, 0xa1, 0x72, 0x2f, 0xc9, 0xba, 0xeb]
+        var overflow = false
+        let sr = Secp256k1Scalar(bytes: srBytes, overflowed: &overflow)
+        XCTAssertFalse(overflow)
+        let msgScalar = Secp256k1Scalar.one
+        let message = Secp256k1Message(s: msgScalar)
+        
+        let ss = Secp256k1Scalar.one
+        let pubKey = Secp256k1PublicKey(bytes: pubKeyBytes)!
+        let pubKey2 = Secp256k1PublicKey(bytes: pubKey2Bytes)!
+        
+        let signature1 = Secp256k1Ecdsa(r: sr, s: ss)
+        XCTAssertTrue(signature1!.isNormalized())
+        let valid = signature1!.validate(message: message, publicKey: pubKey)
+        XCTAssertTrue(valid)
+        let valid2 = signature1!.validate(message: message, publicKey: pubKey2)
+        XCTAssertTrue(valid2)
+        
+        let ss2 = Secp256k1Scalar.neg(ss)
+        let signature2 = Secp256k1Ecdsa(r: sr, s: ss2)
+        XCTAssertFalse(signature2!.isNormalized())
+        let valid3 = signature2!.validate(message: message, publicKey: pubKey)
+        XCTAssertTrue(valid3)
+        let valid4 = signature2!.validate(message: message, publicKey: pubKey2)
+        XCTAssertTrue(valid4)
+        
+        let ss3 = Secp256k1Scalar.neg(Secp256k1Scalar(int: 2))
+        let signature3 = Secp256k1Ecdsa(r: sr, s: ss3)
+        XCTAssertFalse(signature3!.isNormalized())
+        let valid5 = signature3!.validate(message: message, publicKey: pubKey)
+        XCTAssertFalse(valid5)
+        let valid6 = signature3!.validate(message: message, publicKey: pubKey2)
+        XCTAssertFalse(valid6)
+    }
+    
+    func testZeroMessage() {
+        let pubKeyBytes: [UInt8] = [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x02]
+        
+        let pubKey2Bytes: [UInt8] = [0x02, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                                     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                                     0xfe, 0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48, 0xa0,
+                                     0x3b, 0xbf, 0xd2, 0x5e, 0x8c, 0xd0, 0x36, 0x41,
+                                     0x43]
+        
+        let sr = Secp256k1Scalar(int: 2)
+        let ss = Secp256k1Scalar(int: 2)
+        let msgScalar = Secp256k1Scalar.zero
+        let message = Secp256k1Message(s: msgScalar)
+        
+        let pubKey = Secp256k1PublicKey(bytes: pubKeyBytes)!
+        let pubKey2 = Secp256k1PublicKey(bytes: pubKey2Bytes)!
+        
+        let signature1 = Secp256k1Ecdsa(r: sr, s: ss)
+        XCTAssertTrue(signature1!.isNormalized())
+        let valid = signature1!.validate(message: message, publicKey: pubKey)
+        XCTAssertTrue(valid)
+        let valid2 = signature1!.validate(message: message, publicKey: pubKey2)
+        XCTAssertTrue(valid2)
+        
+        let ss2 = Secp256k1Scalar.neg(ss)
+        let signature2 = Secp256k1Ecdsa(r: sr, s: ss2)
+        XCTAssertFalse(signature2!.isNormalized())
+        let valid3 = signature2!.validate(message: message, publicKey: pubKey)
+        XCTAssertTrue(valid3)
+        let valid4 = signature2!.validate(message: message, publicKey: pubKey2)
+        XCTAssertTrue(valid4)
+        
+        let ss3 = Secp256k1Scalar.one
+        let signature3 = Secp256k1Ecdsa(r: sr, s: ss3)
+        XCTAssertTrue(signature3!.isNormalized())
+        let valid5 = signature3!.validate(message: message, publicKey: pubKey)
+        XCTAssertFalse(valid5)
+        let valid6 = signature3!.validate(message: message, publicKey: pubKey2)
+        XCTAssertFalse(valid6)
+    }
+    
+    func testInfinity() {
+        let ss = Secp256k1Scalar.inv(Secp256k1Scalar.neg(Secp256k1Scalar.one))
+        let sr = Secp256k1Scalar.one
+        let ecmult = Secp256k1Ecmult()
+        var pubKeyFe = ecmult.gen(gn: sr)
+        pubKeyFe.normalizeJ()
+        let pubKey = Secp256k1PublicKey(ge: pubKeyFe)!
+        let message = Secp256k1Message(s: ss)
+        
+        let signature = Secp256k1Ecdsa(r: sr, s: ss)
+        let valid = signature!.validate(message: message, publicKey: pubKey)
+        XCTAssertFalse(valid)
+    }
 }

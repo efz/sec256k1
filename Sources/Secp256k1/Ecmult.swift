@@ -210,7 +210,6 @@ struct Secp256k1Ecmult {
         let precIdx8 = gn.getBits(offset: 0, count: Swift.min(gAt, 7))
         res.addAffine2J(gMultTable8BitPartial[precIdx8])
         
-        assert(!res.isInfinity || pn.isZero())
         assert(res.isValidJ())
         return res
     }
