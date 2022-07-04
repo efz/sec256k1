@@ -1,4 +1,5 @@
 public struct Secp256k1Ecdsa {
+    public static let defaultMaxSignAttempts = 100
     static let ecmult = Secp256k1Ecmult()
     
     var sigR: Secp256k1Scalar
@@ -13,14 +14,14 @@ public struct Secp256k1Ecdsa {
         sigS = s
     }
     
-    public init?(bytes: [UInt8]) {
-        assert(bytes.count >= 64)
+    public init?(bytes64: [UInt8]) {
+        assert(bytes64.count >= 64)
         var overflow = false
-        sigR = Secp256k1Scalar(bytes: bytes[0..<32], overflowed: &overflow)
+        sigR = Secp256k1Scalar(bytes: bytes64[0..<32], overflowed: &overflow)
         if overflow || sigR.isZero() {
             return nil
         }
-        sigS = Secp256k1Scalar(bytes: bytes[32..<64], overflowed: &overflow)
+        sigS = Secp256k1Scalar(bytes: bytes64[32..<64], overflowed: &overflow)
         if overflow || sigS.isZero() || sigS.isHigherThanHalfP() {
             return nil
         }
@@ -32,7 +33,7 @@ public struct Secp256k1Ecdsa {
         sigS.serialize(bytes: &bytes[32..<64])
     }
     
-    public init?(message: Secp256k1Scalar, nonce: Secp256k1Scalar, privateKey: Secp256k1PrivateKey) {
+    init?(message: Secp256k1Message, nonce: Secp256k1Scalar, privateKey: Secp256k1PrivateKey) {
         assert(!nonce.isZero())
         
         var rg = Self.ecmult.gen(gn: nonce)
@@ -52,7 +53,7 @@ public struct Secp256k1Ecdsa {
         }
         
         let nonceInv = Secp256k1Scalar.inv(nonce)
-        sigS = nonceInv * (message + privateKey.privKey * sigR)
+        sigS = nonceInv * (message.s + privateKey.privKey * sigR)
         if sigS.isZero() {
             return nil
         }
@@ -62,9 +63,9 @@ public struct Secp256k1Ecdsa {
         }
     }
     
-    public func validate(message: Secp256k1Scalar, publicKey: Secp256k1PublicKey) -> Bool {
+    public func validate(message: Secp256k1Message, publicKey: Secp256k1PublicKey) -> Bool {
         let w = Secp256k1Scalar.inv(sigS)
-        let u1 = message * w
+        let u1 = message.s * w
         let u2 = sigR * w
         
         let xy =  Secp256k1Ecdsa.ecmult.gen(point: publicKey.pubKey, pn: u2, gn: u1)
@@ -72,17 +73,6 @@ public struct Secp256k1Ecdsa {
             return false
         }
         return xy.isSame(scalarX: sigR)
-    }
-    
-    public static func sign(message: Secp256k1Scalar,  privateKey: Secp256k1PrivateKey, nonceGenerator: NonceGenerator) -> Secp256k1Ecdsa {
-        var signature: Secp256k1Ecdsa? = nil
-        var keyGenerator = KeyGenerator(nonceGenerator)
-        
-        while signature == nil {
-            let nonce = keyGenerator.genScalar()
-            signature = Secp256k1Ecdsa(message: message, nonce: nonce, privateKey: privateKey)
-        }
-        return signature!
     }
 }
 
@@ -148,5 +138,42 @@ struct KeyGenerator {
         }
         
         return scalar
+    }
+    
+    mutating func genMessage() -> Secp256k1Message {
+        return Secp256k1Message(s: genScalar())
+    }
+}
+
+public struct Secp256k1Message {
+    let s: Secp256k1Scalar
+    
+    init(s: Secp256k1Scalar) {
+        self.s = s
+    }
+    
+    public init?(bytes32: [UInt8]) {
+        guard bytes32.count >= 32 else {
+            return nil
+        }
+        
+        var overflow = false
+        s = Secp256k1Scalar(bytes: bytes32, overflowed: &overflow)
+    }
+    
+    public func sign(privateKey: Secp256k1PrivateKey, nonceGenerator: NonceGenerator, maxAttemts: Int = Secp256k1Ecdsa.defaultMaxSignAttempts) -> Secp256k1Ecdsa? {
+        var signature: Secp256k1Ecdsa? = nil
+        var keyGenerator = KeyGenerator(nonceGenerator)
+        var attemptsLeft = maxAttemts
+        while signature == nil && attemptsLeft != 0 {
+            let nonce = keyGenerator.genScalar()
+            signature = Secp256k1Ecdsa(message: self, nonce: nonce, privateKey: privateKey)
+            attemptsLeft -= 1
+        }
+        return signature
+    }
+    
+    public func validate(signature: Secp256k1Ecdsa, publicKey: Secp256k1PublicKey) -> Bool {
+        return signature.validate(message: self, publicKey: publicKey)
     }
 }
