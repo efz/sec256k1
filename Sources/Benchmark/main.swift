@@ -333,12 +333,12 @@ func bench_sign() {
         keyBytes[i] = UInt8(i + 65)
     }
     var overflow = false
-    
+    let nonceGenerator = DefaultNonceGenerator()
     for _ in 0..<inverse_count {
         let privKey = Secp256k1PrivateKey(bytes: keyBytes)!
         let message = Secp256k1Scalar(bytes: messageBytes, overflowed: &overflow)
         
-        let signature = Secp256k1Edsa.sign(message: message, privateKey: privKey)
+        let signature = Secp256k1Edsa.sign(message: message, privateKey: privKey, nonceGenerator: nonceGenerator)
         signature.serialize(bytes: &sigBytes)
         for i in 0..<32 {
             messageBytes[i] = sigBytes[i]
@@ -359,7 +359,8 @@ func bench_verify() {
     var overflow = false
     let privKey = Secp256k1PrivateKey(bytes: keyBytes)!
     let message = Secp256k1Scalar(bytes: messageBytes, overflowed: &overflow)
-    let signature = Secp256k1Edsa.sign(message: message, privateKey: privKey)
+    let nonceGenerator = DefaultNonceGenerator()
+    let signature = Secp256k1Edsa.sign(message: message, privateKey: privKey, nonceGenerator: nonceGenerator)
     signature.serialize(bytes: &sigBytes)
     let pubKey = privKey.pubKey!
     pubKey.serialize(bytes: &pubKeyBytes, compress: true)

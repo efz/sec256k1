@@ -1,5 +1,4 @@
 public struct Secp256k1Edsa {
-    static let rand = RandProvider()
     static let ecmult = Secp256k1Ecmult()
     
     var sigR: Secp256k1Scalar
@@ -75,45 +74,72 @@ public struct Secp256k1Edsa {
         return xy.isSame(scalarX: sigR)
     }
     
-    public static func sign(message: Secp256k1Scalar,  privateKey: Secp256k1PrivateKey) -> Secp256k1Edsa {
+    public static func sign(message: Secp256k1Scalar,  privateKey: Secp256k1PrivateKey, nonceGenerator: NonceGenerator) -> Secp256k1Edsa {
         var signature: Secp256k1Edsa? = nil
+        var keyGenerator = KeyGenerator(nonceGenerator)
         
         while signature == nil {
-            let nonce = rand.genScalar()
+            let nonce = keyGenerator.genScalar()
             signature = Secp256k1Edsa(message: message, nonce: nonce, privateKey: privateKey)
         }
         return signature!
     }
 }
 
+public protocol NonceGenerator {
+    mutating func genNonce(bytes32: inout [UInt8])
+}
 
-struct RandProvider {
-    static var keyGenerator: Secp256k1Rfc6979HmacSha256 = {
-        let randSeed = (0..<16).map() { _ in
+public class DefaultNonceGenerator: NonceGenerator {
+    var rfc6979HmacSha256: Secp256k1Rfc6979HmacSha256
+    
+    public init(seed: [UInt8]) {
+        rfc6979HmacSha256 =  Secp256k1Rfc6979HmacSha256(key: seed)
+    }
+    
+    public init() {
+        let seed = (0..<16).map() { _ in
             UInt8(UInt16.random(in: 0..<256))
         }
-        return Secp256k1Rfc6979HmacSha256(key: randSeed)
-    }();
+        rfc6979HmacSha256 =  Secp256k1Rfc6979HmacSha256(key: seed)
+    }
     
-    func genPrivateKeyWithBytes() -> (Secp256k1PrivateKey, [UInt8]) {
+    public func genNonce(bytes32: inout [UInt8]) {
+        assert(bytes32.count >= 32)
+        rfc6979HmacSha256.generate(rand: &bytes32)
+    }
+}
+
+struct KeyGenerator {
+    var nonceGenerator: NonceGenerator
+    
+    init() {
+        nonceGenerator = DefaultNonceGenerator()
+    }
+    
+    init(_ generator: NonceGenerator) {
+        nonceGenerator = generator
+    }
+    
+    mutating func genPrivateKeyWithBytes() -> (Secp256k1PrivateKey, [UInt8]) {
         var bytes = [UInt8](repeating: 0, count: 32)
         var priveKey: Secp256k1PrivateKey? = nil
         var priveKeyBytes: [UInt8] = []
         while priveKey == nil {
-            RandProvider.keyGenerator.generate(rand: &bytes)
+            nonceGenerator.genNonce(bytes32: &bytes)
             (priveKeyBytes, priveKey) = (bytes, Secp256k1PrivateKey(bytes: bytes))
         }
         
         return (priveKey!, priveKeyBytes)
     }
     
-    func genPrivateKey() -> Secp256k1PrivateKey {
+    mutating func genPrivateKey() -> Secp256k1PrivateKey {
         return genPrivateKeyWithBytes().0
     }
     
-    func genScalar() -> Secp256k1Scalar {
+    mutating func genScalar() -> Secp256k1Scalar {
         var bytes = [UInt8](repeating: 0, count: 32)
-        RandProvider.keyGenerator.generate(rand: &bytes)
+        nonceGenerator.genNonce(bytes32: &bytes)
         
         var overflow = false
         var scalar = Secp256k1Scalar.zero

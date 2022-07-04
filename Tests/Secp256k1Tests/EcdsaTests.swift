@@ -2,7 +2,7 @@ import XCTest
 @testable import Secp256k1
 
 class EcdsaKeyTests: XCTestCase {
-    let randp = RandProvider()
+    var randp = KeyGenerator()
     
     func testSignVerify() {
         for _ in 0..<100 {
@@ -26,7 +26,7 @@ class EcdsaKeyTests: XCTestCase {
     
     func testEcdsaEnd2End() {
         var bytes = [UInt8](repeating: 0, count: 65)
-        
+        let noneGenerator = DefaultNonceGenerator()
         for _ in 0..<100 {
             let message = randp.genScalar()
             var privKey = randp.genPrivateKey()
@@ -67,7 +67,7 @@ class EcdsaKeyTests: XCTestCase {
             }
             
             /* Sign & Verify */
-            let signature: Secp256k1Edsa = Secp256k1Edsa.sign(message: message, privateKey: privKey)
+            let signature: Secp256k1Edsa = Secp256k1Edsa.sign(message: message, privateKey: privKey, nonceGenerator: noneGenerator)
             let isValid = signature.validate(message: message, publicKey: pubKey)
             XCTAssertTrue(isValid)
             

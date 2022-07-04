@@ -325,7 +325,7 @@ class EcKeyTests: XCTestCase {
     }
     
     func testPrivateKeySerialization() {
-        let randp = RandProvider()
+        var randp = KeyGenerator()
         
         for _ in 0..<5 {
             let (privKey, privKeyBytes) = randp.genPrivateKeyWithBytes()
@@ -343,7 +343,7 @@ class EcKeyTests: XCTestCase {
     func testPublicKeyCombine() {
         let count = 6
         var pubKeys: [Secp256k1PublicKey] = []
-        let randp = RandProvider()
+        var randp = KeyGenerator()
         var sum = Secp256k1Scalar.zero
         
         for _ in 0..<count {
@@ -355,5 +355,14 @@ class EcKeyTests: XCTestCase {
         let combinedPubKey = try! Secp256k1PublicKey.combine(pubKeys: pubKeys)
         let summedPubKey = Secp256k1PrivateKey(s: sum)!.pubKey
         XCTAssertEqual(summedPubKey, combinedPubKey)
+    }
+    
+    func testPubKeyAtInfinity() {
+        let privKeyBytes: [UInt8] = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                                     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe,
+                                     0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48, 0xa0, 0x3b,
+                                     0xbf, 0xd2, 0x5e, 0x8c, 0xd0, 0x36, 0x41, 0x41]
+        let privKey = Secp256k1PrivateKey(bytes: privKeyBytes)
+        XCTAssertNil(privKey)
     }
 }
