@@ -1,4 +1,4 @@
-public struct Secp256k1Edsa {
+public struct Secp256k1Ecdsa {
     static let ecmult = Secp256k1Ecmult()
     
     var sigR: Secp256k1Scalar
@@ -67,20 +67,20 @@ public struct Secp256k1Edsa {
         let u1 = message * w
         let u2 = sigR * w
         
-        let xy =  Secp256k1Edsa.ecmult.gen(point: publicKey.pubKey, pn: u2, gn: u1)
+        let xy =  Secp256k1Ecdsa.ecmult.gen(point: publicKey.pubKey, pn: u2, gn: u1)
         if xy.isInfinity {
             return false
         }
         return xy.isSame(scalarX: sigR)
     }
     
-    public static func sign(message: Secp256k1Scalar,  privateKey: Secp256k1PrivateKey, nonceGenerator: NonceGenerator) -> Secp256k1Edsa {
-        var signature: Secp256k1Edsa? = nil
+    public static func sign(message: Secp256k1Scalar,  privateKey: Secp256k1PrivateKey, nonceGenerator: NonceGenerator) -> Secp256k1Ecdsa {
+        var signature: Secp256k1Ecdsa? = nil
         var keyGenerator = KeyGenerator(nonceGenerator)
         
         while signature == nil {
             let nonce = keyGenerator.genScalar()
-            signature = Secp256k1Edsa(message: message, nonce: nonce, privateKey: privateKey)
+            signature = Secp256k1Ecdsa(message: message, nonce: nonce, privateKey: privateKey)
         }
         return signature!
     }

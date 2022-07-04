@@ -9,11 +9,11 @@ class EcdsaKeyTests: XCTestCase {
             let message = randp.genScalar()
             let privKey = randp.genPrivateKey()
             let pubKey = privKey.pubKey!
-            var signature: Secp256k1Edsa? = nil
+            var signature: Secp256k1Ecdsa? = nil
             
             while signature == nil {
                 let nonce = randp.genScalar()
-                signature = Secp256k1Edsa(message: message, nonce: nonce, privateKey: privKey)
+                signature = Secp256k1Ecdsa(message: message, nonce: nonce, privateKey: privKey)
             }
             
             let isValid = signature?.validate(message: message, publicKey: pubKey)
@@ -67,7 +67,7 @@ class EcdsaKeyTests: XCTestCase {
             }
             
             /* Sign & Verify */
-            let signature: Secp256k1Edsa = Secp256k1Edsa.sign(message: message, privateKey: privKey, nonceGenerator: noneGenerator)
+            let signature: Secp256k1Ecdsa = Secp256k1Ecdsa.sign(message: message, privateKey: privKey, nonceGenerator: noneGenerator)
             let isValid = signature.validate(message: message, publicKey: pubKey)
             XCTAssertTrue(isValid)
             
@@ -75,7 +75,7 @@ class EcdsaKeyTests: XCTestCase {
             bytes[64] = 0
             signature.serialize(bytes: &bytes)
             XCTAssertEqual(bytes[64], 0)
-            let signature2 = Secp256k1Edsa(bytes: bytes)
+            let signature2 = Secp256k1Ecdsa(bytes: bytes)
             let isValidAfterSerialized = signature2!.validate(message: message, publicKey: pubKey)
             XCTAssertTrue(isValidAfterSerialized)
         }
