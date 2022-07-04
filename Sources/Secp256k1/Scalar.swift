@@ -1,4 +1,4 @@
-public struct Secp256k1Scalar: UInt256p {
+struct Secp256k1Scalar: UInt256p {
     var d: Bits64x4
     var acc: Accumulator
     
@@ -12,12 +12,12 @@ public struct Secp256k1Scalar: UInt256p {
     static let pCompLeadingZeros = 127
     static let pHalf = (p.3 >> 1, p.3 << 63 | p.2 >> 1, p.2 << 63 | p.1 >> 1, p.1 << 63 | p.0 >> 1)
     
-    public static let zero = Secp256k1Scalar()
-    public static let one = Secp256k1Scalar(int32: 1)
+    static let zero = Secp256k1Scalar()
+    static let one = Secp256k1Scalar(int32: 1)
     
     static let wordMask = UInt64.max
     
-    public init() {
+    init() {
         d = (0, 0, 0, 0)
         acc = Accumulator()
     }
@@ -67,7 +67,7 @@ public struct Secp256k1Scalar: UInt256p {
         }
     }
     
-    public mutating func negate() {
+    mutating func negate() {
         assert(!checkOverflow())
         guard !isZero() else {
             return
@@ -163,7 +163,7 @@ public struct Secp256k1Scalar: UInt256p {
         reduce(overflow: overflow)
     }
     
-    public mutating func inverse() {
+    mutating func inverse() {
         guard !isZero() else {
             fatalError("Devide by zero")
         }

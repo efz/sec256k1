@@ -1,4 +1,4 @@
-public struct Secp256k1Field: UInt256p {
+struct Secp256k1Field: UInt256p {
     var d: Bits64x4
     var acc: Accumulator
     
@@ -13,20 +13,20 @@ public struct Secp256k1Field: UInt256p {
     static let pCompLeadingZeros = 223
     static let pCompWordWidth = 1
     
-    public static let zero = Secp256k1Field()
-    public static let one = Secp256k1Field(int32: 1)
+    static let zero = Secp256k1Field()
+    static let one = Secp256k1Field(int32: 1)
     static let three = Secp256k1Field(int32: 3)
     static let two = Secp256k1Field(int32: 2)
     
     static let wordMask = UInt64.max
     
-    public init() {
+    init() {
         d = (0, 0, 0, 0)
         acc = Accumulator()
     }
     
     @inline(__always)
-    public func checkOverflow() -> Bool {
+    func checkOverflow() -> Bool {
         var accC = Accumulator(d.0)
         accC.sumAddFast(Secp256k1Field.pComp.0)
         let _ = accC.extractFast()
@@ -69,7 +69,7 @@ public struct Secp256k1Field: UInt256p {
     }
     
     @inline(__always)
-    public mutating func negate() {
+    mutating func negate() {
         assert(!checkOverflow())
         guard !isZero() else {
             return
@@ -143,7 +143,7 @@ public struct Secp256k1Field: UInt256p {
         reduce320Bits(bits320)
     }
     
-    public mutating func inverse() {
+    mutating func inverse() {
         guard !isZero() else {
             fatalError("Devide by zero")
         }
@@ -175,7 +175,7 @@ public struct Secp256k1Field: UInt256p {
         shiftMul(2, x1)
     }
     
-    public mutating func sqrt() -> Bool {
+    mutating func sqrt() -> Bool {
         assert(!checkOverflow())
         
         let initalVal = self
@@ -192,7 +192,7 @@ public struct Secp256k1Field: UInt256p {
         }
     }
     
-    public static func sqrt(_ x: Secp256k1Field) -> Secp256k1Field? {
+    static func sqrt(_ x: Secp256k1Field) -> Secp256k1Field? {
         var r = x
         let hasSqrt = r.sqrt()
         return hasSqrt ? r : nil
@@ -258,21 +258,21 @@ public struct Secp256k1Field: UInt256p {
     }
     
     @inline(__always)
-    public static func mulInt(_ x: Secp256k1Field, _ y: UInt64) -> Secp256k1Field {
+    static func mulInt(_ x: Secp256k1Field, _ y: UInt64) -> Secp256k1Field {
         var r = x
         r.mulIntAdd(y)
         return r
     }
     
     @inline(__always)
-    public static func mulIntAdd(_ x: Secp256k1Field,  _ m: UInt64,  _ y: Secp256k1Field = Secp256k1Field.zero, _ n: UInt64 = 1) -> Secp256k1Field {
+    static func mulIntAdd(_ x: Secp256k1Field,  _ m: UInt64,  _ y: Secp256k1Field = Secp256k1Field.zero, _ n: UInt64 = 1) -> Secp256k1Field {
         var r = x
         r.mulIntAdd(m, y, n)
         return r
     }
     
     @inline(__always)
-    public static func mulIntSub(_ x: Secp256k1Field,  _ m: UInt64,  _ y: Secp256k1Field = Secp256k1Field.zero, _ n: UInt64 = 1) -> Secp256k1Field {
+    static func mulIntSub(_ x: Secp256k1Field,  _ m: UInt64,  _ y: Secp256k1Field = Secp256k1Field.zero, _ n: UInt64 = 1) -> Secp256k1Field {
         var r = x
         r.mulIntAdd(m, Secp256k1Field.neg(y), n)
         return r

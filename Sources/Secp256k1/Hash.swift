@@ -1,6 +1,6 @@
 typealias ABCDEFGH = (a: UInt32, b: UInt32, c: UInt32, d: UInt32, e: UInt32, f: UInt32, g: UInt32, h: UInt32)
 
-public struct Secp256k1Sha256 {
+struct Secp256k1Sha256 {
     static let blockSizeBytes = 64
     static let blockSizeWords = 16
     static let sSize = 8
@@ -25,7 +25,7 @@ public struct Secp256k1Sha256 {
                         0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
                         0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2]
     
-    public init() {
+    init() {
     }
     
     @inline(__always)
@@ -196,7 +196,7 @@ public struct Secp256k1Sha256 {
         abcdefgh = s
     }
     
-    public mutating func write(bytes: ArraySlice<UInt8>) {
+    mutating func write(bytes: ArraySlice<UInt8>) {
         let wordFillBytesCount = Swift.min((4 - bytesCount & 0x3) & 0x3, bytes.count)
         var byteIdx = bytes.startIndex
         for _ in 0..<wordFillBytesCount {
@@ -216,7 +216,7 @@ public struct Secp256k1Sha256 {
         }
     }
     
-    public mutating func write(bytes: [UInt8]) {
+    mutating func write(bytes: [UInt8]) {
         write(bytes: bytes[0..<bytes.count])
     }
     
@@ -325,7 +325,7 @@ public struct Secp256k1Sha256 {
         bytes[start + 3] = UInt8(word & 0xFF)
     }
     
-    public mutating func finalize() -> [UInt8] {
+    mutating func finalize() -> [UInt8] {
         var hash = [UInt8](repeating: 0, count: 32)
         finalize(hash: &hash)
         return hash
@@ -351,7 +351,7 @@ public struct Secp256k1Sha256 {
         totalBytesCount = 0
     }
     
-    public mutating func finalize(hash: inout [UInt8]) {
+    mutating func finalize(hash: inout [UInt8]) {
         let _ = finalizeWithRaw(hash: &hash)
     }
 }
@@ -392,7 +392,7 @@ extension Secp256k1Sha256 {
     }
 }
 
-public struct Secp256k1HmacSha256 {
+struct Secp256k1HmacSha256 {
     var innerHasher = Secp256k1Sha256()
     var outterHasher = Secp256k1Sha256()
     
@@ -401,14 +401,14 @@ public struct Secp256k1HmacSha256 {
     static let innerCodeWord: UInt32 = 0x36363636
     static let outterCodeWord: UInt32 = 0x5c5c5c5c
     
-    public init() {
+    init() {
     }
     
-    public init(key: [UInt8]) {
+    init(key: [UInt8]) {
         resetKey(key: key)
     }
     
-    public mutating func resetKey(key: [UInt8]) {
+    mutating func resetKey(key: [UInt8]) {
         var rkey = [UInt8](repeating: 0, count: 64)
         if key.count <= 64 {
             rkey[0..<key.count] = key[0..<key.count]
@@ -429,19 +429,19 @@ public struct Secp256k1HmacSha256 {
         innerHasher.write(bytes: rkey)
     }
     
-    public mutating func write(byte: UInt8) {
+    mutating func write(byte: UInt8) {
         innerHasher.write(byte: byte)
     }
     
-    public mutating func write(bytes: [UInt8]) {
+    mutating func write(bytes: [UInt8]) {
         innerHasher.write(bytes: bytes)
     }
     
-    public mutating func write(bytes: ArraySlice<UInt8>) {
+    mutating func write(bytes: ArraySlice<UInt8>) {
         innerHasher.write(bytes: bytes)
     }
     
-    public mutating func finalize(hash: inout [UInt8]) {
+    mutating func finalize(hash: inout [UInt8]) {
         assert(hash.count >= 32)
         
         let rawHash = innerHasher.finalize2raw()
@@ -449,7 +449,7 @@ public struct Secp256k1HmacSha256 {
         outterHasher.finalize(hash: &hash)
     }
     
-    public mutating func finalize() -> [UInt8] {
+    mutating func finalize() -> [UInt8] {
         var hash = [UInt8](repeating: 0, count: 32)
         finalize(hash: &hash)
         return hash
@@ -503,7 +503,7 @@ extension Secp256k1HmacSha256 {
     }
 }
 
-public struct Secp256k1Rfc6979HmacSha256 {
+struct Secp256k1Rfc6979HmacSha256 {
     static let tempV: ABCDEFGH = (0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101, 0x01010101)
     static let tempK: ABCDEFGH = (0, 0, 0, 0, 0, 0, 0, 0)
     
@@ -513,11 +513,11 @@ public struct Secp256k1Rfc6979HmacSha256 {
     var hmac = Secp256k1HmacSha256()
     var outBuff = [UInt8](repeating: 0, count: 32)
     
-    public init(key: [UInt8]) {
+    init(key: [UInt8]) {
         resetKey(key: key)
     }
     
-    public mutating func resetKey(key: [UInt8]) {
+    mutating func resetKey(key: [UInt8]) {
         v = Secp256k1Rfc6979HmacSha256.tempV
         k = Secp256k1Rfc6979HmacSha256.tempK
         
@@ -541,11 +541,11 @@ public struct Secp256k1Rfc6979HmacSha256 {
         retry = false
     }
     
-    public mutating func generate(rand: inout [UInt8]) {
+    mutating func generate(rand: inout [UInt8]) {
         generate(rand: &rand[0..<rand.count])
     }
     
-    public mutating func generate(rand: inout ArraySlice<UInt8>) {
+    mutating func generate(rand: inout ArraySlice<UInt8>) {
         var outlen = rand.count
         if retry {
             hmac.resetKey(key: k)

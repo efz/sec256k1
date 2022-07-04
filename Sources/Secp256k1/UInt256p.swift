@@ -7,7 +7,7 @@ typealias Bits64x7 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
 typealias Bits64x8 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
 typealias Bits64x9 = (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
 
-public protocol UInt256pInterface {
+protocol UInt256pInterface {
     init()
     init(words32: [UInt32], overflowed: inout Bool)
     init(words64: [UInt64], overflowed: inout Bool)
@@ -69,7 +69,7 @@ protocol UInt256p: UInt256pInterface, Equatable {
 }
 
 extension UInt256p {
-    public init(words32: [UInt32], overflowed: inout Bool) {
+    init(words32: [UInt32], overflowed: inout Bool) {
         self.init()
         d.0 = UInt64(words32[1]) << UInt32.bitWidth | UInt64(words32[0])
         d.1 = UInt64(words32[2 * 1 + 1]) << UInt32.bitWidth | UInt64(words32[2*1])
@@ -87,7 +87,7 @@ extension UInt256p {
         assert(!overflowed)
     }
     
-    public init(words64: [UInt64], overflowed: inout Bool) {
+    init(words64: [UInt64], overflowed: inout Bool) {
         self.init()
         d.0 = words64[0]
         d.1 = words64[1]
@@ -99,7 +99,7 @@ extension UInt256p {
         }
     }
     
-    public init(bits64x4: Bits64x4, overflowed: inout Bool) {
+    init(bits64x4: Bits64x4, overflowed: inout Bool) {
         self.init()
         d.0 = bits64x4.0
         d.1 = bits64x4.1
@@ -111,11 +111,11 @@ extension UInt256p {
         }
     }
     
-    public init(bytes: [UInt8], overflowed: inout Bool) {
+    init(bytes: [UInt8], overflowed: inout Bool) {
         self.init(bytes: bytes[0..<bytes.count], overflowed: &overflowed)
     }
     
-    public init(bytes: ArraySlice<UInt8>, overflowed: inout Bool) {
+    init(bytes: ArraySlice<UInt8>, overflowed: inout Bool) {
         assert(bytes.count <=  32)
         
         self.init()
@@ -142,17 +142,17 @@ extension UInt256p {
         }
     }
     
-    public init(int64 v: UInt64) {
+    init(int64 v: UInt64) {
         self.init()
         d.0 = v
     }
     
-    public init(int32 v: UInt32) {
+    init(int32 v: UInt32) {
         self.init()
         d.0 = UInt64(v)
     }
     
-    public init(int v: Int) {
+    init(int v: Int) {
         self.init()
         d.0 = UInt64(v)
     }
@@ -172,7 +172,7 @@ extension UInt256p {
         }
     }
     
-    public func serialize(bytes: inout ArraySlice<UInt8>) {
+    func serialize(bytes: inout ArraySlice<UInt8>) {
         assert(bytes.count >= 32)
         serializeWord(word: d.3, bytes: &bytes[bytes.startIndex..<bytes.startIndex+8])
         serializeWord(word: d.2, bytes: &bytes[bytes.startIndex+8..<bytes.startIndex+16])
@@ -202,7 +202,7 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public func getBits64(offset: Int, count: Int) -> UInt64 {
+    func getBits64(offset: Int, count: Int) -> UInt64 {
         assert(offset + count <= Self.wordBitWidth * Self.wordWidth)
         assert(count < Self.wordBitWidth)
         if offset >> 6 == (count + offset - 1) >> 6 {
@@ -216,24 +216,24 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public func getBits(offset: Int, count: Int) -> Int {
+    func getBits(offset: Int, count: Int) -> Int {
         assert(count < UInt32.bitWidth)
         return Int(getBits64(offset: offset, count: count))
     }
     
-    public func isZero() -> Bool {
+    func isZero() -> Bool {
         return d.0 | d.1 | d.2 | d.3 == 0
     }
     
-    public func isOne() -> Bool {
+    func isOne() -> Bool {
         return d.0 == 1 && d.1 | d.2 | d.3 == 0
     }
     
-    public func isEven() -> Bool {
+    func isEven() -> Bool {
         return d.0 & 1 == 0
     }
     
-    public mutating func clear() {
+    mutating func clear() {
         d = (0, 0, 0, 0)
     }
     
@@ -321,7 +321,7 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public mutating func sqr() {
+    mutating func sqr() {
         assert(!checkOverflow())
         
         let bits512 = sqrArray(d)
@@ -329,7 +329,7 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public mutating func mul(_ y: Self) {
+    mutating func mul(_ y: Self) {
         assert(type(of: y).p == Self.p)
         assert(!checkOverflow())
         assert(!y.checkOverflow())
@@ -360,7 +360,7 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public mutating func add(_ y: Self, carry: UInt64) {
+    mutating func add(_ y: Self, carry: UInt64) {
         assert(type(of: y).p == Self.p)
         assert(!checkOverflow())
         assert(!y.checkOverflow())
@@ -386,12 +386,12 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public mutating func add(_ y: Self) {
+    mutating func add(_ y: Self) {
         add(y, carry: 0)
     }
     
     @inline(__always)
-    public mutating func sub(_ y: Self) {
+    mutating func sub(_ y: Self) {
         assert(type(of: y).p == Self.p)
         var ny = y
         ny.negate()
@@ -399,7 +399,7 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public static func +(_ x : Self, _ y : Self) -> Self {
+    static func +(_ x : Self, _ y : Self) -> Self {
         assert(type(of: x).p == type(of: y).p)
         var r = x
         r.add(y)
@@ -407,7 +407,7 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public static func -(_ x : Self, _ y : Self) -> Self {
+    static func -(_ x : Self, _ y : Self) -> Self {
         assert(type(of: x).p == type(of: y).p)
         var r = x
         r.sub(y)
@@ -415,21 +415,21 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public static func *(_ x: Self, _ y: Self) -> Self {
+    static func *(_ x: Self, _ y: Self) -> Self {
         assert(type(of: x).p == type(of: y).p)
         var r = x
         r.mul(y)
         return r
     }
     
-    public mutating func div(_ y: Self) {
+    mutating func div(_ y: Self) {
         assert(type(of: y).p == Self.p)
         var yInv = y
         yInv.inverse()
         mul(yInv)
     }
     
-    public static func /(_ x: Self, _ y: Self) -> Self {
+    static func /(_ x: Self, _ y: Self) -> Self {
         assert(type(of: x).p == type(of: y).p)
         var r = x
         r.div(y)
@@ -437,20 +437,20 @@ extension UInt256p {
     }
     
     @inline(__always)
-    public static func neg(_ x: Self) -> Self {
+    static func neg(_ x: Self) -> Self {
         var r = x
         r.negate()
         return r
     }
     
     @inline(__always)
-    public static func sqr(_ x: Self) -> Self {
+    static func sqr(_ x: Self) -> Self {
         var r = x
         r.sqr()
         return r
     }
     
-    public static func inv(_ x: Self) -> Self {
+    static func inv(_ x: Self) -> Self {
         var r = x
         r.inverse()
         return r
@@ -458,7 +458,7 @@ extension UInt256p {
 }
 
 extension UInt256p {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
+    static func == (lhs: Self, rhs: Self) -> Bool {
         return lhs.d == rhs.d
     }
 }

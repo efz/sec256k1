@@ -1,23 +1,23 @@
-public struct Secp256k1Group {
-    public static let curvA = Secp256k1Field.zero
-    public static let curvB = Secp256k1Field(int64: 7)
-    public static let infinity = Secp256k1Group()
+struct Secp256k1Group {
+    static let curvA = Secp256k1Field.zero
+    static let curvB = Secp256k1Field(int64: 7)
+    static let infinity = Secp256k1Group()
     static let three = Secp256k1Field(int32: 3)
     static let two = Secp256k1Field(int32: 2)
     
-    public var x: Secp256k1Field
-    public var y: Secp256k1Field
-    public var z: Secp256k1Field
-    public var isInfinity: Bool
+    var x: Secp256k1Field
+    var y: Secp256k1Field
+    var z: Secp256k1Field
+    var isInfinity: Bool
     
-    public init() {
+    init() {
         x = Secp256k1Field.zero
         y = Secp256k1Field.zero
         z = Secp256k1Field.one
         isInfinity = true
     }
     
-    public init?(x: Secp256k1Field, y: Secp256k1Field) {
+    init?(x: Secp256k1Field, y: Secp256k1Field) {
         self.x = x
         self.y = y
         z = Secp256k1Field.one
@@ -27,7 +27,7 @@ public struct Secp256k1Group {
         }
     }
     
-    public init?(x: Secp256k1Field, y: Secp256k1Field, z: Secp256k1Field) {
+    init?(x: Secp256k1Field, y: Secp256k1Field, z: Secp256k1Field) {
         self.x = x
         self.y = y
         self.z = z
@@ -37,7 +37,7 @@ public struct Secp256k1Group {
         }
     }
     
-    public init?(x: Secp256k1Field) {
+    init?(x: Secp256k1Field) {
         self.x = x
         z = Secp256k1Field.one
         isInfinity = false
@@ -48,7 +48,7 @@ public struct Secp256k1Group {
         }
     }
     
-    public init?(x: Secp256k1Field, odd: Bool) {
+    init?(x: Secp256k1Field, odd: Bool) {
         self.x = x
         z = Secp256k1Field.one
         isInfinity = false
@@ -62,7 +62,7 @@ public struct Secp256k1Group {
         }
     }
     
-    public init?(bytes: ArraySlice<UInt8>) {
+    init?(bytes: ArraySlice<UInt8>) {
         assert(bytes.count >= 32)
         
         var overflowed = false
@@ -84,7 +84,7 @@ public struct Secp256k1Group {
         }
     }
     
-    public init?(bytes: ArraySlice<UInt8>, odd: Bool? = nil) {
+    init?(bytes: ArraySlice<UInt8>, odd: Bool? = nil) {
         self.init(bytes: bytes)
         if odd != nil && !odd! != y.isEven() {
             if bytes.count >= 64 {
@@ -94,7 +94,7 @@ public struct Secp256k1Group {
         }
     }
     
-    public func serialize(bytes: inout ArraySlice<UInt8>) {
+    func serialize(bytes: inout ArraySlice<UInt8>) {
         assert(bytes.count >= 32)
         assert(isNormalized() && isValid() && !isInfinity)
         
@@ -110,7 +110,7 @@ public struct Secp256k1Group {
         return yExists ? computedY : nil
     }
     
-    public func isValid() -> Bool {
+    func isValid() -> Bool {
         assert(z.isOne())
         
         if isInfinity {
@@ -124,15 +124,15 @@ public struct Secp256k1Group {
         return true
     }
     
-    public func isNormalized() -> Bool {
+    func isNormalized() -> Bool {
         return z.isOne()
     }
     
-    public func isOdd() -> Bool {
+    func isOdd() -> Bool {
         return !y.isEven()
     }
     
-    public func isValidJ() -> Bool {
+    func isValidJ() -> Bool {
         if isInfinity {
             return true
         }
@@ -147,7 +147,7 @@ public struct Secp256k1Group {
         return true
     }
     
-    public mutating func add(_ b: Secp256k1Group) {
+    mutating func add(_ b: Secp256k1Group) {
         assert(z.isOne() && b.z.isOne())
         assert(isValid() && b.isValid())
         assert(self != b) // double?
@@ -179,13 +179,13 @@ public struct Secp256k1Group {
         assert(isValid())
     }
     
-    public static func normalizeJ(_ a: Secp256k1Group) -> Secp256k1Group {
+    static func normalizeJ(_ a: Secp256k1Group) -> Secp256k1Group {
         var r: Secp256k1Group = a
         r.normalizeJ()
         return r
     }
     
-    public mutating func normalizeJ() {
+    mutating func normalizeJ() {
         let zInv = Secp256k1Field.inv(z)
         let zInv2 = Secp256k1Field.sqr(zInv)
         let zInv3 = zInv2 * zInv
@@ -194,7 +194,7 @@ public struct Secp256k1Group {
         y = y  * zInv3
     }
     
-    public mutating func addJ(_ b: Secp256k1Group) {
+    mutating func addJ(_ b: Secp256k1Group) {
         assert(isValidJ() && b.isValidJ())
         //assert(Secp256k1Group.normalizeJ(self) != Secp256k1Group.normalizeJ(b)) // double?
         
@@ -238,7 +238,7 @@ public struct Secp256k1Group {
         y.negate()
     }
     
-    public mutating func addAffine2J(_ b: Secp256k1Group) {
+    mutating func addAffine2J(_ b: Secp256k1Group) {
         assert(isValidJ() && b.isValid())
         //assert(Secp256k1Group.normalizeJ(self) != b) // double?
         
@@ -280,7 +280,7 @@ public struct Secp256k1Group {
         y.negate()
     }
     
-    public mutating func double() {
+    mutating func double() {
         assert(z.isOne())
         assert(isValid())
         
@@ -309,7 +309,7 @@ public struct Secp256k1Group {
         assert(isValid())
     }
     
-    public mutating func doubleJ() {
+    mutating func doubleJ() {
         assert(isValidJ())
         
         guard !isInfinity else {
@@ -334,7 +334,7 @@ public struct Secp256k1Group {
         y.negate()
     }
     
-    public mutating func reflect() {
+    mutating func reflect() {
         assert(isValid())
         guard !isInfinity else {
             return
@@ -342,7 +342,7 @@ public struct Secp256k1Group {
         y.negate()
     }
     
-    public func isSame(scalarX: Secp256k1Scalar) -> Bool {
+    func isSame(scalarX: Secp256k1Scalar) -> Bool {
         var overflow = false
         let scalarX_f = Secp256k1Field(bits64x4: scalarX.d, overflowed: &overflow)
         assert(!overflow)
@@ -360,7 +360,7 @@ public struct Secp256k1Group {
 
 
 extension Secp256k1Group: Equatable {
-    public static func == (lhs: Secp256k1Group, rhs: Secp256k1Group) -> Bool {
+    static func == (lhs: Secp256k1Group, rhs: Secp256k1Group) -> Bool {
         assert(lhs.z.isOne() && rhs.z.isOne())
         return lhs.x == rhs.x && lhs.y == rhs.y && lhs.isInfinity == rhs.isInfinity
     }

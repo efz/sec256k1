@@ -15,7 +15,10 @@ public struct Secp256k1Ecdsa {
     }
     
     public init?(bytes64: [UInt8]) {
-        assert(bytes64.count >= 64)
+        guard bytes64.count >= 64 else {
+            return nil
+        }
+        
         var overflow = false
         sigR = Secp256k1Scalar(bytes: bytes64[0..<32], overflowed: &overflow)
         if overflow || sigR.isZero() {
@@ -137,9 +140,14 @@ struct Secp256k1KeyGenerator {
         return genPrivateKeyWithBytes().0
     }
     
-    mutating func genScalar() -> Secp256k1Scalar {
+    mutating func genBytes32() -> [UInt8] {
         var bytes = [UInt8](repeating: 0, count: 32)
         nonceGenerator.genNonce(bytes32: &bytes)
+        return bytes
+    }
+    
+    mutating func genScalar() -> Secp256k1Scalar {
+        let bytes = genBytes32()
         
         var overflow = false
         var scalar = Secp256k1Scalar.zero
