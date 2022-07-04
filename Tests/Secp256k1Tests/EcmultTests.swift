@@ -4,7 +4,7 @@ import XCTest
 class EcmultTests: XCTestCase {
     
     func testPositiveConstsRandomPoint() {
-        for _ in 0..<64 {
+        for _ in 0..<TestUtils.randTestCount {
             let ecmult = Secp256k1Ecmult()
             var p = GroupTests.randGroup()
             p.normalizeJ()
@@ -28,7 +28,7 @@ class EcmultTests: XCTestCase {
     }
     
     func testNegativeConstsWithRandomPoint() {
-        for _ in 0..<64 {
+        for _ in 0..<TestUtils.randTestCount {
             let ecmult = Secp256k1Ecmult()
             var p = GroupTests.randGroup()
             p.normalizeJ()
@@ -158,7 +158,7 @@ class EcmultTests: XCTestCase {
     }
     
     func testCommutativity() {
-        for _ in 0..<64 {
+        for _ in 0..<TestUtils.randTestCount {
             let ecmult = Secp256k1Ecmult()
             let a = ScalarTests.randScalar()
             let b = ScalarTests.randScalar()

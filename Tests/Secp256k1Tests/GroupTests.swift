@@ -337,7 +337,7 @@ class GroupTests: XCTestCase {
     }
     
     func testGroupOpsJ() {
-        for _ in 0..<200 {
+        for _ in 0..<TestUtils.randTestCount*4 {
             let g1 = Self.randGroup()
             XCTAssertTrue(g1.isValidJ())
             XCTAssertFalse(g1.isInfinity)
@@ -461,7 +461,7 @@ class GroupTests: XCTestCase {
     
     func testGroupDecompress() {
         var goodCount = 0
-        for _ in 0..<64*4 {
+        for _ in 0..<TestUtils.randTestCount*4 {
             let x = FieldTests.randField()
             
             let yAny = Secp256k1Group(x: x)

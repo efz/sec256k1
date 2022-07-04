@@ -71,7 +71,7 @@ public struct Secp256k1Ecdsa {
         normalize()
     }
     
-    public func validate(message: Secp256k1Message, publicKey: Secp256k1PublicKey) -> Bool {
+    public func verify(message: Secp256k1Message, publicKey: Secp256k1PublicKey) -> Bool {
         let w = Secp256k1Scalar.inv(sigS)
         let u1 = message.s * w
         let u2 = sigR * w
@@ -181,7 +181,7 @@ public struct Secp256k1Message {
         return signature
     }
     
-    public func validate(signature: Secp256k1Ecdsa, publicKey: Secp256k1PublicKey) -> Bool {
-        return signature.validate(message: self, publicKey: publicKey)
+    public func verify(signature: Secp256k1Ecdsa, publicKey: Secp256k1PublicKey) -> Bool {
+        return signature.verify(message: self, publicKey: publicKey)
     }
 }

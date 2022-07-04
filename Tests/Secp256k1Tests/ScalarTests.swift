@@ -752,7 +752,7 @@ final class ScalarTests: XCTestCase {
     }
     
     func testRandScalar() {
-        for _ in 0..<2048 {
+        for _ in 0..<4 * TestUtils.randTestCount {
             randTestScalar()
         }
         
@@ -808,7 +808,7 @@ final class ScalarTests: XCTestCase {
     }
     
     func testBitsGet() {
-        for _ in 0..<64 {
+        for _ in 0..<TestUtils.randTestCount {
             let s = Self.randScalar()
             var bitx = s.getBits(offset: 0, count: 7)
             var bity = Int(s.d.0 & 0x7F)

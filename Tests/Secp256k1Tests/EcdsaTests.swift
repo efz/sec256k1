@@ -5,7 +5,7 @@ class EcdsaKeyTests: XCTestCase {
     var randp = Secp256k1KeyGenerator()
     
     func testSignVerify() {
-        for _ in 0..<100 {
+        for _ in 0..<TestUtils.randTestCount*2 {
             let message = randp.genMessage()
             let privKey = randp.genPrivateKey()
             let pubKey = privKey.pubKey!
@@ -16,10 +16,10 @@ class EcdsaKeyTests: XCTestCase {
                 signature = Secp256k1Ecdsa(message: message, nonce: nonce, privateKey: privKey)
             }
             
-            let isValid = signature?.validate(message: message, publicKey: pubKey)
+            let isValid = signature?.verify(message: message, publicKey: pubKey)
             XCTAssertTrue(isValid!)
             let wrongMessage = Secp256k1Message(s:message.s + Secp256k1Scalar.one)
-            let isWrongMessageValid = signature?.validate(message: wrongMessage, publicKey: pubKey)
+            let isWrongMessageValid = signature?.verify(message: wrongMessage, publicKey: pubKey)
             XCTAssertFalse(isWrongMessageValid!)
         }
     }
@@ -27,7 +27,7 @@ class EcdsaKeyTests: XCTestCase {
     func testEcdsaEnd2End() {
         var bytes = [UInt8](repeating: 0, count: 65)
         let noneGenerator = Secp256k1DefaultNonceGenerator()
-        for _ in 0..<100 {
+        for _ in 0..<TestUtils.randTestCount*2 {
             let message = randp.genMessage()
             var privKey = randp.genPrivateKey()
             
@@ -68,7 +68,7 @@ class EcdsaKeyTests: XCTestCase {
             
             /* Sign & Verify */
             let signature: Secp256k1Ecdsa = message.sign(privateKey: privKey, nonceGenerator: noneGenerator)!
-            let isValid = signature.validate(message: message, publicKey: pubKey)
+            let isValid = signature.verify(message: message, publicKey: pubKey)
             XCTAssertTrue(isValid)
             
             /* serialize and verify */
@@ -76,7 +76,7 @@ class EcdsaKeyTests: XCTestCase {
             signature.serialize(bytes: &bytes)
             XCTAssertEqual(bytes[64], 0)
             let signature2 = Secp256k1Ecdsa(bytes64: bytes)
-            let isValidAfterSerialized = signature2!.validate(message: message, publicKey: pubKey)
+            let isValidAfterSerialized = signature2!.verify(message: message, publicKey: pubKey)
             XCTAssertTrue(isValidAfterSerialized)
         }
     }
@@ -126,11 +126,11 @@ class EcdsaKeyTests: XCTestCase {
         
         let sig3 = message.sign(privateKey: privKey, nonceGenerator: CodedNonceGenerator(nonce: nonce), maxAttemts: 1)
         XCTAssertNotNil(sig3)
-        XCTAssertTrue(sig3!.validate(message: message, publicKey: pubKey))
+        XCTAssertTrue(sig3!.verify(message: message, publicKey: pubKey))
         
         let sig4 = message.sign(privateKey: privKey, nonceGenerator: CodedNonceGenerator(nonce: nonce2), maxAttemts: 1)
         XCTAssertNotNil(sig4)
-        XCTAssertTrue(sig4!.validate(message: message, publicKey: pubKey))
+        XCTAssertTrue(sig4!.verify(message: message, publicKey: pubKey))
     }
     
     func testInvalidSigDeserialize() {
@@ -161,19 +161,19 @@ class EcdsaKeyTests: XCTestCase {
         let pubKey = Secp256k1PublicKey(bytes: pubKeyBytes)!
         let signature1 = Secp256k1Ecdsa(r: sr, s: ss)
         XCTAssertTrue(signature1!.isNormalized())
-        let valid = signature1!.validate(message: message, publicKey: pubKey)
+        let valid = signature1!.verify(message: message, publicKey: pubKey)
         XCTAssertTrue(valid)
         
         let ss2 = Secp256k1Scalar.neg(ss)
         let signature2 = Secp256k1Ecdsa(r: sr, s: ss2)
         XCTAssertFalse(signature2!.isNormalized())
-        let valid2 = signature2!.validate(message: message, publicKey: pubKey)
+        let valid2 = signature2!.verify(message: message, publicKey: pubKey)
         XCTAssertTrue(valid2)
         
         let ss3 = Secp256k1Scalar.neg(Secp256k1Scalar(int: 3))
         let signature3 = Secp256k1Ecdsa(r: sr, s: ss3)
         XCTAssertFalse(signature2!.isNormalized())
-        let valid3 = signature3!.validate(message: message, publicKey: pubKey)
+        let valid3 = signature3!.verify(message: message, publicKey: pubKey)
         XCTAssertFalse(valid3)
     }
     
@@ -206,25 +206,25 @@ class EcdsaKeyTests: XCTestCase {
         
         let signature1 = Secp256k1Ecdsa(r: sr, s: ss)
         XCTAssertTrue(signature1!.isNormalized())
-        let valid = signature1!.validate(message: message, publicKey: pubKey)
+        let valid = signature1!.verify(message: message, publicKey: pubKey)
         XCTAssertTrue(valid)
-        let valid2 = signature1!.validate(message: message, publicKey: pubKey2)
+        let valid2 = signature1!.verify(message: message, publicKey: pubKey2)
         XCTAssertTrue(valid2)
         
         let ss2 = Secp256k1Scalar.neg(ss)
         let signature2 = Secp256k1Ecdsa(r: sr, s: ss2)
         XCTAssertFalse(signature2!.isNormalized())
-        let valid3 = signature2!.validate(message: message, publicKey: pubKey)
+        let valid3 = signature2!.verify(message: message, publicKey: pubKey)
         XCTAssertTrue(valid3)
-        let valid4 = signature2!.validate(message: message, publicKey: pubKey2)
+        let valid4 = signature2!.verify(message: message, publicKey: pubKey2)
         XCTAssertTrue(valid4)
         
         let ss3 = Secp256k1Scalar.neg(Secp256k1Scalar(int: 2))
         let signature3 = Secp256k1Ecdsa(r: sr, s: ss3)
         XCTAssertFalse(signature3!.isNormalized())
-        let valid5 = signature3!.validate(message: message, publicKey: pubKey)
+        let valid5 = signature3!.verify(message: message, publicKey: pubKey)
         XCTAssertFalse(valid5)
-        let valid6 = signature3!.validate(message: message, publicKey: pubKey2)
+        let valid6 = signature3!.verify(message: message, publicKey: pubKey2)
         XCTAssertFalse(valid6)
     }
     
@@ -251,25 +251,25 @@ class EcdsaKeyTests: XCTestCase {
         
         let signature1 = Secp256k1Ecdsa(r: sr, s: ss)
         XCTAssertTrue(signature1!.isNormalized())
-        let valid = signature1!.validate(message: message, publicKey: pubKey)
+        let valid = signature1!.verify(message: message, publicKey: pubKey)
         XCTAssertTrue(valid)
-        let valid2 = signature1!.validate(message: message, publicKey: pubKey2)
+        let valid2 = signature1!.verify(message: message, publicKey: pubKey2)
         XCTAssertTrue(valid2)
         
         let ss2 = Secp256k1Scalar.neg(ss)
         let signature2 = Secp256k1Ecdsa(r: sr, s: ss2)
         XCTAssertFalse(signature2!.isNormalized())
-        let valid3 = signature2!.validate(message: message, publicKey: pubKey)
+        let valid3 = signature2!.verify(message: message, publicKey: pubKey)
         XCTAssertTrue(valid3)
-        let valid4 = signature2!.validate(message: message, publicKey: pubKey2)
+        let valid4 = signature2!.verify(message: message, publicKey: pubKey2)
         XCTAssertTrue(valid4)
         
         let ss3 = Secp256k1Scalar.one
         let signature3 = Secp256k1Ecdsa(r: sr, s: ss3)
         XCTAssertTrue(signature3!.isNormalized())
-        let valid5 = signature3!.validate(message: message, publicKey: pubKey)
+        let valid5 = signature3!.verify(message: message, publicKey: pubKey)
         XCTAssertFalse(valid5)
-        let valid6 = signature3!.validate(message: message, publicKey: pubKey2)
+        let valid6 = signature3!.verify(message: message, publicKey: pubKey2)
         XCTAssertFalse(valid6)
     }
     
@@ -283,7 +283,7 @@ class EcdsaKeyTests: XCTestCase {
         let message = Secp256k1Message(s: ss)
         
         let signature = Secp256k1Ecdsa(r: sr, s: ss)
-        let valid = signature!.validate(message: message, publicKey: pubKey)
+        let valid = signature!.verify(message: message, publicKey: pubKey)
         XCTAssertFalse(valid)
     }
 }

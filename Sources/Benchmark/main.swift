@@ -365,7 +365,7 @@ func bench_verify() {
         
         let pubKey2 = Secp256k1PublicKey(bytes: pubKeyBytes)!
         let signature2 = Secp256k1Ecdsa(bytes64: sigBytes)
-        let isValid = signature2!.validate(message: message, publicKey: pubKey2)
+        let isValid = signature2!.verify(message: message, publicKey: pubKey2)
         assert(isValid == (i == 0))
         
         sigBytes[sigBytes.count - 1] = sigBytes[sigBytes.count - 1] ^ UInt8(i & 0xFF)
