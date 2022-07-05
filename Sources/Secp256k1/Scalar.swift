@@ -10,7 +10,7 @@ struct Secp256k1Scalar: UInt256p {
     static let pMinus2 : Bits64x4 = (0xBFD25E8CD036413F, 0xBAAEDCE6AF48A03B, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF)
     static let pComp: Bits64x3 = (~p.0 + 1, ~p.1, ~p.2)
     static let pCompLeadingZeros = 127
-    static let pHalf = (p.3 >> 1, p.3 << 63 | p.2 >> 1, p.2 << 63 | p.1 >> 1, p.1 << 63 | p.0 >> 1)
+    static let pHalf = (p.1 << 63 | p.0 >> 1, p.2 << 63 | p.1 >> 1 ,p.3 << 63 | p.2 >> 1 ,p.3 >> 1)
     
     static let zero = Secp256k1Scalar()
     static let one = Secp256k1Scalar(int32: 1)
