@@ -389,12 +389,18 @@ class EcdsaKeyTests: XCTestCase {
             XCTAssertEqual(privKey.pubKey, pubKey)
             
             let signature = Secp256k1Ecdsa(message: msg, nonce: nonce, privateKey: privKey)
+            XCTAssertTrue(signature!.isNormalized())
             XCTAssertNotNil(signature)
             XCTAssertEqual(signature!.sigR, sigR)
             XCTAssertEqual(signature!.sigS, sigS)
             
             let verified = signature!.verify(message: msg, publicKey: pubKey)
             XCTAssertTrue(verified)
+            
+            let signatureNotNormalized = Secp256k1Ecdsa(r: sigR, s: Secp256k1Scalar.neg(sigS))
+            XCTAssertFalse(signatureNotNormalized!.isNormalized())
+            let verifiedNotNormalized = signatureNotNormalized!.verify(message: msg, publicKey: pubKey)
+            XCTAssertTrue(verifiedNotNormalized)
         }
     }
 }
