@@ -1,4 +1,10 @@
+/**
+ Secpt256k1 ECDSA signature.
+ */
 public struct Secp256k1Ecdsa {
+    /**
+     Maximum number of nonces to try before giving up on creating ECDSA signature.
+     */
     public static let defaultMaxSignAttempts = 100
     static let ecmult = Secp256k1Ecmult()
     
@@ -13,7 +19,13 @@ public struct Secp256k1Ecdsa {
         sigR = r
         sigS = s
     }
-    
+    /**
+     Deserialize ECDSA signature.
+     - parameters bytes64: Array of 64 bytes or longer with previously serialized ECDSA signature.
+     Bytes 0 to 32 should contain R componet of ECDSA signature as big endian 256 bit integer.
+     Bytes 32 to 64 should contain S componet of ECDSA signature as big endian 256 bit integer.
+     - warning: This will not convert none-lower S form signature to lower S form. Call ``normalize()`` to convert none-lower S form signature to lower S form.
+     */
     public init?(bytes64: [UInt8]) {
         guard bytes64.count >= 64 else {
             return nil
@@ -30,16 +42,27 @@ public struct Secp256k1Ecdsa {
         }
     }
     
+    /**
+     Checks if ECDSA signature is in lower S form.
+     - returns: True if signature is in lower S form, False otherwise.
+     */
     public func isNormalized() -> Bool {
         return !sigS.isHigherThanHalfP()
     }
-    
+    /**
+     Converts ECDSA signature to lower S form. Does nothing if signature is already in lower S form.
+     */
     public mutating func normalize() {
         if sigS.isHigherThanHalfP() {
             sigS.negate()
         }
     }
-    
+    /**
+     Serialize message signature into the provided byte array.
+     - parameters bytes64: 64 byte or longer array to store serialized message signature.
+     Bytes 0 to 32  stores R component of ECDSA signature as big endian 256 bit ineteger.
+     Bytes 32 to 64 stores S component of the ECDSA signature as big endian 256 bit ineteger.
+     */
     public func serialize(bytes64: inout [UInt8]) throws {
         guard bytes64.count >= 64 else {
             throw Secp256k1Error("Output less than 64 bytes")
@@ -76,6 +99,9 @@ public struct Secp256k1Ecdsa {
         normalize()
     }
     
+    /**
+     Verifies ECDSA signature of the message. This method is identical to ``Secp256k1Message/verify(signature:publicKey:)``.
+     */
     public func verify(message: Secp256k1Message, publicKey: Secp256k1PublicKey) -> Bool {
         let w = Secp256k1Scalar.inv(sigS)
         let u1 = message.s * w
@@ -90,6 +116,10 @@ public struct Secp256k1Ecdsa {
 }
 
 public protocol Secp256k1NonceGenerator {
+    /**
+     Generate 32 byte nonce.
+     - parameter bytes32: Exatly 32 bytes long array to be fill with nonce.
+     */
     mutating func genNonce(bytes32: inout [UInt8])
 }
 
@@ -163,6 +193,9 @@ struct Secp256k1KeyGenerator {
     }
 }
 
+/**
+ Message for ECDSA signature creation or verification.
+ */
 public struct Secp256k1Message {
     let s: Secp256k1Scalar
     
@@ -170,15 +203,30 @@ public struct Secp256k1Message {
         self.s = s
     }
     
+    /**
+     Create a message instance for generating ECDA signature or verifying ECDA signature.
+     - parameter bytes32: 32 byte message hash as a big endian 256 bit integer.
+     - returns: Fails to create an instance if passed array is not extactly 32 bytes.
+     */
     public init?(bytes32: [UInt8]) {
-        guard bytes32.count >= 32 else {
+        guard bytes32.count == 32 else {
             return nil
         }
-        
         var overflow = false
         s = Secp256k1Scalar(bytes: bytes32, overflowed: &overflow)
     }
     
+    /**
+     Create ECDSA signature of the message with default nonce generator.
+     */
+    public func sign(privateKey: Secp256k1PrivateKey) -> Secp256k1Ecdsa? {
+        let nonceGenerator = Secp256k1DefaultNonceGenerator()
+        return sign(privateKey: privateKey, nonceGenerator: nonceGenerator)
+    }
+    
+    /**
+     Create ECDSA signature of the message.
+     */
     public func sign(privateKey: Secp256k1PrivateKey, nonceGenerator: Secp256k1NonceGenerator, maxAttemts: Int = Secp256k1Ecdsa.defaultMaxSignAttempts) -> Secp256k1Ecdsa? {
         var signature: Secp256k1Ecdsa? = nil
         var keyGenerator = Secp256k1KeyGenerator(nonceGenerator)
@@ -191,6 +239,9 @@ public struct Secp256k1Message {
         return signature
     }
     
+    /**
+     Verifies ECDSA signature of the message. This method is identical to ``Secp256k1Ecdsa/verify(message:publicKey:)``.
+     */
     public func verify(signature: Secp256k1Ecdsa, publicKey: Secp256k1PublicKey) -> Bool {
         return signature.verify(message: self, publicKey: publicKey)
     }
