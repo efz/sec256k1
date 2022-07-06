@@ -6,7 +6,6 @@ public struct Secp256k1Ecdsa {
      Maximum number of nonces to try before giving up on creating ECDSA signature.
      */
     public static let defaultMaxSignAttempts = 100
-    static let ecmult = Secp256k1Ecmult()
     
     var sigR: Secp256k1Scalar
     var sigS: Secp256k1Scalar
@@ -74,7 +73,7 @@ public struct Secp256k1Ecdsa {
     init?(message: Secp256k1Message, nonce: Secp256k1Scalar, privateKey: Secp256k1PrivateKey) {
         assert(!nonce.isZero())
         
-        var rg = Self.ecmult.gen(gn: nonce)
+        var rg = Secp256k1Ecmult.instance.gen(gn: nonce)
         if rg.isInfinity || !rg.isValidJ() {
             return nil
         }
@@ -107,7 +106,7 @@ public struct Secp256k1Ecdsa {
         let u1 = message.s * w
         let u2 = sigR * w
         
-        let xy =  Secp256k1Ecdsa.ecmult.gen(point: publicKey.pubKey, pn: u2, gn: u1)
+        let xy = Secp256k1Ecmult.instance.gen(point: publicKey.pubKey, pn: u2, gn: u1)
         if xy.isInfinity {
             return false
         }

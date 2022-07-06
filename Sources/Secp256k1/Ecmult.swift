@@ -1,4 +1,6 @@
 struct Secp256k1Ecmult {
+    static let instance = Secp256k1Ecmult()
+    
     static let g = Secp256k1Group(
         x: Secp256k1Field(words64: [0x59F2815B_16F81798, 0x029BFCDB_2DCE28D9, 0x55A06295_CE870B07, 0x79BE667E_F9DCBBAC]),
         y: Secp256k1Field(words64: [0x9C47D08F_FB10D4B8, 0xFD17B448_A6855419, 0x5DA4FBFC_0E1108A8, 0x483ADA77_26A3C465]))!
@@ -181,21 +183,13 @@ struct Secp256k1Ecmult {
                 lastPResAddFunc()
             }
             lastPRes.doubleJ()
-            if pn.getBits(offset: 1, count: 1) == 1 {
-                lastPResAddFunc()
-            }
-            lastPRes.doubleJ()
-            if pn.getBits(offset: 0, count: 1) == 1 {
-                lastPResAddFunc()
-            }
+            fallthrough
         case 2:
             if pn.getBits(offset: 1, count: 1) == 1 {
                 lastPResAddFunc()
             }
             lastPRes.doubleJ()
-            if pn.getBits(offset: 0, count: 1) == 1 {
-                lastPResAddFunc()
-            }
+            fallthrough
         case 1:
             if pn.getBits(offset: 0, count: 1) == 1 {
                 lastPResAddFunc()

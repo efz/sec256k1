@@ -80,12 +80,10 @@ public struct Secp256k1PrivateKey: Equatable {
  Sec256k1 public key for verifying signatures.
  */
 public struct Secp256k1PublicKey: Equatable {
-    static let ecmult = Secp256k1Ecmult()
-    
     var pubKey: Secp256k1Group
     
     init?(privKey: Secp256k1PrivateKey) {
-        var tmp = Secp256k1PublicKey.ecmult.gen(gn: privKey.privKey)
+        var tmp = Secp256k1Ecmult.instance.gen(gn: privKey.privKey)
         guard !tmp.isInfinity else {
             return nil
         }
@@ -166,7 +164,7 @@ public struct Secp256k1PublicKey: Equatable {
      Add the given tweak to public key.
      */
     public mutating func tweakAdd(tweak: Secp256k1Tweak) throws {
-        var r = Secp256k1PublicKey.ecmult.gen(point: pubKey, gn: tweak.s)
+        var r = Secp256k1Ecmult.instance.gen(point: pubKey, gn: tweak.s)
         if (!r.isValidJ() || r.isInfinity) {
             throw Secp256k1Error("Invalid key after tweak")
         }
@@ -179,7 +177,7 @@ public struct Secp256k1PublicKey: Equatable {
      Multiplies the public key by the given tweak.
      */
     public mutating func tweakMul(tweak: Secp256k1Tweak) throws {
-        var r = Secp256k1PublicKey.ecmult.gen(point: pubKey, pn: tweak.s)
+        var r = Secp256k1Ecmult.instance.gen(point: pubKey, pn: tweak.s)
         if (!r.isValidJ() || r.isInfinity) {
             throw Secp256k1Error("Invalid key after tweak")
         }
