@@ -4,6 +4,9 @@ Based on Sec256k1 library included dodge coin core [https://github.com/dogecoin/
 
 ## No considerations given to security aspects.
 
+Couple of slides on implementation,
+[Sec256k1.pdf](Sec256k1.pdf)
+
 Supports,
 - Sec256k1 private key and public key generation/tweaking.
 - Sec256k1 ECDSA sigining and verification.
